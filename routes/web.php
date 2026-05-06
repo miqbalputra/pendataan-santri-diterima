@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PendaftaranController::class, 'index']);
 Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
 Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
+Route::get('/pendaftaran/sukses', function () {
+    return view('sukses');
+})->name('pendaftaran.sukses');
 Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->name('upload_ocr');
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->name('pendaftaran.cetak');
 

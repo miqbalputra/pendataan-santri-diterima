@@ -80,7 +80,7 @@ class PendaftaranController extends Controller
             // Log error jika n8n gagal
         }
 
-        return response()->json(['message' => 'Alhamdulillah, data pendaftaran telah kami terima!']);
+        return redirect('/pendaftaran/sukses')->with('nama_santri', $santri->nama_lengkap);
     }
 
     public function uploadOcr(Request $request) {
