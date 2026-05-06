@@ -79,31 +79,6 @@
     </style>
 
     <script>
-        function updateProgress() {
-            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-            let filledCount = 0;
-            let totalCount = requiredInputs.length + 1;
-            
-            if (typeof signaturePad !== 'undefined' && !signaturePad.isEmpty()) filledCount++;
-
-            requiredInputs.forEach(input => {
-                if (input.type === 'checkbox') { if (input.checked) filledCount++; }
-                else if (input.type === 'file') { if (input.files && input.files.length > 0) filledCount++; }
-                else { if (input.value.trim() !== '') filledCount++; }
-            });
-
-            const percentage = Math.round((filledCount / totalCount) * 100);
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressContainer = document.getElementById('progress-container');
-
-            if (progressBar) progressBar.style.width = percentage + '%';
-            if (progressText) progressText.innerText = percentage + '%';
-            if (progressContainer) {
-                // Progress is always visible now
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.format-rupiah').forEach(input => {
                 input.addEventListener('keyup', function(e) {
@@ -603,9 +578,9 @@
 
             <!-- Submit Button -->
             <div class="pt-6">
-                <button type="submit" id="btn-submit" class="w-full bg-slate-200 text-slate-400 py-5 rounded-[1.5rem] font-black text-xl transition-all duration-500 cursor-not-allowed border-2 border-slate-300 shadow-xl overflow-hidden relative group" disabled>
+                <button type="submit" id="btn-submit" class="w-full bg-slate-200 text-slate-400 py-5 rounded-[1.5rem] font-black text-xl transition-all duration-500 cursor-not-allowed border-2 border-slate-300 shadow-xl overflow-hidden relative group">
                     <span class="relative z-10" id="btn-text">Mohon Upload Dokumen Terlebih Dahulu</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 opacity-0 group-enabled:opacity-100 transition-opacity duration-500"></div>
+                    <div id="btn-bg-gradient" class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 opacity-0 transition-opacity duration-500"></div>
                 </button>
             </div>
         </form>
@@ -994,27 +969,18 @@
 
         function unlockStep2() {
             const step2 = document.getElementById('step-2');
-            step2.classList.remove('opacity-40', 'pointer-events-none');
-            
-            document.getElementById('badge-2').classList.replace('bg-white', 'bg-emerald-400');
-            document.getElementById('badge-2').classList.replace('text-indigo-700', 'text-white');
+            if (step2) {
+                step2.classList.remove('opacity-40', 'pointer-events-none');
+            }
             
             const status = document.getElementById('status-step-2');
-            status.innerText = "Form Siap Diisi";
-            status.classList.replace('bg-indigo-900/50', 'bg-emerald-500');
-            status.classList.replace('text-indigo-100', 'text-white');
-            status.classList.replace('border-indigo-500/30', 'border-emerald-400');
+            if (status) {
+                status.innerText = "Form Siap Diisi";
+                status.classList.remove('bg-slate-100', 'text-slate-500', 'border-slate-200');
+                status.classList.add('bg-emerald-500', 'text-white', 'border-emerald-400');
+            }
 
             setTimeout(resizeCanvas, 300); // Fix canvas size when wrapper becomes visible
-            
-            const btn = document.getElementById('btn-submit');
-            btn.disabled = false;
-            btn.innerText = "Kirim Pendataan Sekarang";
-            btn.classList.replace('bg-slate-200', 'bg-emerald-600');
-            btn.classList.replace('text-slate-400', 'text-white');
-            btn.classList.replace('border-slate-300', 'border-emerald-700');
-            btn.classList.add('hover:bg-emerald-700', 'shadow-xl', 'shadow-emerald-500/30');
-            btn.classList.remove('cursor-not-allowed');
         }
 
         let validFilesCount = 0;
@@ -1127,15 +1093,115 @@
         document.getElementById('form-pendaftaran').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            if (signaturePad.isEmpty()) {
+            // Check for empty required fields
+            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+            const emptyFields = [];
+
+            requiredInputs.forEach(input => {
+                let isEmpty = false;
+                if (input.type === 'checkbox') {
+                    if (!input.checked) isEmpty = true;
+                } else if (input.type === 'file') {
+                    if (!input.files || input.files.length === 0) isEmpty = true;
+                } else {
+                    if (input.value.trim() === '') isEmpty = true;
+                }
+
+                if (isEmpty) {
+                    let sectionName = "Formulir";
+                    const card = input.closest('.glass-card, .bg-white, .bg-slate-800');
+                    if (card) {
+                        const heading = card.querySelector('h2, h3');
+                        if (heading) {
+                            sectionName = heading.textContent.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
+                        }
+                    }
+                    
+                    let labelText = "";
+                    if (input.type === 'file') {
+                        if (input.name === 'foto_akta_anak') labelText = 'Dokumen Akta Anak';
+                        else if (input.name === 'foto_kk') labelText = 'Dokumen Kartu Keluarga';
+                        else if (input.name === 'foto_ktp_ayah') labelText = 'Dokumen KTP Ayah';
+                        else if (input.name === 'foto_ktp_ibu') labelText = 'Dokumen KTP Ibu';
+                        else if (input.name === 'foto_pas_siswa') labelText = 'Pas Foto Anak 3x4';
+                        else labelText = 'Dokumen Pendukung';
+                    } else {
+                        const labelEl = input.closest('div')?.querySelector('label, .form-label');
+                        if (labelEl) {
+                            labelText = labelEl.textContent.replace('*', '').trim();
+                        } else {
+                            labelText = input.placeholder || input.name || "Kolom Wajib";
+                        }
+                    }
+
+                    emptyFields.push({
+                        element: input,
+                        section: sectionName,
+                        label: labelText
+                    });
+                }
+            });
+
+            const isSignatureEmpty = typeof signaturePad === 'undefined' || signaturePad.isEmpty();
+
+            if (emptyFields.length > 0 || isSignatureEmpty) {
+                // Group empty fields by section
+                const grouped = {};
+                emptyFields.forEach(field => {
+                    if (!grouped[field.section]) {
+                        grouped[field.section] = [];
+                    }
+                    grouped[field.section].push(field);
+                });
+
+                if (isSignatureEmpty) {
+                    const secName = "Pernyataan Kebenaran Data";
+                    if (!grouped[secName]) grouped[secName] = [];
+                    grouped[secName].push({
+                        label: "Tanda Tangan Digital"
+                    });
+                }
+
+                // Show SweetAlert with categories
+                let htmlContent = `
+                    <div class="text-left text-sm text-slate-600 max-h-60 overflow-y-auto pr-2">
+                        <p class="mb-4 text-slate-500 font-medium">Mohon lengkapi bagian-bagian wajib berikut sebelum mengirimkan formulir:</p>
+                `;
+
+                for (const section in grouped) {
+                    htmlContent += `
+                        <div class="mb-4">
+                            <h5 class="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <span class="w-1.5 h-3 bg-rose-500 rounded-full"></span> ${section}
+                            </h5>
+                            <ul class="list-disc pl-5 space-y-1 text-xs text-rose-600 font-semibold">
+                    `;
+                    grouped[section].forEach(field => {
+                        htmlContent += `<li>${field.label}</li>`;
+                    });
+                    htmlContent += `
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                htmlContent += `</div>`;
+
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Tanda Tangan Kosong',
-                    text: 'Mohon isi Tanda Tangan Digital terlebih dahulu di bagian paling bawah form.'
+                    icon: 'warning',
+                    title: '<span class="text-lg font-black text-slate-800 uppercase tracking-tight">Formulir Belum Lengkap</span>',
+                    html: htmlContent,
+                    confirmButtonText: 'Lengkapi Sekarang',
+                    confirmButtonColor: '#ef4444',
+                    customClass: {
+                        popup: 'rounded-[2rem] border-0 shadow-2xl',
+                        confirmButton: 'rounded-xl px-6 py-3 font-bold text-sm uppercase tracking-wider'
+                    }
                 });
                 return;
             }
 
+            // If completely valid, proceed with double confirmation
             Swal.fire({
                 title: 'Konfirmasi Data',
                 html: `
@@ -1206,7 +1272,8 @@
                 }
             });
         });
-            // Script Format Rupiah
+
+        // Script Format Rupiah
         document.querySelectorAll('.format-rupiah').forEach(input => {
             input.addEventListener('keyup', function(e) {
                 let val = this.value.replace(/[^,\d]/g, '').toString();
@@ -1226,7 +1293,8 @@
                 }
             });
         });
-            // Script Format Nomor WA
+
+        // Script Format Nomor WA
         document.querySelectorAll('.format-wa').forEach(input => {
             input.addEventListener('input', function() {
                 let val = this.value.replace(/\D/g, ''); // hanya angka
@@ -1246,7 +1314,7 @@
             });
         });
     
-        // LOGIKA PROGRESS BAR
+        // LOGIKA PROGRESS BAR & TOMBOL SUBMIT
         function updateProgress() {
             const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
             let filledCount = 0;
@@ -1273,22 +1341,39 @@
             const progressContainer = document.getElementById('progress-container');
             const progressBar = document.getElementById('progress-bar');
             const progressText = document.getElementById('progress-text');
-            const progressBadge = document.getElementById('progress-badge');
 
-            // Tampilkan container jika ada progress sekecil apapun
-            if (filledCount > 0 || percentage > 0) {
+            if (progressContainer && (filledCount > 0 || percentage > 0)) {
                 progressContainer.classList.remove('-translate-y-full');
             }
 
-            progressBar.style.width = percentage + '%';
-            progressText.innerText = percentage + '%';
+            if (progressBar) progressBar.style.width = percentage + '%';
+            if (progressText) progressText.innerText = percentage + '%';
+
+            // Update Submit Button States dynamically
+            const btn = document.getElementById('btn-submit');
+            const btnText = document.getElementById('btn-text');
+            const btnBg = document.getElementById('btn-bg-gradient');
 
             if (percentage === 100) {
-                progressBadge.classList.remove('hidden');
-                progressText.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-slate-200', 'text-slate-400', 'border-slate-300', 'cursor-not-allowed');
+                    btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-700', 'hover:bg-emerald-700', 'shadow-emerald-500/30');
+                }
+                if (btnText) btnText.innerText = "Kirim Pendataan Sekarang";
+                if (btnBg) {
+                    btnBg.classList.remove('opacity-0');
+                    btnBg.classList.add('opacity-100');
+                }
             } else {
-                progressBadge.classList.add('hidden');
-                progressText.classList.remove('hidden');
+                if (btn) {
+                    btn.classList.add('bg-slate-200', 'text-slate-400', 'border-slate-300', 'cursor-not-allowed');
+                    btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-700', 'hover:bg-emerald-700', 'shadow-emerald-500/30');
+                }
+                if (btnText) btnText.innerText = `Formulir Belum Lengkap (${percentage}%)`;
+                if (btnBg) {
+                    btnBg.classList.remove('opacity-100');
+                    btnBg.classList.add('opacity-0');
+                }
             }
         }
 
