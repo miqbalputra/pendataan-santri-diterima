@@ -45,6 +45,9 @@ class PendaftaranController extends Controller
             }
         }
 
+        // Hapus field non-database sebelum mass assignment
+        unset($data['tanda_tangan_base64']);
+
         $santri = CalonSantri::create($data);
 
         ActivityLog::create([
