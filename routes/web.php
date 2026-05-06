@@ -30,4 +30,5 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::post('/periode/{id}', [AdminController::class, 'updatePeriode'])->name('admin.periode.update');
     Route::get('/periode/{id}/delete', [AdminController::class, 'deletePeriode'])->name('admin.periode.delete');
     Route::get('/export', [AdminController::class, 'exportData'])->name('admin.export');
+    Route::post('/ask-ai', [AdminController::class, 'askAi'])->name('admin.ask_ai');
 });

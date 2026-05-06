@@ -3,330 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pendaftaran Peserta Didik - Griya Qur'an</title>
-    <script src="https://cdn.tailwindcss.com">        // Script Format Rupiah
-        document.querySelectorAll('.format-rupiah').forEach(input => {
-            input.addEventListener('keyup', function(e) {
-                let val = this.value.replace(/[^,\d]/g, '').toString();
-                if (val) {
-                    let split = val.split(',');
-                    let sisa = split[0].length % 3;
-                    let rupiah = split[0].substr(0, sisa);
-                    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-                    if (ribuan) {
-                        let separator = sisa ? '.' : '';
-                        rupiah += separator + ribuan.join('.');
-                    }
-                    rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-                    this.value = 'Rp. ' + rupiah;
-                } else {
-                    this.value = '';
-                }
-            });
-        });
-            // Script Format Nomor WA
-        document.querySelectorAll('.format-wa').forEach(input => {
-            input.addEventListener('input', function() {
-                let val = this.value.replace(/\D/g, ''); // hanya angka
-                if (val.length > 0) {
-                    if (val.startsWith('8')) {
-                        val = '0' + val;
-                    } else if (val.startsWith('628')) {
-                        val = '08' + val.substring(3);
-                    } else if (val.startsWith('0') && !val.startsWith('08') && val.length > 1) {
-                        // jika mulai 0 tapi bukan 08, ubah paksa ke 08 (asumsi typo)
-                        val = '08' + val.substring(2);
-                    } else if (!val.startsWith('0') && !val.startsWith('8') && !val.startsWith('6')) {
-                        val = '08' + val;
-                    }
-                }
-                this.value = val;
-            });
-        });
-    
-        // LOGIKA PROGRESS BAR
-        function updateProgress() {
-            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-            let filledCount = 0;
-            let totalCount = requiredInputs.length;
-            
-            // Tanda tangan manual check
-            totalCount += 1;
-            if (typeof signaturePad !== 'undefined' && !signaturePad.isEmpty()) {
-                filledCount += 1;
-            }
-
-            requiredInputs.forEach(input => {
-                if (input.type === 'checkbox') {
-                    if (input.checked) filledCount++;
-                } else if (input.type === 'file') {
-                    if (input.files && input.files.length > 0) filledCount++;
-                } else {
-                    if (input.value.trim() !== '') filledCount++;
-                }
-            });
-
-            const percentage = Math.round((filledCount / totalCount) * 100);
-            
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressBadge = document.getElementById('progress-badge');
-
-            // Tampilkan container jika ada progress sekecil apapun
-            if (filledCount > 0 || percentage > 0) {
-                progressContainer.classList.remove('-translate-y-full');
-            }
-
-            progressBar.style.width = percentage + '%';
-            progressText.innerText = percentage + '%';
-
-            if (percentage === 100) {
-                progressBadge.classList.remove('hidden');
-                progressText.classList.add('hidden');
-            } else {
-                progressBadge.classList.add('hidden');
-                progressText.classList.remove('hidden');
-            }
-        }
-
-        // Listener untuk text/select
-        document.addEventListener('input', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-        document.addEventListener('change', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-
-        // Listener manual untuk signature pad
-        const sigCanvas = document.getElementById('signature-pad');
-        if (sigCanvas) {
-            sigCanvas.addEventListener('mouseup', updateProgress);
-            sigCanvas.addEventListener('touchend', updateProgress);
-            sigCanvas.addEventListener('mouseleave', updateProgress);
-        }
-        
-        // Cek inisial saat halaman selesai load
-        window.addEventListener('load', updateProgress);
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <!-- Tesseract.js untuk OCR -->
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js">        // Script Format Nomor WA
-        document.querySelectorAll('.format-wa').forEach(input => {
-            input.addEventListener('input', function() {
-                let val = this.value.replace(/\D/g, ''); // hanya angka
-                if (val.length > 0) {
-                    if (val.startsWith('8')) {
-                        val = '0' + val;
-                    } else if (val.startsWith('628')) {
-                        val = '08' + val.substring(3);
-                    } else if (val.startsWith('0') && !val.startsWith('08') && val.length > 1) {
-                        // jika mulai 0 tapi bukan 08, ubah paksa ke 08 (asumsi typo)
-                        val = '08' + val.substring(2);
-                    } else if (!val.startsWith('0') && !val.startsWith('8') && !val.startsWith('6')) {
-                        val = '08' + val;
-                    }
-                }
-                this.value = val;
-            });
-        });
-    
-        // LOGIKA PROGRESS BAR
-        function updateProgress() {
-            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-            let filledCount = 0;
-            let totalCount = requiredInputs.length;
-            
-            // Tanda tangan manual check
-            totalCount += 1;
-            if (typeof signaturePad !== 'undefined' && !signaturePad.isEmpty()) {
-                filledCount += 1;
-            }
-
-            requiredInputs.forEach(input => {
-                if (input.type === 'checkbox') {
-                    if (input.checked) filledCount++;
-                } else if (input.type === 'file') {
-                    if (input.files && input.files.length > 0) filledCount++;
-                } else {
-                    if (input.value.trim() !== '') filledCount++;
-                }
-            });
-
-            const percentage = Math.round((filledCount / totalCount) * 100);
-            
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressBadge = document.getElementById('progress-badge');
-
-            // Tampilkan container jika ada progress sekecil apapun
-            if (filledCount > 0 || percentage > 0) {
-                progressContainer.classList.remove('-translate-y-full');
-            }
-
-            progressBar.style.width = percentage + '%';
-            progressText.innerText = percentage + '%';
-
-            if (percentage === 100) {
-                progressBadge.classList.remove('hidden');
-                progressText.classList.add('hidden');
-            } else {
-                progressBadge.classList.add('hidden');
-                progressText.classList.remove('hidden');
-            }
-        }
-
-        // Listener untuk text/select
-        document.addEventListener('input', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-        document.addEventListener('change', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-
-        // Listener manual untuk signature pad
-        const sigCanvas = document.getElementById('signature-pad');
-        if (sigCanvas) {
-            sigCanvas.addEventListener('mouseup', updateProgress);
-            sigCanvas.addEventListener('touchend', updateProgress);
-            sigCanvas.addEventListener('mouseleave', updateProgress);
-        }
-        
-        // Cek inisial saat halaman selesai load
-        window.addEventListener('load', updateProgress);
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">        // Script Format Rupiah
-        document.querySelectorAll('.format-rupiah').forEach(input => {
-            input.addEventListener('keyup', function(e) {
-                let val = this.value.replace(/[^,\d]/g, '').toString();
-                if (val) {
-                    let split = val.split(',');
-                    let sisa = split[0].length % 3;
-                    let rupiah = split[0].substr(0, sisa);
-                    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-                    if (ribuan) {
-                        let separator = sisa ? '.' : '';
-                        rupiah += separator + ribuan.join('.');
-                    }
-                    rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-                    this.value = 'Rp. ' + rupiah;
-                } else {
-                    this.value = '';
-                }
-            });
-        });
-            // Script Format Nomor WA
-        document.querySelectorAll('.format-wa').forEach(input => {
-            input.addEventListener('input', function() {
-                let val = this.value.replace(/\D/g, ''); // hanya angka
-                if (val.length > 0) {
-                    if (val.startsWith('8')) {
-                        val = '0' + val;
-                    } else if (val.startsWith('628')) {
-                        val = '08' + val.substring(3);
-                    } else if (val.startsWith('0') && !val.startsWith('08') && val.length > 1) {
-                        // jika mulai 0 tapi bukan 08, ubah paksa ke 08 (asumsi typo)
-                        val = '08' + val.substring(2);
-                    } else if (!val.startsWith('0') && !val.startsWith('8') && !val.startsWith('6')) {
-                        val = '08' + val;
-                    }
-                }
-                this.value = val;
-            });
-        });
-    
-        // LOGIKA PROGRESS BAR
-        function updateProgress() {
-            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-            let filledCount = 0;
-            let totalCount = requiredInputs.length;
-            
-            // Tanda tangan manual check
-            totalCount += 1;
-            if (typeof signaturePad !== 'undefined' && !signaturePad.isEmpty()) {
-                filledCount += 1;
-            }
-
-            requiredInputs.forEach(input => {
-                if (input.type === 'checkbox') {
-                    if (input.checked) filledCount++;
-                } else if (input.type === 'file') {
-                    if (input.files && input.files.length > 0) filledCount++;
-                } else {
-                    if (input.value.trim() !== '') filledCount++;
-                }
-            });
-
-            const percentage = Math.round((filledCount / totalCount) * 100);
-            
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressBadge = document.getElementById('progress-badge');
-
-            // Tampilkan container jika ada progress sekecil apapun
-            if (filledCount > 0 || percentage > 0) {
-                progressContainer.classList.remove('-translate-y-full');
-            }
-
-            progressBar.style.width = percentage + '%';
-            progressText.innerText = percentage + '%';
-
-            if (percentage === 100) {
-                progressBadge.classList.remove('hidden');
-                progressText.classList.add('hidden');
-            } else {
-                progressBadge.classList.add('hidden');
-                progressText.classList.remove('hidden');
-            }
-        }
-
-        // Listener untuk text/select
-        document.addEventListener('input', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-        document.addEventListener('change', function(e) {
-            if (e.target.matches('input, select, textarea')) updateProgress();
-        });
-
-        // Listener manual untuk signature pad
-        const sigCanvas = document.getElementById('signature-pad');
-        if (sigCanvas) {
-            sigCanvas.addEventListener('mouseup', updateProgress);
-            sigCanvas.addEventListener('touchend', updateProgress);
-            sigCanvas.addEventListener('mouseleave', updateProgress);
-        }
-        
-        // Cek inisial saat halaman selesai load
-        window.addEventListener('load', updateProgress);
-    </script>
+    <title>SPSB Premium | Pendataan Peserta Didik Baru</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        :root {
+            --primary: #059669;
+            --primary-dark: #064e3b;
+            --accent: #10b981;
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .mesh-gradient {
+            background-color: #064e3b;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(161,71%,42%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(164,81%,36%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(170,91%,28%,1) 0, transparent 50%);
+            position: relative;
+            overflow: hidden;
+        }
+        .mesh-gradient::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05;
+            pointer-events: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.05);
+        }
         .spinner {
             border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top: 3px solid #10b981;
-            width: 24px;
-            height: 24px;
+            width: 24px; height: 24px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+        .animate-fade { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .progress-glow { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        .required-mark::after { content: " *"; color: #ef4444; font-weight: bold; }
+        
         .form-input {
             width: 100%;
             border: 1px solid #e2e8f0;
             border-radius: 0.75rem;
-            padding: 0.875rem 1rem; /* Lebih besar untuk mobile */
-            font-size: 1rem !important; /* Mencegah auto-zoom di iPhone */
+            padding: 0.875rem 1rem;
+            font-size: 1rem !important;
             transition: all 0.2s;
             background-color: #f8fafc;
-            appearance: none;
         }
         .form-input:focus {
             outline: none;
@@ -334,87 +75,112 @@
             background-color: #fff;
             box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
         }
-        #progress-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 50;
-            transition: transform 0.3s ease-in-out;
-        }
-        @media (max-width: 640px) {
-            .signature-wrapper {
-                height: 180px !important;
-            }
-            .step-title {
-                font-size: 1.25rem !important;
-            }
-        }
-        /* Performance: Prevent layout shift */
-        .loading-skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        .form-label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 0.35rem;
-        }
-        .required-mark::after { content: " *"; color: #ef4444; font-weight: bold; }
     </style>
-    <!-- SweetAlert2 untuk Pop-up Notifikasi -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        function updateProgress() {
+            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+            let filledCount = 0;
+            let totalCount = requiredInputs.length + 1;
+            
+            if (typeof signaturePad !== 'undefined' && !signaturePad.isEmpty()) filledCount++;
+
+            requiredInputs.forEach(input => {
+                if (input.type === 'checkbox') { if (input.checked) filledCount++; }
+                else if (input.type === 'file') { if (input.files && input.files.length > 0) filledCount++; }
+                else { if (input.value.trim() !== '') filledCount++; }
+            });
+
+            const percentage = Math.round((filledCount / totalCount) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressContainer = document.getElementById('progress-container');
+
+            if (progressBar) progressBar.style.width = percentage + '%';
+            if (progressText) progressText.innerText = percentage + '%';
+            if (progressContainer && percentage > 0) progressContainer.classList.remove('-translate-y-full');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.format-rupiah').forEach(input => {
+                input.addEventListener('keyup', function(e) {
+                    let val = this.value.replace(/[^,\d]/g, '').toString();
+                    if (val) {
+                        let split = val.split(','), sisa = split[0].length % 3, rupiah = split[0].substr(0, sisa), ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+                        if (ribuan) { let separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); }
+                        this.value = 'Rp. ' + (split[1] != undefined ? rupiah + ',' + split[1] : rupiah);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.format-wa').forEach(input => {
+                input.addEventListener('input', function() {
+                    let val = this.value.replace(/\D/g, '');
+                    if (val.length > 0) {
+                        if (val.startsWith('8')) val = '0' + val;
+                        else if (val.startsWith('628')) val = '08' + val.substring(3);
+                    }
+                    this.value = val;
+                });
+            });
+
+            updateProgress();
+            document.addEventListener('input', (e) => { if (e.target.matches('input, select, textarea')) updateProgress(); });
+        });
+    </script>
 </head>
-<body class="text-slate-800 pb-20 pt-10">
+<body class="bg-slate-50">
+    <!-- Sticky Progress Header -->
+    <div id="progress-container" class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-emerald-100/30 p-3 shadow-lg -translate-y-full transition-transform duration-500">
+        <div class="max-w-xl mx-auto">
+            <div class="flex justify-between items-center mb-1.5 px-1">
+                <span class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Progres Pendataan</span>
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full" id="progress-text">0%</span>
+            </div>
+            <div class="w-full bg-slate-200/50 rounded-full h-2 overflow-hidden p-[1px] border border-emerald-100/50">
+                <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700 ease-out progress-glow" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Progress Bar (Fixed on Mobile) -->
-    <div id="progress-container" class="bg-white/90 backdrop-blur-md border-b border-indigo-100 shadow-sm -translate-y-full">
-        <div class="max-w-4xl mx-auto px-4 py-3">
-            <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[10px] font-black uppercase tracking-[0.1em] text-indigo-600">Progres Pendataan</span>
-                <span id="progress-text" class="text-xs font-bold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded-full">0%</span>
-                <span id="progress-badge" class="hidden text-xs font-bold text-white bg-emerald-500 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg> Lengkap
+    <!-- Hero Header Section -->
+    <div class="mesh-gradient pt-16 pb-32 px-4 sm:px-6 relative overflow-hidden">
+        <!-- Floating Glow Elements -->
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-emerald-400/20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-teal-400/20 rounded-full blur-[100px]"></div>
+        
+        <div class="max-w-5xl mx-auto relative z-10 text-center animate-fade">
+            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-emerald-50 mb-8 border border-white/10 shadow-xl">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Sistem Pendataan Cerdas AI Aktif</span>
             </div>
-            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full w-0 transition-all duration-500 ease-out"></div>
-            </div>
-        </div>
-    </div>
-    <!-- Header Utama -->
-    <div class="bg-emerald-700 text-white pt-12 pb-24 px-4 sm:px-6 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
-        <div class="max-w-5xl mx-auto relative z-10 text-center">
-            <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                Pendataan Peserta Didik Baru<br>
-                Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu<br>
-                Program Paket A (Setara SD)
+            
+            <h1 class="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
+                Pendataan <span class="text-emerald-300">Peserta Didik</span> Baru
             </h1>
-            <p class="text-emerald-100 text-lg">Tahun Ajaran 2025 - 2026 | Sistem Pendataan Cerdas (AI)</p>
+            <p class="text-emerald-100/80 text-sm md:text-xl font-medium max-w-3xl mx-auto leading-relaxed">
+                Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu
+                <span class="block text-white/50 text-[11px] md:text-sm mt-4 font-bold tracking-[0.3em] uppercase italic">Tahun Ajaran 2025 - 2026</span>
+            </p>
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-20">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 -mt-20 relative z-20 pb-20">
         <form action="/pendaftaran" method="POST" enctype="multipart/form-data" id="form-pendaftaran" class="space-y-8">
             @csrf
             
             <!-- LANGKAH 1: UPLOAD -->
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-                <div class="bg-emerald-50 px-6 py-5 border-b border-emerald-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="font-bold text-lg text-emerald-800 flex items-center gap-2">
-                            <span class="bg-emerald-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-md">1</span> 
-                            Langkah 1: Upload Dokumen
-                        </h2>
-                        <p class="text-sm text-emerald-600 mt-1">AI akan mengekstrak teks KTP/KK secara otomatis untuk mengisi form di Langkah 2.</p>
+            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-emerald-900/10 overflow-hidden animate-fade border border-white" style="animation-delay: 0.1s">
+                <div class="bg-emerald-50/50 p-6 sm:p-8 border-b border-emerald-100/50">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-emerald-200 rotate-3">1</div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Langkah 1: Upload Dokumen</h2>
+                            <p class="text-sm text-slate-500 font-medium italic mt-0.5">Sistem cerdas akan menganalisis dokumen Anda secara otomatis.</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -518,16 +284,21 @@
             <div class="space-y-6 opacity-40 transition-opacity duration-700 pointer-events-none" id="step-2">
                 
                 <!-- HEADER STEP 2 -->
-                <div class="bg-indigo-600 rounded-2xl shadow-lg px-6 py-5 border-b border-indigo-700 flex items-center justify-between text-white relative overflow-hidden">
-                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    <div class="relative z-10">
-                        <h2 class="font-bold text-xl flex items-center gap-3">
-                            <span class="bg-white text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-sm font-black" id="badge-2">2</span> 
+                <div class="mesh-gradient rounded-[2rem] shadow-2xl px-8 py-8 flex flex-col md:flex-row items-center justify-between text-white relative overflow-hidden group border border-white/20">
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:scale-110 transition-transform duration-700"></div>
+                    <div class="relative z-10 text-center md:text-left">
+                        <h2 class="font-black text-2xl md:text-3xl flex flex-col md:flex-row items-center gap-4">
+                            <span class="bg-white text-emerald-800 w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-2xl font-black -rotate-6">2</span> 
                             Langkah 2: Lengkapi Data Peserta
                         </h2>
-                        <p class="text-sm text-indigo-100 mt-1.5 opacity-90">Sesuai format Dapodik. Kolom berlatar hijau menandakan data diisi otomatis oleh AI.</p>
+                        <p class="text-emerald-50/80 mt-3 font-medium max-w-md">Sesuai format Dapodik. Kolom <span class="text-emerald-300 font-bold">hijau</span> menandakan data terisi otomatis oleh AI.</p>
                     </div>
-                    <span class="text-sm bg-indigo-900/50 text-indigo-100 px-4 py-2 rounded-xl font-medium relative z-10 border border-indigo-500/30 shadow-inner" id="status-step-2">Menunggu Dokumen...</span>
+                    <div class="mt-6 md:mt-0 relative z-10">
+                        <span class="inline-flex items-center gap-2 bg-emerald-900/40 backdrop-blur-xl text-emerald-100 px-6 py-3 rounded-2xl font-bold border border-emerald-400/30 shadow-2xl" id="status-step-2">
+                            <svg class="w-5 h-5 animate-pulse text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            Menunggu Dokumen...
+                        </span>
+                    </div>
                 </div>
                 
                 <!-- 1. IDENTITAS PESERTA DIDIK -->
@@ -830,20 +601,24 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" id="btn-submit" class="w-full bg-slate-200 text-slate-400 py-5 rounded-2xl font-bold text-xl transition-all duration-300 cursor-not-allowed border-2 border-slate-300" disabled>
-                Mohon Upload Minimal 1 Dokumen Terlebih Dahulu
-            </button>
+            <div class="pt-6">
+                <button type="submit" id="btn-submit" class="w-full bg-slate-200 text-slate-400 py-5 rounded-[1.5rem] font-black text-xl transition-all duration-500 cursor-not-allowed border-2 border-slate-300 shadow-xl overflow-hidden relative group" disabled>
+                    <span class="relative z-10" id="btn-text">Mohon Upload Dokumen Terlebih Dahulu</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 opacity-0 group-enabled:opacity-100 transition-opacity duration-500"></div>
+                </button>
+            </div>
         </form>
 
         <!-- Footer Info (Hidden inside Info Icon) -->
-        <footer class="mt-12 pb-8 text-center">
-            <button type="button" onclick="showAppInfo()" class="group inline-flex items-center gap-2 p-2 px-4 rounded-full bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition-all duration-300">
-                <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-indigo-600 transition-colors">App Info</span>
+        <!-- Footer Info -->
+        <footer class="mt-20 pb-12 text-center animate-fade" style="animation-delay: 0.5s">
+            <button type="button" onclick="showAppInfo()" class="group inline-flex items-center gap-3 p-2 px-6 rounded-2xl bg-white/50 backdrop-blur-md hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-all duration-500 shadow-sm hover:shadow-emerald-100">
+                <div class="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <span class="text-xs font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-emerald-700 transition-colors">Informasi Sistem</span>
             </button>
-            <p class="text-slate-300 text-[10px] mt-4">&copy; {{ date('Y') }} All Rights Reserved</p>
+            <p class="text-slate-400 text-[10px] mt-8 font-bold tracking-widest uppercase opacity-60 italic">&copy; {{ date('Y') }} • Griya Qur'an x Tunas Ilmu</p>
         </footer>
     </div>
 
@@ -853,25 +628,27 @@
                 title: '<span class="text-lg font-black text-slate-800 uppercase tracking-tight">Informasi Aplikasi</span>',
                 html: `
                     <div class="text-center p-2">
-                        <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-sm">
-                            <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        <div class="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-inner relative">
+                             <div class="absolute inset-0 bg-emerald-400 opacity-10 animate-ping rounded-[2rem]"></div>
+                             <svg class="w-10 h-10 text-emerald-600 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         </div>
-                        <h4 class="text-slate-800 font-bold text-base mb-1">Sistem Pendataan Peserta Didik Baru (SPSB)</h4>
-                        <p class="text-slate-500 text-xs font-medium mb-6">Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu</p>
+                        <h4 class="text-slate-800 font-extrabold text-lg mb-1 leading-tight">Sistem Pendataan Peserta Didik Baru (SPSB)</h4>
+                        <p class="text-slate-500 text-xs font-medium mb-8">Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu</p>
                         
-                        <div class="h-px w-full bg-slate-100 mb-6"></div>
+                        <div class="h-px w-full bg-slate-100 mb-8"></div>
                         
-                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Developed By</p>
-                        <p class="text-emerald-600 font-black text-lg">Muhammad Iqbal Putra</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600/50 mb-2">Developed By</p>
+                        <p class="text-slate-800 font-black text-xl tracking-tight">Muhammad Iqbal Putra</p>
+                        <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Lead Software Architect</p>
                     </div>
                 `,
                 showConfirmButton: true,
-                confirmButtonText: 'Tutup',
-                confirmButtonColor: '#4f46e5',
+                confirmButtonText: 'Tutup Panduan',
+                confirmButtonColor: '#059669',
                 buttonsStyling: true,
                 customClass: {
-                    popup: 'rounded-3xl border-0 shadow-2xl',
-                    confirmButton: 'rounded-xl px-8 font-bold'
+                    popup: 'rounded-[2.5rem] border-0 shadow-2xl backdrop-blur-xl',
+                    confirmButton: 'rounded-2xl px-10 py-4 font-black text-sm uppercase tracking-widest'
                 }
             });
         }

@@ -90,18 +90,52 @@ class AdminController extends Controller
             $endpoint = $request->endpoint;
             $apiKey = $request->api_key;
             
-            // Standard OpenAI models endpoint
-            $modelsEndpoint = str_replace('/chat/completions', '/models', $endpoint);
+            // Bentuk URL endpoint daftar model
+            // Jika URL mengandung /chat/completions → ganti dengan /models
+            // Jika tidak (seperti BytePlus: .../v3) → tambahkan /models di akhir
+            if (str_contains($endpoint, '/chat/completions')) {
+                $modelsEndpoint = str_replace('/chat/completions', '/models', $endpoint);
+            } else {
+                $modelsEndpoint = rtrim($endpoint, '/') . '/models';
+            }
             
-            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)->get($modelsEndpoint);
+            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
+                ->timeout(15)
+                ->get($modelsEndpoint);
             
             if ($response->successful()) {
-                $models = collect($response->json('data'))->pluck('id')->toArray();
-                return response()->json(['success' => true, 'models' => $models]);
+                $json = $response->json();
+                // Cari daftar model: bisa di dalam 'data' (OpenAI) atau langsung di root (beberapa provider lain)
+                $data = $json['data'] ?? $json;
+                
+                if (is_array($data)) {
+                    $models = collect($data)->map(function($item) {
+                        return is_array($item) ? ($item['id'] ?? ($item['model'] ?? null)) : $item;
+                    })->filter()->values()->toArray();
+
+                    if (!empty($models)) {
+                        return response()->json(['success' => true, 'models' => $models]);
+                    }
+                }
             }
-            return response()->json(['success' => false, 'error' => 'API Error: ' . $response->body()]);
+            
+            // 2. Jika gagal tapi endpoint BytePlus, beri saran model BytePlus
+            if (str_contains($endpoint, 'bytepluses') || str_contains($endpoint, 'volces')) {
+                return response()->json([
+                    'success' => true, 
+                    'models' => ['doubao-pro-4k', 'doubao-pro-32k', 'doubao-pro-128k', 'doubao-lite-4k'],
+                    'note' => 'Model dimuat dari saran BytePlus (Daftar otomatis tidak tersedia).'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true, 
+                'models' => ['gpt-4o', 'gpt-4o-mini', 'gemini-1.5-pro'],
+                'note' => 'Model dimuat dari fallback standar.'
+            ]);
+
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Koneksi Gagal: ' . $e->getMessage()]);
         }
     }
 
@@ -193,5 +227,49 @@ class AdminController extends Controller
         
         // Return HTML for printing (PDF)
         return view('admin.print_all', compact('data'));
+    }
+
+    public function askAi(Request $request) {
+        $question = $request->question;
+        
+        $endpoint = Setting::where('key', 'ai_endpoint')->value('value') ?? 'https://api.openai.com/v1/chat/completions';
+        $apiKey = Setting::where('key', 'ai_api_key')->value('value');
+        $model = Setting::where('key', 'ai_model')->value('value') ?? 'gpt-4o';
+
+        // Pastikan endpoint mengarah ke /chat/completions
+        if (!str_contains($endpoint, '/chat/completions')) {
+            $endpoint = rtrim($endpoint, '/') . '/chat/completions';
+        }
+
+        if (!$apiKey) {
+            return response()->json(['success' => false, 'error' => 'API Key belum diatur di Pengaturan.']);
+        }
+
+        $pendaftar = CalonSantri::select('nama_lengkap', 'jenis_kelamin', 'nama_ayah', 'no_wa_ayah', 'status_pendaftaran', 'created_at')->get();
+        
+        $context = "Kamu adalah Asisten AI untuk Administrator Sekolah SPSB. Berikut adalah data pendaftar terbaru dalam format JSON:\n";
+        $context .= $pendaftar->toJson() . "\n\n";
+        $context .= "Gunakan data di atas untuk menjawab pertanyaan admin secara profesional dan akurat. Jika data tidak ada, katakan sejujurnya.";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)->post($endpoint, [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $context],
+                    ['role' => 'user', 'content' => $question]
+                ],
+                'temperature' => 0.7
+            ]);
+
+            if ($response->successful()) {
+                $answer = $response->json('choices.0.message.content');
+                return response()->json(['success' => true, 'answer' => $answer]);
+            }
+
+            $errorBody = $response->json('error.message') ?? $response->json('message') ?? $response->body();
+            return response()->json(['success' => false, 'error' => 'AI Error [' . $response->status() . ']: ' . $errorBody]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Koneksi Gagal: ' . $e->getMessage()]);
+        }
     }
 }
