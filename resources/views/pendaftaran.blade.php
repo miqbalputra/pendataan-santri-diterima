@@ -100,13 +100,7 @@
             if (progressBar) progressBar.style.width = percentage + '%';
             if (progressText) progressText.innerText = percentage + '%';
             if (progressContainer) {
-                if (percentage > 0) {
-                    progressContainer.classList.remove('translate-y-24');
-                    progressContainer.classList.add('translate-y-0');
-                } else {
-                    progressContainer.classList.add('translate-y-24');
-                    progressContainer.classList.remove('translate-y-0');
-                }
+                // Progress is always visible now
             }
         }
 
@@ -140,7 +134,7 @@
 </head>
 <body class="bg-slate-50">
     <!-- Floating Progress Pill (Bottom) -->
-    <div id="progress-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2.5 rounded-2xl shadow-2xl shadow-emerald-900/20 translate-y-24 transition-transform duration-700">
+    <div id="progress-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2.5 rounded-2xl shadow-2xl shadow-emerald-900/20 transition-transform duration-700">
         <div class="flex justify-between items-center mb-2 px-2">
             <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Progres Formulir</span>
             <span class="text-xs font-bold text-emerald-400" id="progress-text">0%</span>
