@@ -13,5 +13,6 @@ class CalonSantri extends Model
         'is_ayah_tahsin' => 'boolean',
         'is_ibu_tahsin' => 'boolean',
         'punya_saudara_di_sini' => 'boolean',
+        'pernyataan_kebenaran_data' => 'boolean',
     ];
 }

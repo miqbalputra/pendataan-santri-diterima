@@ -47,6 +47,9 @@ class PendaftaranController extends Controller
 
         // Hapus field non-database sebelum mass assignment
         unset($data['tanda_tangan_base64']);
+        
+        // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
+        $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
 
         $santri = CalonSantri::create($data);
 
