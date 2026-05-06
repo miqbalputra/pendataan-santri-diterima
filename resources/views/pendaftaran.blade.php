@@ -896,7 +896,7 @@
                 let el = null;
                 if (target === 'ayah') el = document.getElementById('f_nama_ayah');
                 if (target === 'ibu') el = document.getElementById('f_nama_ibu');
-                if (target === 'akta') el = document.getElementById('f_nama_lengkap');
+                if (target === 'akta') el = document.getElementById('f_nama_anak');
                 if (el) { el.value = nama; triggerHighlight(el); }
             }
 
