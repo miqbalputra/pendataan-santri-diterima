@@ -131,56 +131,54 @@
     </script>
 </head>
 <body class="bg-slate-50">
-    <!-- Sticky Progress Header -->
-    <div id="progress-container" class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-emerald-100/30 p-3 shadow-lg -translate-y-full transition-transform duration-500">
-        <div class="max-w-xl mx-auto">
-            <div class="flex justify-between items-center mb-1.5 px-1">
-                <span class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Progres Pendataan</span>
-                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full" id="progress-text">0%</span>
-            </div>
-            <div class="w-full bg-slate-200/50 rounded-full h-2 overflow-hidden p-[1px] border border-emerald-100/50">
-                <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700 ease-out progress-glow" style="width: 0%"></div>
-            </div>
+    <!-- Floating Progress Pill (Bottom) -->
+    <div id="progress-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2.5 rounded-2xl shadow-2xl shadow-emerald-900/20 translate-y-24 transition-transform duration-700">
+        <div class="flex justify-between items-center mb-2 px-2">
+            <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Progres Formulir</span>
+            <span class="text-xs font-bold text-emerald-400" id="progress-text">0%</span>
+        </div>
+        <div class="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-300 h-full rounded-full transition-all duration-700 ease-out progress-glow" style="width: 0%"></div>
         </div>
     </div>
 
     <!-- Hero Header Section -->
-    <div class="mesh-gradient pt-16 pb-32 px-4 sm:px-6 relative overflow-hidden">
+    <div class="mesh-gradient pt-16 pb-36 px-4 sm:px-6 relative overflow-hidden">
         <!-- Floating Glow Elements -->
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-emerald-400/20 rounded-full blur-[100px]"></div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-teal-400/20 rounded-full blur-[100px]"></div>
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-emerald-400/20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-teal-400/20 rounded-full blur-[100px]"></div>
         
-        <div class="max-w-5xl mx-auto relative z-10 text-center animate-fade">
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-emerald-50 mb-8 border border-white/10 shadow-xl">
+        <div class="max-w-4xl mx-auto relative z-10 text-center animate-fade">
+            <div class="inline-flex items-center gap-2.5 bg-emerald-900/30 backdrop-blur-md px-5 py-2 rounded-full text-emerald-50 mb-10 border border-emerald-400/20 shadow-lg">
                 <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-                <span class="text-[10px] font-bold uppercase tracking-widest">Sistem Pendataan Cerdas AI Aktif</span>
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-100">AI Smart Assistant Active</span>
             </div>
             
-            <h1 class="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
-                Pendataan <span class="text-emerald-300">Peserta Didik</span> Baru
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 tracking-tight leading-[1.1] drop-shadow-sm">
+                Pendataan <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100">Peserta Didik</span> Baru
             </h1>
-            <p class="text-emerald-100/80 text-sm md:text-xl font-medium max-w-3xl mx-auto leading-relaxed">
+            <p class="text-emerald-100/90 text-base md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
                 Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu
-                <span class="block text-white/50 text-[11px] md:text-sm mt-4 font-bold tracking-[0.3em] uppercase italic">Tahun Ajaran 2025 - 2026</span>
+                <span class="block text-white/60 text-xs md:text-sm mt-5 font-bold tracking-[0.3em] uppercase">Tahun Ajaran 2025 - 2026</span>
             </p>
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 -mt-20 relative z-20 pb-20">
-        <form action="/pendaftaran" method="POST" enctype="multipart/form-data" id="form-pendaftaran" class="space-y-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 -mt-24 relative z-20 pb-20">
+        <form action="/pendaftaran" method="POST" enctype="multipart/form-data" id="form-pendaftaran" class="space-y-10">
             @csrf
             
             <!-- LANGKAH 1: UPLOAD -->
-            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-emerald-900/10 overflow-hidden animate-fade border border-white" style="animation-delay: 0.1s">
-                <div class="bg-emerald-50/50 p-6 sm:p-8 border-b border-emerald-100/50">
+            <div class="glass-card rounded-[2rem] shadow-2xl shadow-slate-200/50 overflow-hidden animate-fade border border-white" style="animation-delay: 0.1s">
+                <div class="bg-gradient-to-r from-slate-50 to-white p-6 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-emerald-200 rotate-3">1</div>
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center font-black text-2xl shadow-sm border border-emerald-100">1</div>
                         <div>
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Langkah 1: Upload Dokumen</h2>
-                            <p class="text-sm text-slate-500 font-medium italic mt-0.5">Sistem cerdas akan menganalisis dokumen Anda secara otomatis.</p>
+                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Upload Dokumen</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-1">Sistem cerdas akan mengekstrak data dari dokumen Anda secara otomatis.</p>
                         </div>
                     </div>
                 </div>
@@ -285,20 +283,20 @@
             <div class="space-y-6 opacity-40 transition-opacity duration-700 pointer-events-none" id="step-2">
                 
                 <!-- HEADER STEP 2 -->
-                <div class="mesh-gradient rounded-[2rem] shadow-2xl px-8 py-8 flex flex-col md:flex-row items-center justify-between text-white relative overflow-hidden group border border-white/20">
-                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:scale-110 transition-transform duration-700"></div>
-                    <div class="relative z-10 text-center md:text-left">
-                        <h2 class="font-black text-2xl md:text-3xl flex flex-col md:flex-row items-center gap-4">
-                            <span class="bg-white text-emerald-800 w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-2xl font-black -rotate-6">2</span> 
-                            Langkah 2: Lengkapi Data Peserta
-                        </h2>
-                        <p class="text-emerald-50/80 mt-3 font-medium max-w-md">Sesuai format Dapodik. Kolom <span class="text-emerald-300 font-bold">hijau</span> menandakan data terisi otomatis oleh AI.</p>
-                    </div>
-                    <div class="mt-6 md:mt-0 relative z-10">
-                        <span class="inline-flex items-center gap-2 bg-emerald-900/40 backdrop-blur-xl text-emerald-100 px-6 py-3 rounded-2xl font-bold border border-emerald-400/30 shadow-2xl" id="status-step-2">
-                            <svg class="w-5 h-5 animate-pulse text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
-                            Menunggu Dokumen...
-                        </span>
+                <div class="glass-card rounded-[2rem] shadow-xl px-6 sm:px-8 py-6 flex flex-col md:flex-row items-center justify-between relative overflow-hidden group border border-white">
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-emerald-100/50 rounded-full blur-[80px] group-hover:scale-110 transition-transform duration-700"></div>
+                    <div class="relative z-10 text-center md:text-left flex flex-col sm:flex-row items-center gap-5 w-full">
+                        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center font-black text-2xl shadow-sm border border-emerald-100 flex-shrink-0">2</div>
+                        <div class="flex-grow">
+                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Lengkapi Data Peserta</h2>
+                            <p class="text-slate-500 mt-1 font-medium text-sm">Sesuai format Dapodik. Kolom <span class="text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">hijau</span> menandakan data otomatis dari AI.</p>
+                        </div>
+                        <div class="mt-4 sm:mt-0 flex-shrink-0">
+                            <span class="inline-flex items-center gap-2 bg-slate-100 text-slate-500 px-5 py-2.5 rounded-xl font-bold border border-slate-200 shadow-sm text-sm" id="status-step-2">
+                                <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                                Menunggu Dokumen
+                            </span>
+                        </div>
                     </div>
                 </div>
                 
