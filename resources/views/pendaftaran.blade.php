@@ -99,7 +99,15 @@
 
             if (progressBar) progressBar.style.width = percentage + '%';
             if (progressText) progressText.innerText = percentage + '%';
-            if (progressContainer && percentage > 0) progressContainer.classList.remove('-translate-y-full');
+            if (progressContainer) {
+                if (percentage > 0) {
+                    progressContainer.classList.remove('translate-y-24');
+                    progressContainer.classList.add('translate-y-0');
+                } else {
+                    progressContainer.classList.add('translate-y-24');
+                    progressContainer.classList.remove('translate-y-0');
+                }
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
