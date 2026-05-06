@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Laporan Data Pendaftar SPSB</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         body { font-family: sans-serif; font-size: 12px; margin: 20px; }
         h1 { text-align: center; }
@@ -49,3 +50,4 @@
     </table>
 </body>
 </html>
+

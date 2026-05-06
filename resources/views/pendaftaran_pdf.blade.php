@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Formulir Pendaftaran - {{ $santri->nama_lengkap }}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         @page {
             margin: 1.5cm;
@@ -305,3 +306,4 @@
         </div>
 </body>
 </html>
+
