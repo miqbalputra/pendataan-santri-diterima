@@ -163,7 +163,15 @@ class PendaftaranController extends Controller
                             'content' => [
                                 [
                                     'type' => 'text', 
-                                    'text' => 'Tolong baca seluruh teks yang ada pada gambar dokumen identitas (KTP/KK/Akta) ini dan kembalikan semua teks yang terbaca apa adanya. Formatkan sebagai JSON atau teks murni.'
+                                    'text' => 'Anda adalah asisten ekstraksi data dokumen. Baca dokumen ini (KTP/KK/Akta) dan KEMBALIKAN HANYA TEKS dengan format baku berikut ini (tanpa markdown, tanpa tambahan apapun). Jika data tidak ada, kosongkan saja nilainya:
+NAMA : [Nama Lengkap]
+NIK : [Nomor Induk Kependudukan 16 digit jika ada]
+Lahir : [Tempat Lahir], [DD-MM-YYYY]
+ALAMAT : [Nama Jalan/Dusun]
+RT/RW : [Nomor RT]/[Nomor RW]
+KEL/DESA : [Nama Kelurahan atau Desa]
+KECAMATAN : [Nama Kecamatan]
+PEKERJAAN : [Pekerjaan]'
                                 ],
                                 [
                                     'type' => 'image_url', 
