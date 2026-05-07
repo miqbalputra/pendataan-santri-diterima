@@ -75,7 +75,7 @@
                     <div class="p-6 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                             <div><label class="form-label">Nama Lengkap</label><input type="text" name="nama_lengkap" class="form-input" value="{{ $santri->nama_lengkap }}"></div>
-                            <div><label class="form-label">NIK Anak</label><input type="text" name="nik_anak" class="form-input" value="{{ $santri->nik_anak }}"></div>
+                            <div><label class="form-label">NIK Anak</label><input type="text" name="nik" class="form-input" value="{{ $santri->nik }}"></div>
                             <div>
                                 <label class="form-label">Jenis Kelamin</label>
                                 <select name="jenis_kelamin" class="form-input">

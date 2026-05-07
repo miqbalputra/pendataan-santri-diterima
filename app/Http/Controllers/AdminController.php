@@ -151,11 +151,36 @@ class AdminController extends Controller
 
     public function update(Request $request, $id) {
         $santri = CalonSantri::findOrFail($id);
-        $santri->update($request->all());
+
+        $request->validate([
+            'nama_lengkap' => 'nullable|string|max:255',
+            'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
+            'nik' => 'nullable|string|size:16',
+            'nik_ayah' => 'nullable|string|size:16',
+            'nik_ibu' => 'nullable|string|size:16',
+            'email_ayah' => 'nullable|email',
+            'email_ibu' => 'nullable|email',
+            'status_tahsin_ayah' => 'nullable|in:Belum,Sudah',
+            'status_tahsin_ibu' => 'nullable|in:Belum,Sudah',
+        ]);
+
+        $data = $request->only((new CalonSantri())->getFillable());
+        $santri->update($data);
+
+        ActivityLog::create([
+            'aktivitas' => "Edit Data Pendaftar: {$santri->nama_lengkap}",
+            'aktor' => 'Admin',
+            'ip_address' => $request->ip()
+        ]);
+
         return redirect()->route('admin.dashboard')->with('success', 'Data diperbarui!');
     }
 
     public function updateStatus(Request $request, $id) {
+        $request->validate([
+            'status_pendaftaran' => 'required|in:Pending,Diterima,Ditolak',
+        ]);
+
         $santri = CalonSantri::findOrFail($id);
         $santri->update(['status_pendaftaran' => $request->status_pendaftaran]);
         
@@ -216,7 +241,7 @@ class AdminController extends Controller
                 fputcsv($file, $columns);
                 foreach ($data as $row) {
                     fputcsv($file, [
-                        $row->id, $row->nama_lengkap, $row->nik_anak, $row->nama_ayah, $row->no_wa_ayah, $row->status_pendaftaran
+                        $row->id, $row->nama_lengkap, $row->nik, $row->nama_ayah, $row->no_wa_ayah, $row->status_pendaftaran
                     ]);
                 }
                 fclose($file);

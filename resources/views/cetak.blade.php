@@ -39,10 +39,10 @@
         <h3 class="font-bold text-lg border-b pb-1 mb-4 text-emerald-800">A. Data Calon Peserta Didik</h3>
         <table class="w-full text-sm mb-8">
             <tr><td class="py-2 w-1/3 text-slate-600 font-medium">Nama Lengkap</td><td class="font-bold">: {{ $santri->nama_lengkap }}</td></tr>
-            <tr><td class="py-2 text-slate-600 font-medium">NIK / NISN</td><td>: {{ $santri->nik_anak }} / {{ $santri->nisn ?? '-' }}</td></tr>
+            <tr><td class="py-2 text-slate-600 font-medium">NIK / NISN</td><td>: {{ $santri->nik }} / {{ $santri->nisn ?? '-' }}</td></tr>
             <tr><td class="py-2 text-slate-600 font-medium">Tempat, Tanggal Lahir</td><td>: {{ $santri->tempat_lahir }}, {{ \Carbon\Carbon::parse($santri->tanggal_lahir)->format('d F Y') }}</td></tr>
             <tr><td class="py-2 text-slate-600 font-medium">Jenis Kelamin</td><td>: {{ $santri->jenis_kelamin }}</td></tr>
-            <tr><td class="py-2 text-slate-600 font-medium">Agama</td><td>: {{ $santri->agama_anak }}</td></tr>
+            <tr><td class="py-2 text-slate-600 font-medium">Agama</td><td>: {{ $santri->agama }}</td></tr>
             <tr><td class="py-2 text-slate-600 font-medium">Asal Sekolah</td><td>: {{ $santri->nama_sekolah_asal }}</td></tr>
         </table>
 
@@ -51,7 +51,7 @@
             <tr><td class="py-2 w-1/3 text-slate-600 font-medium">Nama Ayah / No. WA</td><td class="font-bold">: {{ $santri->nama_ayah }} / {{ $santri->no_wa_ayah }}</td></tr>
             <tr><td class="py-2 text-slate-600 font-medium">Email</td><td class="align-top">: Ayah: {{ $santri->email_ayah }}<br>  Ibu: {{ $santri->email_ibu }}<br>  Wali: {{ $santri->email_wali ?? '-' }}</td></tr>
             <tr><td class="py-2 text-slate-600 font-medium">Nama Ibu / No. WA</td><td>: {{ $santri->nama_ibu }} / {{ $santri->no_wa_ibu ?? '-' }}</td></tr>
-            <tr><td class="py-2 text-slate-600 font-medium">Alamat Lengkap</td><td class="align-top">: {{ $santri->alamat_ayah }} RT {{ $santri->rt_ayah }}/RW {{ $santri->rw_ayah }}, Dusun {{ $santri->dusun_ayah }}, Kel. {{ $santri->kelurahan_desa_ayah }}, Kec. {{ $santri->kecamatan_ayah }}</td></tr>
+            <tr><td class="py-2 text-slate-600 font-medium">Alamat Lengkap</td><td class="align-top">: {{ $santri->alamat_ayah }} RT/RW {{ $santri->rt_rw_ayah }}, Kel. {{ $santri->kelurahan_desa_ayah }}, Kec. {{ $santri->kecamatan_ayah }}</td></tr>
         </table>
 
         <div class="mt-12 flex justify-between">
@@ -63,7 +63,7 @@
             <div class="text-center">
                 <p class="text-sm">Orang Tua / Wali Pendaftar,</p>
                 @if($santri->tanda_tangan)
-                    <img src="{{ $santri->tanda_tangan }}" class="h-20 mx-auto block my-2" alt="Tanda Tangan">
+                    <img src="{{ Storage::url($santri->tanda_tangan) }}" class="h-20 mx-auto block my-2" alt="Tanda Tangan">
                 @else
                     <br><br><br>
                 @endif

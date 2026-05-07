@@ -40,7 +40,7 @@
             <tr>
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $row->nama_lengkap }}</td>
-                <td>{{ $row->nik_anak }}</td>
+                <td>{{ $row->nik }}</td>
                 <td>{{ $row->nama_ayah }}</td>
                 <td>{{ $row->no_wa_ayah }}</td>
                 <td>{{ $row->status_pendaftaran }}</td>

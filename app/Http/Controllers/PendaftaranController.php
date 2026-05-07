@@ -6,11 +6,14 @@ use App\Models\CalonSantri;
 use App\Models\Setting;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 class PendaftaranController extends Controller
 {
+    private const GROUP_LINK_DEFAULT = 'https://chat.whatsapp.com/GrupSPSB2025';
+
     public function index() {
         $app_locked = Setting::where('key', 'app_locked')->value('value') == '1';
         if ($app_locked) {
@@ -23,7 +26,9 @@ class PendaftaranController extends Controller
     }
 
     public function store(Request $request) {
-        $data = $request->all();
+        $this->validatePendaftaran($request);
+
+        $data = $request->only((new CalonSantri())->getFillable());
 
         // Upload Dokumen ke Storage VPS
         $docs = ['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'];
@@ -50,37 +55,89 @@ class PendaftaranController extends Controller
         
         // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
         $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
+        $data['status_pendaftaran'] = $data['status_pendaftaran'] ?? 'Pending';
+        $santri = DB::transaction(function () use ($data, $request) {
+            $santri = CalonSantri::create($data);
 
-        $santri = CalonSantri::create($data);
+            ActivityLog::create([
+                'aktivitas' => "Pendaftaran Baru: {$santri->nama_lengkap}",
+                'aktor' => "Calon Peserta Didik",
+                'ip_address' => $request->ip()
+            ]);
 
-        ActivityLog::create([
-            'aktivitas' => "Pendaftaran Baru: {$santri->nama_lengkap}",
-            'aktor' => "Calon Peserta Didik",
-            'ip_address' => $request->ip()
-        ]);
+            return $santri;
+        });
 
         // TRIGGER n8n WEBHOOK NOTIFIKASI
         // Webhook ini bertugas men-generate PDF dan mengirim WA/Email
         try {
-            Http::post('https://n8n.griyaquran.web.id/webhook/pendaftaran-baru', [
+            $webhookResponse = Http::timeout(20)->post('https://n8n.griyaquran.web.id/webhook/pendaftaran-baru', [
                 'santri_id'   => $santri->id,
                 'nama_santri' => $santri->nama_lengkap,
                 'nama_ayah'   => $santri->nama_ayah,
                 'no_wa'       => $santri->no_wa_ayah,
-                'email'       => $santri->email_orangtua,
-                'nik_anak'    => $santri->nik_anak,
+                'email'       => $santri->email_ayah,
+                'nik_anak'    => $santri->nik,
                 'alamat'      => $santri->alamat_ayah,
                 'kelurahan'   => $santri->kelurahan_desa_ayah,
                 'kecamatan'   => $santri->kecamatan_ayah,
                 'sekolah_asal'=> $santri->nama_sekolah_asal,
                 'waktu_daftar'=> $santri->created_at->format('d-m-Y H:i:s'),
-                'group_link'  => 'https://chat.whatsapp.com/GrupSPSB2025' // Link Grup Wali Peserta Didik
+                'group_link'  => self::GROUP_LINK_DEFAULT,
+                'cetak_url'   => route('pendaftaran.cetak', $santri->id),
             ]);
+
+            if ($webhookResponse->failed()) {
+                ActivityLog::create([
+                    'aktivitas' => "Webhook notifikasi gagal HTTP {$webhookResponse->status()}: {$santri->nama_lengkap}",
+                    'aktor' => 'Sistem',
+                    'ip_address' => $request->ip()
+                ]);
+            }
         } catch (\Exception $e) {
-            // Log error jika n8n gagal
+            ActivityLog::create([
+                'aktivitas' => "Webhook notifikasi gagal: {$santri->nama_lengkap}",
+                'aktor' => 'Sistem',
+                'ip_address' => $request->ip()
+            ]);
         }
 
         return redirect('/pendaftaran/sukses')->with('nama_santri', $santri->nama_lengkap);
+    }
+
+    private function validatePendaftaran(Request $request): void
+    {
+        $request->validate([
+            'nama_lengkap' => 'required|string|max:255',
+            'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
+            'nik' => 'required|string|size:16',
+            'tempat_lahir' => 'required|string|max:255',
+            'tanggal_lahir' => 'required|date',
+            'agama' => 'required|string|max:100',
+            'alamat_lengkap' => 'required|string',
+            'rt_rw' => 'required|string|max:20',
+            'kelurahan_desa' => 'required|string|max:255',
+            'kecamatan' => 'required|string|max:255',
+            'kabupaten_kota' => 'required|string|max:255',
+            'propinsi' => 'required|string|max:255',
+            'kode_pos' => 'required|string|max:20',
+            'jenis_tinggal' => 'required|string|max:255',
+            'alat_transportasi' => 'required|string|max:255',
+            'nama_ayah' => 'required|string|max:255',
+            'nik_ayah' => 'required|string|size:16',
+            'no_wa_ayah' => 'required|string|max:25',
+            'nama_ibu' => 'required|string|max:255',
+            'nik_ibu' => 'required|string|size:16',
+            'no_wa_ibu' => 'required|string|max:25',
+            'penandatangan_nama' => 'required|string|max:255',
+            'pernyataan_kebenaran_data' => 'accepted',
+            'foto_akta_anak' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+            'foto_kk' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+            'foto_ktp_ayah' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'foto_ktp_ibu' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'foto_pas_siswa' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'tanda_tangan_base64' => 'nullable|string',
+        ]);
     }
 
     public function uploadOcr(Request $request) {
