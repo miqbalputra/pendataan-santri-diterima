@@ -120,7 +120,6 @@
         <div class="max-w-4xl mx-auto relative z-10 text-center animate-fade">
             <div class="flex justify-center gap-3 mb-8">
                 <a href="{{ route('pendaftaran.cek_status') }}" class="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-4 py-2 rounded-xl text-xs font-bold transition">Cek Status</a>
-                <a href="{{ route('login') }}" class="bg-white text-emerald-800 hover:bg-emerald-50 px-4 py-2 rounded-xl text-xs font-bold transition">Login Admin</a>
             </div>
 
             <div class="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-5 py-2 rounded-full text-emerald-50 mb-8 border border-white/15 shadow-lg">
@@ -605,11 +604,9 @@
             </div>
         </form>
 
-        <!-- Footer Info (Hidden inside Info Icon) -->
-        <!-- Footer Info -->
         <footer class="mt-20 pb-12 text-center animate-fade" style="animation-delay: 0.5s">
-            <button type="button" onclick="showAppInfo()" class="group inline-flex items-center gap-3 p-2 px-6 rounded-2xl bg-white/50 backdrop-blur-md hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 transition-all duration-500 shadow-sm hover:shadow-emerald-100">
-                <div class="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform duration-500">
+            <button type="button" onclick="showAppInfo()" class="group inline-flex items-center gap-3 p-2 px-6 rounded-2xl bg-white hover:bg-emerald-50 border border-emerald-100 transition-all duration-300 shadow-sm hover:shadow-emerald-100">
+                <div class="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 group-hover:scale-105 transition-transform duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <span class="text-xs font-black uppercase tracking-[0.2em] text-slate-500 group-hover:text-emerald-700 transition-colors">Informasi Sistem</span>
@@ -621,29 +618,47 @@
     <script>
         function showAppInfo() {
             Swal.fire({
-                title: '<span class="text-lg font-black text-slate-800 uppercase tracking-tight">Informasi Aplikasi</span>',
+                title: '',
                 html: `
-                    <div class="text-center p-2">
-                        <div class="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-inner relative">
-                             <div class="absolute inset-0 bg-emerald-400 opacity-10 animate-ping rounded-[2rem]"></div>
-                             <svg class="w-10 h-10 text-emerald-600 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <div class="text-left">
+                        <div class="rounded-[2rem] bg-gradient-to-br from-emerald-700 to-teal-700 p-6 text-white mb-5">
+                            <div class="flex items-start gap-4">
+                                <div class="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center border border-white/20 shrink-0">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-[0.25em] text-emerald-100 mb-2">Informasi Aplikasi</p>
+                                    <h4 class="font-black text-xl leading-tight">Sistem Pendataan Peserta Didik Baru</h4>
+                                    <p class="text-sm text-emerald-50/85 mt-2 leading-relaxed">Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu</p>
+                                </div>
+                            </div>
                         </div>
-                        <h4 class="text-slate-800 font-extrabold text-lg mb-1 leading-tight">Sistem Pendataan Peserta Didik Baru (SPSB)</h4>
-                        <p class="text-slate-500 text-xs font-medium mb-8">Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu</p>
-                        
-                        <div class="h-px w-full bg-slate-100 mb-8"></div>
-                        
-                        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600/50 mb-2">Developed By</p>
-                        <p class="text-slate-800 font-black text-xl tracking-tight">Muhammad Iqbal Putra</p>
-                        <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Lead Software Architect</p>
+
+                        <div class="grid gap-3 mb-5">
+                            <a href="https://wa.me/6285173394373" target="_blank" class="flex items-center gap-3 rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-emerald-900 hover:bg-emerald-100 transition">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700">WhatsApp Kantor</p>
+                                    <p class="font-black text-lg tracking-tight">0851 7339 4373</p>
+                                </div>
+                            </a>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center">
+                            <p class="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600/70 mb-2">Developed By</p>
+                            <p class="text-slate-800 font-black text-xl tracking-tight">Muhammad Iqbal Putra</p>
+                            <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">Lead Software Architect</p>
+                        </div>
                     </div>
                 `,
                 showConfirmButton: true,
-                confirmButtonText: 'Tutup Panduan',
-                confirmButtonColor: '#059669',
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#047857',
                 buttonsStyling: true,
                 customClass: {
-                    popup: 'rounded-[2.5rem] border-0 shadow-2xl backdrop-blur-xl',
+                    popup: 'rounded-[2rem] border-0 shadow-2xl backdrop-blur-xl p-2',
                     confirmButton: 'rounded-2xl px-10 py-4 font-black text-sm uppercase tracking-widest'
                 }
             });
