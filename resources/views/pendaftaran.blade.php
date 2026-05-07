@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPSB Premium | Pendataan Peserta Didik Baru</title>
+    <title>SPSB | Pendaftaran Peserta Didik Baru</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,21 +12,17 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --primary: #059669;
+            --primary: #047857;
             --primary-dark: #064e3b;
-            --accent: #10b981;
+            --accent: #0f766e;
         }
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #e2e8f0;
+            background-color: #f3f7f4;
             color: #1e293b;
         }
         .mesh-gradient {
-            background-color: #064e3b;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(161,71%,42%,1) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(164,81%,36%,1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(170,91%,28%,1) 0, transparent 50%);
+            background: linear-gradient(135deg, #064e3b 0%, #047857 58%, #0f766e 100%);
             position: relative;
             overflow: hidden;
         }
@@ -72,9 +68,9 @@
         }
         .form-input:focus {
             outline: none;
-            border-color: #10b981;
+            border-color: var(--primary);
             background-color: #fff;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.16);
         }
     </style>
 
@@ -107,7 +103,7 @@
         });
     </script>
 </head>
-<body class="bg-slate-200">
+<body class="bg-[#f3f7f4]">
     <!-- Floating Progress Pill (Bottom) -->
     <div id="progress-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2.5 rounded-2xl shadow-2xl shadow-emerald-900/20 transition-transform duration-700">
         <div class="flex justify-between items-center mb-2 px-2">
@@ -120,31 +116,55 @@
     </div>
 
     <!-- Hero Header Section -->
-    <div class="mesh-gradient pt-16 pb-36 px-4 sm:px-6 relative overflow-hidden">
-        <!-- Floating Glow Elements -->
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-emerald-400/20 rounded-full blur-[100px]"></div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-teal-400/20 rounded-full blur-[100px]"></div>
-        
+    <div class="mesh-gradient pt-10 pb-32 px-4 sm:px-6 relative overflow-hidden">
         <div class="max-w-4xl mx-auto relative z-10 text-center animate-fade">
-            <div class="inline-flex items-center gap-2.5 bg-emerald-900/30 backdrop-blur-md px-5 py-2 rounded-full text-emerald-50 mb-10 border border-emerald-400/20 shadow-lg">
+            <div class="flex justify-center gap-3 mb-8">
+                <a href="{{ route('pendaftaran.cek_status') }}" class="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-4 py-2 rounded-xl text-xs font-bold transition">Cek Status</a>
+                <a href="{{ route('login') }}" class="bg-white text-emerald-800 hover:bg-emerald-50 px-4 py-2 rounded-xl text-xs font-bold transition">Login Admin</a>
+            </div>
+
+            <div class="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-5 py-2 rounded-full text-emerald-50 mb-8 border border-white/15 shadow-lg">
                 <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-100">AI Smart Assistant Active</span>
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-100">Pendaftaran Online SPSB</span>
             </div>
             
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-6 tracking-tight leading-[1.1] drop-shadow-sm">
-                Pendataan <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100">Peserta Didik</span> Baru
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-5 tracking-tight leading-[1.1] drop-shadow-sm">
+                Formulir Pendaftaran Peserta Didik Baru
             </h1>
-            <p class="text-emerald-100/90 text-base md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-                Kelompok Tahfidz Griya Qur'an & PKBM Tunas Ilmu
-                <span class="block text-white/60 text-xs md:text-sm mt-5 font-bold tracking-[0.3em] uppercase">Tahun Ajaran 2025 - 2026</span>
+            <p class="text-emerald-50/90 text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+                Unggah dokumen, periksa data hasil baca AI, lengkapi kolom wajib, lalu kirim formulir ke panitia.
+                <span class="block text-white/65 text-xs md:text-sm mt-4 font-bold tracking-[0.22em] uppercase">Griya Qur'an & PKBM Tunas Ilmu</span>
             </p>
         </div>
     </div>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 -mt-24 relative z-20 pb-20">
+        <section class="bg-white rounded-[2rem] shadow-xl shadow-emerald-900/10 border border-emerald-100 p-6 md:p-8 mb-8 animate-fade">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-1">
+                    <p class="text-[11px] font-black text-emerald-700 uppercase tracking-widest">Alur Singkat</p>
+                    <h2 class="text-2xl font-extrabold text-slate-900 mt-1">Cara Mengisi</h2>
+                </div>
+                <div class="md:col-span-3 grid sm:grid-cols-3 gap-3">
+                    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+                        <p class="text-xs font-black text-emerald-700 uppercase">1. Upload</p>
+                        <p class="text-sm font-semibold text-slate-700 mt-1">Siapkan Akta, KK, KTP Ayah, KTP Ibu, dan foto anak.</p>
+                    </div>
+                    <div class="rounded-2xl bg-teal-50 border border-teal-100 p-4">
+                        <p class="text-xs font-black text-teal-700 uppercase">2. Cek Data</p>
+                        <p class="text-sm font-semibold text-slate-700 mt-1">Periksa ulang hasil baca AI. Koreksi manual bila ada yang tidak sesuai.</p>
+                    </div>
+                    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                        <p class="text-xs font-black text-slate-600 uppercase">3. Kirim</p>
+                        <p class="text-sm font-semibold text-slate-700 mt-1">Tanda tangani pernyataan, lalu kirim formulir ke sistem.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <form action="/pendaftaran" method="POST" enctype="multipart/form-data" id="form-pendaftaran" class="space-y-10">
             @csrf
             
@@ -154,8 +174,8 @@
                     <div class="flex items-center gap-5">
                         <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center font-black text-2xl shadow-sm border border-emerald-100">1</div>
                         <div>
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Upload Dokumen</h2>
-                            <p class="text-sm text-slate-500 font-medium mt-1">Sistem cerdas akan mengekstrak data dari dokumen Anda secara otomatis.</p>
+                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Upload Dokumen Wajib</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-1">AI membantu membaca data, tetapi orang tua tetap perlu memeriksa hasilnya.</p>
                         </div>
                     </div>
                 </div>

@@ -38,6 +38,9 @@
                 @php
                     $dokumenStatus = collect($santri->dokumen_status ?? []);
                     $perluPerbaikan = $dokumenStatus->contains('perlu_perbaikan');
+                    $sudahDiterima = $santri->status_pendaftaran === 'Diterima';
+                    $ditolak = $santri->status_pendaftaran === 'Ditolak';
+                    $dokumenLabel = $sudahDiterima ? 'Selesai Diverifikasi' : ($ditolak ? 'Tidak Dilanjutkan' : ($perluPerbaikan ? 'Perlu Perbaikan' : 'Menunggu Review'));
                     $labels = [
                         'foto_akta_anak' => 'Akta Kelahiran',
                         'foto_kk' => 'Kartu Keluarga',
@@ -59,7 +62,7 @@
                         </div>
                         <div class="p-6">
                             <p class="text-xs font-bold uppercase text-slate-400">Status Dokumen</p>
-                            <p class="mt-2 text-lg font-extrabold {{ $perluPerbaikan ? 'text-rose-700' : 'text-emerald-700' }}">{{ $perluPerbaikan ? 'Perlu Perbaikan' : 'Dalam Review' }}</p>
+                            <p class="mt-2 text-lg font-extrabold {{ $perluPerbaikan ? 'text-rose-700' : ($ditolak ? 'text-slate-600' : 'text-emerald-700') }}">{{ $dokumenLabel }}</p>
                         </div>
                         <div class="p-6">
                             <p class="text-xs font-bold uppercase text-slate-400">Tanggal Daftar</p>
