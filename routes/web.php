@@ -33,6 +33,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::post('/pendaftar/{id}', [AdminController::class, 'update'])->name('admin.update');
     Route::post('/pendaftar/{id}/status', [AdminController::class, 'updateStatus'])->name('admin.status');
     Route::post('/pendaftar/{id}/dokumen', [AdminController::class, 'updateDocumentVerification'])->name('admin.documents');
+    Route::get('/pendaftar/{id}/berkas/{field}', [AdminController::class, 'viewUploadedDocument'])->name('admin.documents.view');
     
     // Fitur Baru
     Route::post('/periode', [AdminController::class, 'storePeriode'])->name('admin.periode.store');

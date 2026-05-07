@@ -229,6 +229,17 @@ class AdminController extends Controller
         return back()->with('success', 'Status dokumen berhasil diperbarui!');
     }
 
+    public function viewUploadedDocument($id, string $field) {
+        $allowedFields = ['foto_pas_siswa', 'foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk'];
+        abort_unless(in_array($field, $allowedFields, true), 404);
+
+        $santri = CalonSantri::findOrFail($id);
+        $path = $santri->{$field};
+        abort_if(!$path || !Storage::disk('public')->exists($path), 404, 'Berkas tidak ditemukan di storage.');
+
+        return response()->file(Storage::disk('public')->path($path));
+    }
+
     public function storePeriode(Request $request) {
         Periode::create(['nama_periode' => $request->nama_periode, 'is_active' => $request->has('is_active')]);
         return back()->with('success', 'Periode ditambahkan!');

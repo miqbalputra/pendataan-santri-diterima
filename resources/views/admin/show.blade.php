@@ -408,10 +408,23 @@
                                 @endforeach
                             </select>
                             @if($doc['path'])
-                                <a href="{{ Storage::url($doc['path']) }}" target="_blank" class="block relative overflow-hidden rounded-lg border bg-white group-hover:border-blue-300 transition-colors">
-                                    <img src="{{ Storage::url($doc['path']) }}" class="w-full h-32 object-contain group-hover:scale-105 transition-transform duration-500" alt="{{ $doc['label'] }}">
+                                @php
+                                    $documentUrl = route('admin.documents.view', ['id' => $santri->id, 'field' => $doc['field']]);
+                                    $extension = strtolower(pathinfo($doc['path'], PATHINFO_EXTENSION));
+                                    $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+                                @endphp
+                                <a href="{{ $documentUrl }}" target="_blank" class="block relative overflow-hidden rounded-lg border bg-white group-hover:border-blue-300 transition-colors">
+                                    @if($isImage)
+                                        <img src="{{ $documentUrl }}" class="w-full h-32 object-contain group-hover:scale-105 transition-transform duration-500" alt="{{ $doc['label'] }}">
+                                    @else
+                                        <div class="h-32 flex flex-col items-center justify-center text-slate-500 bg-slate-50">
+                                            <svg class="w-10 h-10 mb-2 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                            <span class="text-xs font-bold uppercase">{{ $extension ?: 'file' }}</span>
+                                            <span class="text-[10px] font-semibold text-slate-400 mt-1">Klik untuk buka berkas</span>
+                                        </div>
+                                    @endif
                                     <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <span class="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/30">Klik untuk Perbesar</span>
+                                        <span class="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/30">Klik untuk Buka</span>
                                     </div>
                                 </a>
                             @else
