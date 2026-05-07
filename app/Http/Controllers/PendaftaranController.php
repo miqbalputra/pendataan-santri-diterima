@@ -11,6 +11,8 @@ use App\Models\Gelombang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -30,7 +32,12 @@ class PendaftaranController extends Controller
     public function store(Request $request) {
         $this->validatePendaftaran($request);
 
-        $data = $request->only((new CalonSantri())->getFillable());
+        $existingColumns = Schema::getColumnListing('calon_santris');
+        $hasColumn = fn (string $column): bool => in_array($column, $existingColumns, true);
+        $data = array_intersect_key(
+            $request->only((new CalonSantri())->getFillable()),
+            array_flip($existingColumns)
+        );
 
         // Upload Dokumen ke Storage VPS
         $docs = ['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'];
@@ -58,39 +65,64 @@ class PendaftaranController extends Controller
         // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
         $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
         $data['status_pendaftaran'] = $data['status_pendaftaran'] ?? 'Pending';
-        $activeGelombang = Gelombang::where('is_active', true)->first();
+        $activeGelombang = (Schema::hasTable('gelombangs') && $hasColumn('gelombang_id'))
+            ? Gelombang::where('is_active', true)->first()
+            : null;
         if ($activeGelombang && $activeGelombang->kuota && CalonSantri::where('gelombang_id', $activeGelombang->id)->count() >= $activeGelombang->kuota) {
             return back()->withInput()->withErrors([
                 'gelombang' => "Kuota {$activeGelombang->nama_gelombang} sudah penuh. Silakan hubungi panitia.",
             ]);
         }
 
-        $data['periode_id'] = Periode::where('is_active', true)->value('id');
-        $data['gelombang_id'] = $activeGelombang?->id;
-        $data['dokumen_status'] = $this->initialDocumentStatuses($data);
-        $data['revisi_token'] = Str::random(48);
+        if (Schema::hasTable('periodes') && $hasColumn('periode_id')) {
+            $data['periode_id'] = Periode::where('is_active', true)->value('id');
+        }
 
-        $santri = DB::transaction(function () use ($data, $request) {
+        if ($hasColumn('gelombang_id')) {
+            $data['gelombang_id'] = $activeGelombang?->id;
+        }
+
+        if ($hasColumn('dokumen_status')) {
+            $data['dokumen_status'] = $this->initialDocumentStatuses($data);
+        }
+
+        if ($hasColumn('revisi_token')) {
+            $data['revisi_token'] = Str::random(48);
+        }
+
+        $santri = DB::transaction(function () use ($data, $request, $hasColumn) {
             $santri = CalonSantri::create($data);
-            $santri->forceFill([
-                'nomor_pendaftaran' => $this->generateNomorPendaftaran($santri),
-            ])->save();
 
-            ActivityLog::create([
-                'aktivitas' => "Pendataan Baru: {$santri->nama_lengkap}",
-                'aktor' => "Orang Tua / Wali",
-                'ip_address' => $request->ip()
-            ]);
+            if ($hasColumn('nomor_pendaftaran')) {
+                $santri->forceFill([
+                    'nomor_pendaftaran' => $this->generateNomorPendaftaran($santri),
+                ])->save();
+            }
+
+            if (Schema::hasTable('activity_logs')) {
+                ActivityLog::create([
+                    'aktivitas' => "Pendataan Baru: {$santri->nama_lengkap}",
+                    'aktor' => "Orang Tua / Wali",
+                    'ip_address' => $request->ip()
+                ]);
+            }
 
             return $santri;
         });
 
-        $this->sendPendaftaranNotifications($santri, $request);
+        try {
+            $this->sendPendaftaranNotifications($santri, $request);
+        } catch (\Throwable $e) {
+            Log::warning('Notifikasi pendataan gagal setelah data tersimpan.', [
+                'calon_santri_id' => $santri->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect('/pendaftaran/sukses')
             ->with('nama_santri', $santri->nama_lengkap)
             ->with('santri_id', $santri->id)
-            ->with('nomor_pendaftaran', $santri->nomor_pendaftaran);
+            ->with('nomor_pendaftaran', $santri->nomor_pendaftaran ?? $this->generateNomorPendaftaran($santri));
     }
 
     private function sendPendaftaranNotifications(CalonSantri $santri, Request $request): void
@@ -119,7 +151,7 @@ class PendaftaranController extends Controller
                     $response->successful() ? 'Webhook terkirim.' : $response->body()
                 );
 
-                if ($response->failed()) {
+                if ($response->failed() && Schema::hasTable('activity_logs')) {
                     ActivityLog::create([
                         'aktivitas' => "Webhook {$channel} gagal HTTP {$response->status()}: {$santri->nama_lengkap}",
                         'aktor' => 'Sistem',
@@ -128,11 +160,13 @@ class PendaftaranController extends Controller
                 }
             } catch (\Exception $e) {
                 $this->recordNotificationLog($santri, $channel, $payload, 'failed', null, $e->getMessage());
-                ActivityLog::create([
-                    'aktivitas' => "Webhook {$channel} gagal: {$santri->nama_lengkap}",
-                    'aktor' => 'Sistem',
-                    'ip_address' => $request->ip()
-                ]);
+                if (Schema::hasTable('activity_logs')) {
+                    ActivityLog::create([
+                        'aktivitas' => "Webhook {$channel} gagal: {$santri->nama_lengkap}",
+                        'aktor' => 'Sistem',
+                        'ip_address' => $request->ip()
+                    ]);
+                }
             }
         }
     }
@@ -327,6 +361,15 @@ class PendaftaranController extends Controller
 
     private function recordNotificationLog(CalonSantri $santri, string $channel, array $payload, string $status, ?int $httpStatus, ?string $message): void
     {
+        if (!Schema::hasTable('notification_logs')) {
+            Log::info('Log notifikasi dilewati karena tabel notification_logs belum tersedia.', [
+                'calon_santri_id' => $santri->id,
+                'channel' => $channel,
+                'status' => $status,
+            ]);
+            return;
+        }
+
         $recipients = collect($payload['recipients'][$channel] ?? []);
         $recipientSummary = $recipients->map(fn ($item) => $item['email'] ?? $item['phone'] ?? null)->filter()->implode(', ');
         $roleSummary = $recipients->pluck('role')->filter()->implode(', ');
@@ -348,7 +391,7 @@ class PendaftaranController extends Controller
         $request->validate([
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
-            'nik' => 'required|digits:16',
+            'nik' => 'required|digits:16|unique:calon_santris,nik',
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'agama' => 'required|string|max:100',
