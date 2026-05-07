@@ -34,6 +34,10 @@ class AdminController extends Controller
 
         $ocr_engine = Setting::where('key', 'ocr_engine')->value('value') ?? 'local';
         $ocr_webhook_url = Setting::where('key', 'ocr_webhook_url')->value('value') ?? 'https://n8n.griyaquran.web.id/webhook/ocr-ktp';
+        $n8n_email_webhook_url = Setting::where('key', 'n8n_email_webhook_url')->value('value') ?? '';
+        $n8n_whatsapp_webhook_url = Setting::where('key', 'n8n_whatsapp_webhook_url')->value('value') ?? '';
+        $group_ikhwan_url = Setting::where('key', 'group_ikhwan_url')->value('value') ?? '';
+        $group_akhwat_url = Setting::where('key', 'group_akhwat_url')->value('value') ?? '';
         
         // Pengaturan Direct AI
         $ai_endpoint = Setting::where('key', 'ai_endpoint')->value('value') ?? 'https://api.openai.com/v1/chat/completions';
@@ -49,12 +53,16 @@ class AdminController extends Controller
         $periodes = Periode::all();
         $logs = ActivityLog::latest()->take(100)->get();
 
-        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'logs', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
+        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'logs', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }
 
     public function updateSettings(Request $request) {
         Setting::updateOrCreate(['key' => 'ocr_engine'], ['value' => $request->ocr_engine]);
         Setting::updateOrCreate(['key' => 'ocr_webhook_url'], ['value' => $request->ocr_webhook_url]);
+        Setting::updateOrCreate(['key' => 'n8n_email_webhook_url'], ['value' => $request->n8n_email_webhook_url]);
+        Setting::updateOrCreate(['key' => 'n8n_whatsapp_webhook_url'], ['value' => $request->n8n_whatsapp_webhook_url]);
+        Setting::updateOrCreate(['key' => 'group_ikhwan_url'], ['value' => $request->group_ikhwan_url]);
+        Setting::updateOrCreate(['key' => 'group_akhwat_url'], ['value' => $request->group_akhwat_url]);
         
         Setting::updateOrCreate(['key' => 'ai_endpoint'], ['value' => $request->ai_endpoint]);
         Setting::updateOrCreate(['key' => 'ai_api_key'], ['value' => $request->ai_api_key]);

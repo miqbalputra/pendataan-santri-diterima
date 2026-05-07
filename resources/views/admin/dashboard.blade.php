@@ -329,6 +329,38 @@
                 </div>
 
                 <div class="space-y-8">
+                    <!-- Notifikasi Pendaftaran -->
+                    <div class="glass-card rounded-[2rem] p-8 shadow-xl shadow-emerald-900/5">
+                        <h3 class="font-black text-emerald-900 text-lg mb-6 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shadow-inner">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 001.9 0L21 8m-18 8h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+                            </div>
+                            Notifikasi Pendaftaran n8n
+                        </h3>
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Webhook Email Ringkasan</label>
+                                <input type="text" name="n8n_email_webhook_url" class="form-input text-emerald-600 font-mono text-xs" value="{{ $n8n_email_webhook_url }}" placeholder="https://n8n.domain.com/webhook/spsb-email-ringkasan">
+                            </div>
+                            <div>
+                                <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Webhook WhatsApp Ringkasan & Grup</label>
+                                <input type="text" name="n8n_whatsapp_webhook_url" class="form-input text-emerald-600 font-mono text-xs" value="{{ $n8n_whatsapp_webhook_url }}" placeholder="https://n8n.domain.com/webhook/spsb-whatsapp-ringkasan">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Ikhwan</label>
+                                    <input type="text" name="group_ikhwan_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_ikhwan_url }}" placeholder="https://chat.whatsapp.com/...">
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Boleh diisi bapak dan ibu.</p>
+                                </div>
+                                <div>
+                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Akhwat</label>
+                                    <input type="text" name="group_akhwat_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_akhwat_url }}" placeholder="https://chat.whatsapp.com/...">
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Hanya boleh diisi ibu.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- n8n Config -->
                     <div id="setting_n8n" class="glass-card rounded-[2rem] p-8 shadow-xl shadow-blue-900/5 {{ $ocr_engine == 'n8n' ? 'block' : 'hidden' }}">
                         <h3 class="font-black text-blue-900 text-lg mb-6 flex items-center gap-3">

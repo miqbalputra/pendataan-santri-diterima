@@ -1,0 +1,122 @@
+{
+  "name": "SPSB - WhatsApp Ringkasan dan Link Grup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spsb-whatsapp-ringkasan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_whatsapp_ringkasan",
+      "name": "Webhook WhatsApp Ringkasan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.whatsapp ?? [];\nconst santri = payload.santri ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction normalizePhone(phone) {\n  const raw = String(phone ?? '').replace(/[^0-9]/g, '');\n  if (raw.startsWith('08')) return '62' + raw.slice(1);\n  if (raw.startsWith('8')) return '62' + raw;\n  return raw;\n}\n\nconst summaryText = Object.entries(ringkasan)\n  .map(([label, value]) => `- ${label}: ${value ?? '-'}`)\n  .join('\\n');\n\nreturn recipients.map((recipient) => {\n  const roleLabel = recipient.role === 'ibu' ? 'Ibu' : 'Bapak';\n  const message = `Assalamu'alaikum ${roleLabel} ${recipient.name ?? ''},\\n\\nAlhamdulillah, data pendaftaran SPSB untuk ananda *${santri.nama_lengkap ?? '-'}* sudah masuk dan diterima oleh sistem.\\n\\n*Ringkasan data:*\\n${summaryText}\\n\\n*Grup kelas ${group.kelas ?? '-'}:*\\n${group.aturan ?? '-'}\\n${group.link ? `Link grup: ${group.link}` : 'Link grup belum tersedia. Admin akan mengirimkan link menyusul.'}\\n\\nTautan cetak pendaftaran:\\n${payload.links?.cetak ?? '-'}\\n\\nJazakumullah khairan.\\nPanitia SPSB`;\n\n  return {\n    json: {\n      phone: normalizePhone(recipient.phone),\n      role: recipient.role,\n      name: recipient.name,\n      message,\n      payload\n    }\n  };\n});"
+      },
+      "id": "build_whatsapp_messages",
+      "name": "Siapkan Pesan WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-whatsapp-api.example/send-message",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer GANTI_DENGAN_TOKEN_WHATSAPP_API"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { phone: $json.phone, message: $json.message } }}",
+        "options": {}
+      },
+      "id": "send_whatsapp_http",
+      "name": "Kirim WhatsApp via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        720,
+        300
+      ],
+      "notes": "Sesuaikan URL, token, dan bentuk JSON body dengan provider WhatsApp yang dipakai, misalnya Fonnte, Wablas, Z-API, atau server WA internal."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, channel: 'whatsapp', sent_items: $items().length } }}",
+        "options": {}
+      },
+      "id": "respond_whatsapp",
+      "name": "Response WhatsApp",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook WhatsApp Ringkasan": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Pesan WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Pesan WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Kirim WhatsApp via API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kirim WhatsApp via API": {
+      "main": [
+        [
+          {
+            "node": "Response WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "spsb-whatsapp-ringkasan-v1"
+}

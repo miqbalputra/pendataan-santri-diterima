@@ -1,0 +1,108 @@
+{
+  "name": "SPSB - Email Ringkasan Pendaftaran",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spsb-email-ringkasan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook_email_ringkasan",
+      "name": "Webhook Email Ringkasan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.email ?? [];\nconst santri = payload.santri ?? {};\nconst orangTua = payload.orang_tua ?? {};\nconst alamat = payload.alamat ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nconst summaryRows = Object.entries(ringkasan)\n  .map(([label, value]) => `<tr><td style=\"padding:6px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">${label}</td><td style=\"padding:6px 10px;border:1px solid #e5e7eb;\">${value ?? '-'}</td></tr>`)\n  .join('');\n\nconst html = `\n<div style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;\">\n  <h2 style=\"margin:0 0 12px;color:#047857;\">Pendaftaran SPSB Berhasil Diterima</h2>\n  <p>Assalamu'alaikum Bapak/Ibu,</p>\n  <p>Alhamdulillah, data pendaftaran ananda <strong>${santri.nama_lengkap ?? '-'}</strong> telah masuk ke sistem SPSB.</p>\n  <table style=\"border-collapse:collapse;width:100%;max-width:720px;margin:16px 0;font-size:14px;\">\n    ${summaryRows}\n    <tr><td style=\"padding:6px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ayah</td><td style=\"padding:6px 10px;border:1px solid #e5e7eb;\">${orangTua.ayah?.nama ?? '-'}</td></tr>\n    <tr><td style=\"padding:6px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ibu</td><td style=\"padding:6px 10px;border:1px solid #e5e7eb;\">${orangTua.ibu?.nama ?? '-'}</td></tr>\n    <tr><td style=\"padding:6px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Alamat</td><td style=\"padding:6px 10px;border:1px solid #e5e7eb;\">${alamat.alamat_lengkap ?? '-'}, ${alamat.kelurahan_desa ?? '-'}, ${alamat.kecamatan ?? '-'}</td></tr>\n  </table>\n  <p><strong>Informasi grup kelas:</strong><br>${group.aturan ?? '-'}</p>\n  <p>Link grup kelas: <a href=\"${group.link ?? '#'}\">${group.link ?? '-'}</a></p>\n  <p>Dokumen cetak pendaftaran dapat dibuka melalui tautan berikut:<br><a href=\"${payload.links?.cetak ?? '#'}\">${payload.links?.cetak ?? '-'}</a></p>\n  <p style=\"margin-top:20px;\">Jazakumullah khairan,<br>Panitia SPSB</p>\n</div>`;\n\nreturn recipients.map((recipient) => ({\n  json: {\n    to_email: recipient.email,\n    to_name: recipient.name,\n    subject: `Ringkasan Pendaftaran SPSB - ${santri.nama_lengkap ?? ''}`,\n    html,\n    payload\n  }\n}));"
+      },
+      "id": "build_email_messages",
+      "name": "Siapkan Pesan Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@example.com",
+        "toEmail": "={{ $json.to_email }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "send_email",
+      "name": "Kirim Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "notes": "Set credential SMTP di node ini, lalu ganti fromEmail sesuai alamat email lembaga."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, channel: 'email', sent_items: $items().length } }}",
+        "options": {}
+      },
+      "id": "respond_email",
+      "name": "Response Email",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Email Ringkasan": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Pesan Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Pesan Email": {
+      "main": [
+        [
+          {
+            "node": "Kirim Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kirim Email": {
+      "main": [
+        [
+          {
+            "node": "Response Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "spsb-email-ringkasan-v1"
+}

@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\Storage;
 
 class PendaftaranController extends Controller
 {
-    private const GROUP_LINK_DEFAULT = 'https://chat.whatsapp.com/GrupSPSB2025';
-
     public function index() {
         $app_locked = Setting::where('key', 'app_locked')->value('value') == '1';
         if ($app_locked) {
@@ -68,41 +66,127 @@ class PendaftaranController extends Controller
             return $santri;
         });
 
-        // TRIGGER n8n WEBHOOK NOTIFIKASI
-        // Webhook ini bertugas men-generate PDF dan mengirim WA/Email
-        try {
-            $webhookResponse = Http::timeout(20)->post('https://n8n.griyaquran.web.id/webhook/pendaftaran-baru', [
-                'santri_id'   => $santri->id,
-                'nama_santri' => $santri->nama_lengkap,
-                'nama_ayah'   => $santri->nama_ayah,
-                'no_wa'       => $santri->no_wa_ayah,
-                'email'       => $santri->email_ayah,
-                'nik_anak'    => $santri->nik,
-                'alamat'      => $santri->alamat_ayah,
-                'kelurahan'   => $santri->kelurahan_desa_ayah,
-                'kecamatan'   => $santri->kecamatan_ayah,
-                'sekolah_asal'=> $santri->nama_sekolah_asal,
-                'waktu_daftar'=> $santri->created_at->format('d-m-Y H:i:s'),
-                'group_link'  => self::GROUP_LINK_DEFAULT,
-                'cetak_url'   => route('pendaftaran.cetak', $santri->id),
-            ]);
+        $this->sendPendaftaranNotifications($santri, $request);
 
-            if ($webhookResponse->failed()) {
+        return redirect('/pendaftaran/sukses')->with('nama_santri', $santri->nama_lengkap);
+    }
+
+    private function sendPendaftaranNotifications(CalonSantri $santri, Request $request): void
+    {
+        $payload = $this->buildNotificationPayload($santri);
+
+        $webhooks = [
+            'email' => Setting::where('key', 'n8n_email_webhook_url')->value('value'),
+            'whatsapp' => Setting::where('key', 'n8n_whatsapp_webhook_url')->value('value'),
+        ];
+
+        foreach ($webhooks as $channel => $webhookUrl) {
+            if (!$webhookUrl) {
+                continue;
+            }
+
+            try {
+                $response = Http::timeout(20)->post($webhookUrl, $payload);
+
+                if ($response->failed()) {
+                    ActivityLog::create([
+                        'aktivitas' => "Webhook {$channel} gagal HTTP {$response->status()}: {$santri->nama_lengkap}",
+                        'aktor' => 'Sistem',
+                        'ip_address' => $request->ip()
+                    ]);
+                }
+            } catch (\Exception $e) {
                 ActivityLog::create([
-                    'aktivitas' => "Webhook notifikasi gagal HTTP {$webhookResponse->status()}: {$santri->nama_lengkap}",
+                    'aktivitas' => "Webhook {$channel} gagal: {$santri->nama_lengkap}",
                     'aktor' => 'Sistem',
                     'ip_address' => $request->ip()
                 ]);
             }
-        } catch (\Exception $e) {
-            ActivityLog::create([
-                'aktivitas' => "Webhook notifikasi gagal: {$santri->nama_lengkap}",
-                'aktor' => 'Sistem',
-                'ip_address' => $request->ip()
-            ]);
         }
+    }
 
-        return redirect('/pendaftaran/sukses')->with('nama_santri', $santri->nama_lengkap);
+    private function buildNotificationPayload(CalonSantri $santri): array
+    {
+        $isIkhwan = $santri->jenis_kelamin === 'Laki-laki';
+        $kelas = $isIkhwan ? 'ikhwan' : 'akhwat';
+        $groupLink = Setting::where('key', $isIkhwan ? 'group_ikhwan_url' : 'group_akhwat_url')->value('value') ?? '';
+        $groupRule = $isIkhwan
+            ? 'Group kelas ikhwan boleh diisi oleh bapak dan ibu.'
+            : 'Group kelas akhwat hanya boleh diisi oleh ibu.';
+
+        $emailRecipients = collect([
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'email' => $santri->email_ibu],
+        ])->filter(fn ($recipient) => !empty($recipient['email']))->unique('email')->values()->all();
+
+        $whatsappRecipients = collect($isIkhwan ? [
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'phone' => $santri->no_wa_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'phone' => $santri->no_wa_ibu],
+        ] : [
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'phone' => $santri->no_wa_ibu],
+        ])->filter(fn ($recipient) => !empty($recipient['phone']))->values()->all();
+
+        return [
+            'event' => 'pendaftaran_baru',
+            'santri' => [
+                'id' => $santri->id,
+                'nomor_pendaftaran' => 'SPSB-' . str_pad((string) $santri->id, 5, '0', STR_PAD_LEFT),
+                'nama_lengkap' => $santri->nama_lengkap,
+                'nik' => $santri->nik,
+                'jenis_kelamin' => $santri->jenis_kelamin,
+                'kelas' => $kelas,
+                'tempat_lahir' => $santri->tempat_lahir,
+                'tanggal_lahir' => $santri->tanggal_lahir ? \Carbon\Carbon::parse($santri->tanggal_lahir)->format('Y-m-d') : null,
+                'sekolah_asal' => $santri->nama_sekolah_asal,
+                'status_pendaftaran' => $santri->status_pendaftaran,
+                'waktu_daftar' => $santri->created_at->format('Y-m-d H:i:s'),
+            ],
+            'orang_tua' => [
+                'ayah' => [
+                    'nama' => $santri->nama_ayah,
+                    'no_wa' => $santri->no_wa_ayah,
+                    'email' => $santri->email_ayah,
+                ],
+                'ibu' => [
+                    'nama' => $santri->nama_ibu,
+                    'no_wa' => $santri->no_wa_ibu,
+                    'email' => $santri->email_ibu,
+                ],
+            ],
+            'alamat' => [
+                'alamat_lengkap' => $santri->alamat_lengkap,
+                'rt_rw' => $santri->rt_rw,
+                'kelurahan_desa' => $santri->kelurahan_desa,
+                'kecamatan' => $santri->kecamatan,
+                'kabupaten_kota' => $santri->kabupaten_kota,
+                'propinsi' => $santri->propinsi,
+                'kode_pos' => $santri->kode_pos,
+            ],
+            'ringkasan' => [
+                'judul' => 'Ringkasan Pendaftaran SPSB',
+                'baris' => [
+                    'Nomor Pendaftaran' => 'SPSB-' . str_pad((string) $santri->id, 5, '0', STR_PAD_LEFT),
+                    'Nama Santri' => $santri->nama_lengkap,
+                    'NIK' => $santri->nik,
+                    'Jenis Kelamin' => $santri->jenis_kelamin,
+                    'Status' => $santri->status_pendaftaran,
+                    'Waktu Daftar' => $santri->created_at->format('d-m-Y H:i:s'),
+                ],
+            ],
+            'group' => [
+                'kelas' => $kelas,
+                'link' => $groupLink,
+                'aturan' => $groupRule,
+            ],
+            'recipients' => [
+                'email' => $emailRecipients,
+                'whatsapp' => $whatsappRecipients,
+            ],
+            'links' => [
+                'cetak' => route('pendaftaran.cetak', $santri->id),
+                'admin_detail' => route('admin.show', $santri->id),
+            ],
+        ];
     }
 
     private function validatePendaftaran(Request $request): void
