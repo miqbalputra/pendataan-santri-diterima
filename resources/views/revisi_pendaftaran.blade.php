@@ -65,23 +65,58 @@
                 </div>
 
                 <div class="border-t border-slate-100 pt-8">
-                    <h2 class="font-extrabold">Unggah Ulang Dokumen</h2>
-                    <p class="text-sm text-slate-500 mt-1">Isi hanya dokumen yang diminta revisi atau ingin diganti.</p>
-                    <div class="grid md:grid-cols-2 gap-4 mt-5">
-                        @foreach([
+                    @php
+                        $documentLabels = [
                             'foto_akta_anak' => 'Akta Kelahiran',
                             'foto_kk' => 'Kartu Keluarga',
                             'foto_ktp_ayah' => 'KTP Bapak',
                             'foto_ktp_ibu' => 'KTP Ibu',
                             'foto_pas_siswa' => 'Foto Anak',
-                        ] as $field => $label)
-                            <label class="block rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                <span class="text-xs font-bold uppercase text-slate-500">{{ $label }}</span>
-                                <input type="file" name="{{ $field }}" class="mt-2 w-full text-sm font-semibold text-slate-700">
-                                @error($field)<span class="text-xs font-bold text-rose-600">{{ $message }}</span>@enderror
-                            </label>
-                        @endforeach
-                    </div>
+                        ];
+                        $documentStatuses = $santri->dokumen_status ?? [];
+                        $requestedDocuments = collect($documentLabels)->filter(fn ($label, $field) => ($documentStatuses[$field] ?? null) === 'perlu_perbaikan');
+                        $otherDocuments = collect($documentLabels)->reject(fn ($label, $field) => ($documentStatuses[$field] ?? null) === 'perlu_perbaikan');
+                    @endphp
+
+                    <h2 class="font-extrabold">Unggah Ulang Dokumen yang Diminta</h2>
+                    <p class="text-sm text-slate-500 mt-1">Cukup unggah ulang dokumen yang ditandai panitia. Dokumen lain tidak perlu diunggah ulang.</p>
+
+                    @if($santri->dokumen_catatan)
+                        <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <p class="text-xs font-extrabold uppercase text-amber-700">Catatan Panitia</p>
+                            <p class="mt-1 text-sm font-semibold text-amber-900">{{ $santri->dokumen_catatan }}</p>
+                        </div>
+                    @endif
+
+                    @if($requestedDocuments->isNotEmpty())
+                        <div class="grid md:grid-cols-2 gap-4 mt-5">
+                            @foreach($requestedDocuments as $field => $label)
+                                <label class="block rounded-xl border-2 border-rose-200 bg-rose-50 p-4">
+                                    <span class="inline-flex rounded-full bg-rose-600 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white">Perlu Upload Ulang</span>
+                                    <span class="mt-3 block text-sm font-extrabold uppercase text-slate-800">{{ $label }}</span>
+                                    <input type="file" name="{{ $field }}" class="mt-3 w-full text-sm font-semibold text-slate-700">
+                                    @error($field)<span class="text-xs font-bold text-rose-600">{{ $message }}</span>@enderror
+                                </label>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                            Saat ini tidak ada dokumen yang ditandai perlu upload ulang.
+                        </div>
+                    @endif
+
+                    <details class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <summary class="cursor-pointer text-sm font-extrabold text-slate-700">Unggah dokumen lain jika ingin mengganti</summary>
+                        <div class="grid md:grid-cols-2 gap-4 mt-4">
+                            @foreach($otherDocuments as $field => $label)
+                                <label class="block rounded-xl border border-slate-200 bg-white p-4">
+                                    <span class="text-xs font-bold uppercase text-slate-500">{{ $label }}</span>
+                                    <input type="file" name="{{ $field }}" class="mt-2 w-full text-sm font-semibold text-slate-700">
+                                    @error($field)<span class="text-xs font-bold text-rose-600">{{ $message }}</span>@enderror
+                                </label>
+                            @endforeach
+                        </div>
+                    </details>
                 </div>
 
                 <button class="w-full rounded-xl bg-emerald-700 px-6 py-4 font-extrabold text-white hover:bg-emerald-800">KIRIM REVISI</button>
