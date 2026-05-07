@@ -29,7 +29,7 @@
                     </ol>
                 </nav>
                 <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Detail Peserta Didik: <span class="text-emerald-600">{{ $santri->nama_lengkap }}</span></h1>
-                <p class="text-slate-500 mt-1">ID Pendaftaran: #PSB-{{ str_pad($santri->id, 5, '0', STR_PAD_LEFT) }} | Terdaftar pada: {{ $santri->created_at->format('d M Y, H:i') }}</p>
+                <p class="text-slate-500 mt-1">Nomor Pendaftaran: {{ $santri->nomor_pendaftaran ?? ('SPSB-' . $santri->created_at->format('Y') . '-' . str_pad($santri->id, 5, '0', STR_PAD_LEFT)) }} | Terdaftar pada: {{ $santri->created_at->format('d M Y, H:i') }}</p>
             </div>
             <div class="flex gap-3">
                 <a href="{{ route('admin.dashboard') }}" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">
@@ -359,6 +359,11 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                             Cetak Formulir (PDF)
                         </a>
+                        @if($santri->revisi_token)
+                        <a href="{{ route('pendaftaran.revisi', $santri->revisi_token) }}" target="_blank" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-amber-100">
+                            Link Revisi Orang Tua
+                        </a>
+                        @endif
                     </div>
                 </div>
 
@@ -370,15 +375,18 @@
                     </h3>
                     <div class="space-y-4">
                         @php
+                            $documentStatuses = $santri->dokumen_status ?? [];
                             $docs = [
-                                ['label' => 'Pas Foto Anak', 'path' => $santri->foto_pas_siswa, 'icon' => 'user'],
-                                ['label' => 'KTP Ayah', 'path' => $santri->foto_ktp_ayah, 'icon' => 'id'],
-                                ['label' => 'KTP Ibu', 'path' => $santri->foto_ktp_ibu, 'icon' => 'id'],
-                                ['label' => 'Akta Kelahiran', 'path' => $santri->foto_akta_anak, 'icon' => 'file'],
-                                ['label' => 'Kartu Keluarga', 'path' => $santri->foto_kk, 'icon' => 'home']
+                                ['field' => 'foto_pas_siswa', 'label' => 'Pas Foto Anak', 'path' => $santri->foto_pas_siswa, 'icon' => 'user'],
+                                ['field' => 'foto_ktp_ayah', 'label' => 'KTP Ayah', 'path' => $santri->foto_ktp_ayah, 'icon' => 'id'],
+                                ['field' => 'foto_ktp_ibu', 'label' => 'KTP Ibu', 'path' => $santri->foto_ktp_ibu, 'icon' => 'id'],
+                                ['field' => 'foto_akta_anak', 'label' => 'Akta Kelahiran', 'path' => $santri->foto_akta_anak, 'icon' => 'file'],
+                                ['field' => 'foto_kk', 'label' => 'Kartu Keluarga', 'path' => $santri->foto_kk, 'icon' => 'home']
                             ];
                         @endphp
 
+                        <form action="{{ route('admin.documents', $santri->id) }}" method="POST" class="space-y-4">
+                        @csrf
                         @foreach($docs as $doc)
                         <div class="border border-slate-100 rounded-xl p-3 bg-slate-50 group transition hover:bg-white hover:shadow-md">
                             <div class="flex items-center justify-between mb-3">
@@ -389,6 +397,16 @@
                                     <span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">KOSONG</span>
                                 @endif
                             </div>
+                            <select name="dokumen_status[{{ $doc['field'] }}]" class="mb-3 w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                                @foreach([
+                                    'menunggu_review' => 'Menunggu Review',
+                                    'valid' => 'Valid',
+                                    'perlu_perbaikan' => 'Perlu Perbaikan',
+                                    'kosong' => 'Kosong',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" {{ ($documentStatuses[$doc['field']] ?? ($doc['path'] ? 'menunggu_review' : 'kosong')) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
                             @if($doc['path'])
                                 <a href="{{ Storage::url($doc['path']) }}" target="_blank" class="block relative overflow-hidden rounded-lg border bg-white group-hover:border-blue-300 transition-colors">
                                     <img src="{{ Storage::url($doc['path']) }}" class="w-full h-32 object-contain group-hover:scale-105 transition-transform duration-500" alt="{{ $doc['label'] }}">
@@ -404,6 +422,32 @@
                             @endif
                         </div>
                         @endforeach
+                        <label class="block">
+                            <span class="text-xs font-bold uppercase text-slate-500">Catatan Revisi untuk Orang Tua</span>
+                            <textarea name="dokumen_catatan" rows="4" class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">{{ old('dokumen_catatan', $santri->dokumen_catatan) }}</textarea>
+                        </label>
+                        <button class="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700">Simpan Verifikasi Dokumen</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl shadow-sm p-6">
+                    <h3 class="font-bold text-lg mb-4">Log Notifikasi</h3>
+                    <div class="space-y-3">
+                        @forelse($santri->notificationLogs->take(8) as $log)
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs font-black uppercase text-slate-700">{{ $log->channel }} - {{ $log->status }}</span>
+                                    <span class="text-[10px] font-bold text-slate-400">{{ $log->created_at->format('d/m H:i') }}</span>
+                                </div>
+                                <p class="mt-1 text-[11px] font-semibold text-slate-500 break-words">{{ $log->recipient ?: 'Tanpa penerima' }}</p>
+                                @if($log->message)
+                                    <p class="mt-1 text-[11px] text-slate-400 break-words">{{ $log->message }}</p>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-sm font-semibold text-slate-400">Belum ada log notifikasi.</p>
+                        @endforelse
                     </div>
                 </div>
 

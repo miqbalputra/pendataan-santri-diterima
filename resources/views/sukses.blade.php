@@ -139,6 +139,18 @@
                 </div>
                 @endif
 
+                @if(session('nomor_pendaftaran'))
+                <div class="flex items-center gap-4 bg-white/[0.03] rounded-2xl p-4 border border-white/5">
+                    <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 11h10M7 15h6M5 3h14a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V5a2 2 0 012-2z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nomor Pendaftaran</p>
+                        <p class="text-white font-bold text-sm">{{ session('nomor_pendaftaran') }}</p>
+                    </div>
+                </div>
+                @endif
+
                 <div class="flex items-center gap-4 bg-white/[0.03] rounded-2xl p-4 border border-white/5">
                     <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
                         <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -165,8 +177,8 @@
                 <a href="/" class="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5">
                     Daftarkan Peserta Didik Lainnya
                 </a>
-                <a href="/" class="block w-full text-center bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 border border-white/5 hover:border-white/10">
-                    Kembali ke Beranda
+                <a href="{{ route('pendaftaran.cek_status') }}" class="block w-full text-center bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 border border-white/5 hover:border-white/10">
+                    Cek Status Pendaftaran
                 </a>
             </div>
         </div>

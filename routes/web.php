@@ -11,6 +11,10 @@ Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
 Route::get('/pendaftaran/sukses', function () {
     return view('sukses');
 })->name('pendaftaran.sukses');
+Route::get('/cek-status', [PendaftaranController::class, 'cekStatus'])->name('pendaftaran.cek_status');
+Route::post('/cek-status', [PendaftaranController::class, 'cariStatus'])->name('pendaftaran.cari_status');
+Route::get('/revisi/{token}', [PendaftaranController::class, 'editRevisi'])->name('pendaftaran.revisi');
+Route::post('/revisi/{token}', [PendaftaranController::class, 'updateRevisi'])->name('pendaftaran.revisi.update');
 Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->name('upload_ocr');
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->name('pendaftaran.cetak');
 
@@ -28,6 +32,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/pendaftar/{id}/edit', [AdminController::class, 'edit'])->name('admin.edit');
     Route::post('/pendaftar/{id}', [AdminController::class, 'update'])->name('admin.update');
     Route::post('/pendaftar/{id}/status', [AdminController::class, 'updateStatus'])->name('admin.status');
+    Route::post('/pendaftar/{id}/dokumen', [AdminController::class, 'updateDocumentVerification'])->name('admin.documents');
     
     // Fitur Baru
     Route::post('/periode', [AdminController::class, 'storePeriode'])->name('admin.periode.store');

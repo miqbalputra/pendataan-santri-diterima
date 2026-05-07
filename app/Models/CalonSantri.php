@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class CalonSantri extends Model
 {
     protected $fillable = [
+        'nomor_pendaftaran',
+        'periode_id',
         'nama_lengkap',
         'jenis_kelamin',
         'nisn',
@@ -99,6 +101,11 @@ class CalonSantri extends Model
         'pernyataan_kebenaran_data',
         'tanda_tangan',
         'status_pendaftaran',
+        'dokumen_status',
+        'dokumen_catatan',
+        'revisi_token',
+        'revisi_diminta_pada',
+        'revisi_selesai_pada',
     ];
     
     protected $casts = [
@@ -107,5 +114,18 @@ class CalonSantri extends Model
         'is_ibu_tahsin' => 'boolean',
         'punya_saudara_di_sini' => 'boolean',
         'pernyataan_kebenaran_data' => 'boolean',
+        'dokumen_status' => 'array',
+        'revisi_diminta_pada' => 'datetime',
+        'revisi_selesai_pada' => 'datetime',
     ];
+
+    public function notificationLogs()
+    {
+        return $this->hasMany(NotificationLog::class);
+    }
+
+    public function periode()
+    {
+        return $this->belongsTo(Periode::class);
+    }
 }

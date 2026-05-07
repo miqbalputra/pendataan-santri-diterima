@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\CalonSantri;
 use App\Models\Setting;
 use App\Models\ActivityLog;
+use App\Models\NotificationLog;
+use App\Models\Periode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PendaftaranController extends Controller
 {
@@ -54,8 +57,15 @@ class PendaftaranController extends Controller
         // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
         $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
         $data['status_pendaftaran'] = $data['status_pendaftaran'] ?? 'Pending';
+        $data['periode_id'] = Periode::where('is_active', true)->value('id');
+        $data['dokumen_status'] = $this->initialDocumentStatuses($data);
+        $data['revisi_token'] = Str::random(48);
+
         $santri = DB::transaction(function () use ($data, $request) {
             $santri = CalonSantri::create($data);
+            $santri->forceFill([
+                'nomor_pendaftaran' => $this->generateNomorPendaftaran($santri),
+            ])->save();
 
             ActivityLog::create([
                 'aktivitas' => "Pendaftaran Baru: {$santri->nama_lengkap}",
@@ -68,7 +78,9 @@ class PendaftaranController extends Controller
 
         $this->sendPendaftaranNotifications($santri, $request);
 
-        return redirect('/pendaftaran/sukses')->with('nama_santri', $santri->nama_lengkap);
+        return redirect('/pendaftaran/sukses')
+            ->with('nama_santri', $santri->nama_lengkap)
+            ->with('nomor_pendaftaran', $santri->nomor_pendaftaran);
     }
 
     private function sendPendaftaranNotifications(CalonSantri $santri, Request $request): void
@@ -82,11 +94,20 @@ class PendaftaranController extends Controller
 
         foreach ($webhooks as $channel => $webhookUrl) {
             if (!$webhookUrl) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Webhook belum dikonfigurasi.');
                 continue;
             }
 
             try {
                 $response = Http::timeout(20)->post($webhookUrl, $payload);
+                $this->recordNotificationLog(
+                    $santri,
+                    $channel,
+                    $payload,
+                    $response->successful() ? 'success' : 'failed',
+                    $response->status(),
+                    $response->successful() ? 'Webhook terkirim.' : $response->body()
+                );
 
                 if ($response->failed()) {
                     ActivityLog::create([
@@ -96,6 +117,7 @@ class PendaftaranController extends Controller
                     ]);
                 }
             } catch (\Exception $e) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'failed', null, $e->getMessage());
                 ActivityLog::create([
                     'aktivitas' => "Webhook {$channel} gagal: {$santri->nama_lengkap}",
                     'aktor' => 'Sistem',
@@ -131,7 +153,7 @@ class PendaftaranController extends Controller
             'event' => 'pendaftaran_baru',
             'santri' => [
                 'id' => $santri->id,
-                'nomor_pendaftaran' => 'SPSB-' . str_pad((string) $santri->id, 5, '0', STR_PAD_LEFT),
+                'nomor_pendaftaran' => $santri->nomor_pendaftaran,
                 'nama_lengkap' => $santri->nama_lengkap,
                 'nik' => $santri->nik,
                 'jenis_kelamin' => $santri->jenis_kelamin,
@@ -167,7 +189,7 @@ class PendaftaranController extends Controller
             'ringkasan' => [
                 'judul' => 'Ringkasan Pendaftaran SPSB',
                 'baris' => [
-                    'Nomor Pendaftaran' => 'SPSB-' . str_pad((string) $santri->id, 5, '0', STR_PAD_LEFT),
+                    'Nomor Pendaftaran' => $santri->nomor_pendaftaran,
                     'Nama Santri' => $santri->nama_lengkap,
                     'NIK' => $santri->nik,
                     'Jenis Kelamin' => $santri->jenis_kelamin,
@@ -189,8 +211,123 @@ class PendaftaranController extends Controller
             'links' => [
                 'cetak' => route('pendaftaran.cetak', $santri->id),
                 'admin_detail' => route('admin.show', $santri->id),
+                'cek_status' => route('pendaftaran.cek_status'),
+                'revisi' => route('pendaftaran.revisi', $santri->revisi_token),
             ],
         ];
+    }
+
+    public function cekStatus()
+    {
+        return view('cek_status');
+    }
+
+    public function cariStatus(Request $request)
+    {
+        $request->validate([
+            'kata_kunci' => 'required|string|max:255',
+        ]);
+
+        $keyword = trim($request->kata_kunci);
+        $santri = CalonSantri::where('nomor_pendaftaran', $keyword)
+            ->orWhere('nik', $keyword)
+            ->first();
+
+        return view('cek_status', compact('santri', 'keyword'));
+    }
+
+    public function editRevisi(string $token)
+    {
+        $santri = CalonSantri::where('revisi_token', $token)->firstOrFail();
+
+        return view('revisi_pendaftaran', compact('santri'));
+    }
+
+    public function updateRevisi(Request $request, string $token)
+    {
+        $santri = CalonSantri::where('revisi_token', $token)->firstOrFail();
+
+        $request->validate([
+            'nama_ayah' => 'required|string|max:255',
+            'nik_ayah' => 'required|string|size:16',
+            'no_wa_ayah' => 'required|string|max:25',
+            'email_ayah' => 'nullable|email|max:255',
+            'pekerjaan_ayah' => 'nullable|string|max:255',
+            'pendidikan_ayah' => 'nullable|string|max:255',
+            'nama_ibu' => 'required|string|max:255',
+            'nik_ibu' => 'required|string|size:16',
+            'no_wa_ibu' => 'required|string|max:25',
+            'email_ibu' => 'nullable|email|max:255',
+            'pekerjaan_ibu' => 'nullable|string|max:255',
+            'pendidikan_ibu' => 'nullable|string|max:255',
+            'foto_akta_anak' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+            'foto_kk' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+            'foto_ktp_ayah' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'foto_ktp_ibu' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'foto_pas_siswa' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+        ]);
+
+        $fields = [
+            'nama_ayah', 'nik_ayah', 'no_wa_ayah', 'email_ayah', 'pekerjaan_ayah', 'pendidikan_ayah',
+            'nama_ibu', 'nik_ibu', 'no_wa_ibu', 'email_ibu', 'pekerjaan_ibu', 'pendidikan_ibu',
+        ];
+        $data = $request->only($fields);
+        $documentStatuses = $santri->dokumen_status ?? [];
+
+        foreach (['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'] as $doc) {
+            if ($request->hasFile($doc)) {
+                $data[$doc] = $request->file($doc)->store('pendaftaran', 'public');
+                $documentStatuses[$doc] = 'menunggu_review';
+            }
+        }
+
+        $data['dokumen_status'] = $documentStatuses;
+        $data['revisi_selesai_pada'] = now();
+        $santri->update($data);
+
+        ActivityLog::create([
+            'aktivitas' => "Revisi Data Orang Tua: {$santri->nama_lengkap}",
+            'aktor' => 'Orang Tua',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return redirect()->route('pendaftaran.cek_status')
+            ->with('success', 'Revisi data berhasil dikirim. Panitia akan meninjau kembali data Anda.');
+    }
+
+    private function initialDocumentStatuses(array $data): array
+    {
+        $statuses = [];
+        foreach (['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'] as $doc) {
+            $statuses[$doc] = empty($data[$doc]) ? 'kosong' : 'menunggu_review';
+        }
+
+        return $statuses;
+    }
+
+    private function generateNomorPendaftaran(CalonSantri $santri): string
+    {
+        $year = optional($santri->created_at)->format('Y') ?: now()->format('Y');
+
+        return 'SPSB-' . $year . '-' . str_pad((string) $santri->id, 5, '0', STR_PAD_LEFT);
+    }
+
+    private function recordNotificationLog(CalonSantri $santri, string $channel, array $payload, string $status, ?int $httpStatus, ?string $message): void
+    {
+        $recipients = collect($payload['recipients'][$channel] ?? []);
+        $recipientSummary = $recipients->map(fn ($item) => $item['email'] ?? $item['phone'] ?? null)->filter()->implode(', ');
+        $roleSummary = $recipients->pluck('role')->filter()->implode(', ');
+
+        NotificationLog::create([
+            'calon_santri_id' => $santri->id,
+            'channel' => $channel,
+            'recipient' => $recipientSummary,
+            'recipient_role' => $roleSummary,
+            'status' => $status,
+            'http_status' => $httpStatus,
+            'message' => $message ? Str::limit($message, 500) : null,
+            'payload' => $payload,
+        ]);
     }
 
     private function validatePendaftaran(Request $request): void

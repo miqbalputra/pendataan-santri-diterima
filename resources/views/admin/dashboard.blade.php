@@ -195,6 +195,7 @@
                                 <td class="p-6 text-center font-black text-slate-300 group-hover:text-emerald-500">{{ ($pendaftar->currentPage() - 1) * $pendaftar->perPage() + $loop->iteration }}.</td>
                                 <td class="p-6">
                                     <div class="font-black text-slate-800 text-base">{{ $p->nama_lengkap }}</div>
+                                    <div class="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-0.5">{{ $p->nomor_pendaftaran ?? ('SPSB-' . $p->created_at->format('Y') . '-' . str_pad($p->id, 5, '0', STR_PAD_LEFT)) }}</div>
                                     <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{{ $p->nik ?? $p->nik_anak ?? 'Tanpa NIK' }}</div>
                                 </td>
                                 <td class="p-6 text-center">
@@ -535,8 +536,51 @@
         <div id="content-laporan" class="tab-content hidden animate-fade">
             <div class="mb-10">
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight">Pusat Laporan & Unduhan</h2>
-                <p class="text-slate-500 font-medium">Ekspor database pendaftar ke format Excel atau PDF.</p>
+                <p class="text-slate-500 font-medium">Ekspor data operasional dengan filter status, jenis kelamin, dan periode.</p>
             </div>
+
+            <form method="GET" action="{{ route('admin.export') }}" class="glass-card rounded-[2rem] p-6 shadow-xl shadow-slate-900/5 border border-white mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <label class="block">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</span>
+                        <select name="status_pendaftaran" class="form-input mt-2">
+                            <option value="">Semua Status</option>
+                            @foreach(['Pending', 'Diterima', 'Ditolak'] as $status)
+                                <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Jenis Kelamin</span>
+                        <select name="jenis_kelamin" class="form-input mt-2">
+                            <option value="">Semua</option>
+                            <option value="Laki-laki">Putra / Ikhwan</option>
+                            <option value="Perempuan">Putri / Akhwat</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Periode</span>
+                        <select name="periode_id" class="form-input mt-2">
+                            <option value="">Semua Periode</option>
+                            @foreach($periodes as $periode)
+                                <option value="{{ $periode->id }}">{{ $periode->nama_periode }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Format</span>
+                        <select name="format" class="form-input mt-2">
+                            <option value="excel">Excel Full</option>
+                            <option value="uploads">ZIP Berkas Upload</option>
+                            <option value="pdf">PDF Cetak</option>
+                            <option value="csv">CSV Ringkas</option>
+                        </select>
+                    </label>
+                </div>
+                <button type="submit" class="mt-5 w-full md:w-auto bg-slate-900 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl text-sm font-black transition shadow-xl shadow-slate-900/10 active:scale-95">
+                    UNDUH SESUAI FILTER
+                </button>
+            </form>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
                 <div class="glass-card rounded-[3rem] p-10 shadow-2xl shadow-emerald-900/5 group hover:-translate-y-2 transition-all duration-500 border border-white relative overflow-hidden">
@@ -609,6 +653,36 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mt-10">
+                <h3 class="text-2xl font-black text-slate-800 tracking-tight mb-4">Log Notifikasi Email/WhatsApp</h3>
+                <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                            <tr>
+                                <th class="p-6">Waktu</th>
+                                <th class="p-6">Pendaftar</th>
+                                <th class="p-6">Channel</th>
+                                <th class="p-6">Penerima</th>
+                                <th class="p-6">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($notificationLogs as $log)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="p-6 text-xs text-slate-400 font-bold">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="p-6 font-black text-slate-700">{{ optional($log->calonSantri)->nama_lengkap ?? '-' }}</td>
+                                <td class="p-6"><span class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">{{ $log->channel }}</span></td>
+                                <td class="p-6 text-xs text-slate-500 font-bold max-w-xs overflow-hidden text-ellipsis">{{ $log->recipient ?: '-' }}</td>
+                                <td class="p-6"><span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase {{ $log->status === 'success' ? 'bg-emerald-50 text-emerald-700' : ($log->status === 'failed' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ $log->status }}</span></td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="5" class="p-16 text-center text-slate-400 font-bold italic">Belum ada log notifikasi.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         

@@ -6,6 +6,7 @@ use App\Models\CalonSantri;
 use App\Models\Setting;
 use App\Models\Periode;
 use App\Models\ActivityLog;
+use App\Models\NotificationLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class AdminController extends Controller
 {
     public function index(Request $request) {
         $query = CalonSantri::latest();
-        
+
         if ($request->has('search')) {
             $search = $request->search;
             $query->where('nama_lengkap', 'like', "%$search%")
@@ -52,8 +53,9 @@ class AdminController extends Controller
 
         $periodes = Periode::all();
         $logs = ActivityLog::latest()->take(100)->get();
+        $notificationLogs = NotificationLog::with('calonSantri')->latest()->take(100)->get();
 
-        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'logs', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
+        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'logs', 'notificationLogs', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }
 
     public function updateSettings(Request $request) {
@@ -150,7 +152,7 @@ class AdminController extends Controller
     }
 
     public function show($id) {
-        $santri = CalonSantri::findOrFail($id);
+        $santri = CalonSantri::with('notificationLogs')->findOrFail($id);
         return view('admin.show', compact('santri'));
     }
 
@@ -203,6 +205,30 @@ class AdminController extends Controller
         return back()->with('success', 'Status berhasil diperbarui!');
     }
 
+    public function updateDocumentVerification(Request $request, $id) {
+        $santri = CalonSantri::findOrFail($id);
+
+        $request->validate([
+            'dokumen_status' => 'required|array',
+            'dokumen_status.*' => 'required|in:menunggu_review,valid,perlu_perbaikan,kosong',
+            'dokumen_catatan' => 'nullable|string|max:2000',
+        ]);
+
+        $santri->update([
+            'dokumen_status' => $request->dokumen_status,
+            'dokumen_catatan' => $request->dokumen_catatan,
+            'revisi_diminta_pada' => in_array('perlu_perbaikan', $request->dokumen_status, true) ? now() : $santri->revisi_diminta_pada,
+        ]);
+
+        ActivityLog::create([
+            'aktivitas' => "Verifikasi Dokumen: {$santri->nama_lengkap}",
+            'aktor' => 'Admin',
+            'ip_address' => $request->ip()
+        ]);
+
+        return back()->with('success', 'Status dokumen berhasil diperbarui!');
+    }
+
     public function storePeriode(Request $request) {
         Periode::create(['nama_periode' => $request->nama_periode, 'is_active' => $request->has('is_active')]);
         return back()->with('success', 'Periode ditambahkan!');
@@ -226,10 +252,24 @@ class AdminController extends Controller
     
     public function exportData(Request $request) {
         $format = $request->format;
-        $data = CalonSantri::orderBy('id')->get();
+        $query = CalonSantri::query()->orderBy('id');
+
+        if ($request->filled('status_pendaftaran')) {
+            $query->where('status_pendaftaran', $request->status_pendaftaran);
+        }
+
+        if ($request->filled('jenis_kelamin')) {
+            $query->where('jenis_kelamin', $request->jenis_kelamin);
+        }
+
+        if ($request->filled('periode_id')) {
+            $query->where('periode_id', $request->periode_id);
+        }
+
+        $data = $query->get();
         
         ActivityLog::create([
-            'aktivitas' => 'Export Data Pendaftar ('.$format.')',
+            'aktivitas' => 'Export Data Pendaftar ('.$format.') - '.$data->count().' data',
             'aktor' => 'Admin',
             'ip_address' => $request->ip()
         ]);
