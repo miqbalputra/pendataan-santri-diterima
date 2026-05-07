@@ -11,7 +11,11 @@ use App\Models\NotificationLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use ZipArchive;
 
 class AdminController extends Controller
@@ -203,6 +207,7 @@ class AdminController extends Controller
         ]);
 
         $santri = CalonSantri::findOrFail($id);
+        $oldStatus = $santri->status_pendaftaran;
         $santri->update(['status_pendaftaran' => $request->status_pendaftaran]);
         
         ActivityLog::create([
@@ -211,7 +216,160 @@ class AdminController extends Controller
             'ip_address' => $request->ip()
         ]);
 
+        if ($oldStatus !== $request->status_pendaftaran) {
+            $this->sendStatusVerificationNotifications($santri->fresh(), $oldStatus, $request->status_pendaftaran, $request);
+        }
+
         return back()->with('success', 'Status berhasil diperbarui!');
+    }
+
+    private function sendStatusVerificationNotifications(CalonSantri $santri, string $oldStatus, string $newStatus, Request $request): void
+    {
+        $payload = $this->buildStatusVerificationPayload($santri, $oldStatus, $newStatus);
+
+        $webhooks = [
+            'email' => Setting::where('key', 'n8n_email_webhook_url')->value('value'),
+            'whatsapp' => Setting::where('key', 'n8n_whatsapp_webhook_url')->value('value'),
+        ];
+
+        foreach ($webhooks as $channel => $webhookUrl) {
+            if (empty($payload['recipients'][$channel])) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Tidak ada penerima untuk channel ini.');
+                continue;
+            }
+
+            if (!$webhookUrl) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Webhook belum dikonfigurasi.');
+                continue;
+            }
+
+            try {
+                $response = Http::timeout(20)->post($webhookUrl, $payload);
+                $this->recordNotificationLog(
+                    $santri,
+                    $channel,
+                    $payload,
+                    $response->successful() ? 'success' : 'failed',
+                    $response->status(),
+                    $response->successful() ? 'Webhook status verifikasi terkirim.' : $response->body()
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Webhook status verifikasi gagal.', [
+                    'calon_santri_id' => $santri->id,
+                    'channel' => $channel,
+                    'error' => $e->getMessage(),
+                ]);
+                $this->recordNotificationLog($santri, $channel, $payload, 'failed', null, $e->getMessage());
+            }
+        }
+    }
+
+    private function buildStatusVerificationPayload(CalonSantri $santri, string $oldStatus, string $newStatus): array
+    {
+        $statusLabels = [
+            'Pending' => 'Menunggu Verifikasi Data',
+            'Diterima' => 'Data Lengkap / Terverifikasi',
+            'Ditolak' => 'Data Tidak Valid / Tidak Dilanjutkan',
+        ];
+
+        $statusMessages = [
+            'Pending' => 'Data ananda sedang dalam proses verifikasi panitia.',
+            'Diterima' => 'Alhamdulillah, data ananda sudah dinyatakan lengkap dan terverifikasi oleh panitia.',
+            'Ditolak' => 'Data ananda belum dapat dilanjutkan. Silakan cek catatan panitia atau hubungi admin untuk arahan berikutnya.',
+        ];
+
+        $emailRecipients = collect([
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'email' => $santri->email_ibu],
+            ['role' => 'wali', 'name' => $santri->nama_wali, 'email' => $santri->email_wali],
+        ])->filter(fn ($recipient) => !empty($recipient['email']))->unique('email')->values()->all();
+
+        $whatsappRecipients = collect([
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'phone' => $santri->no_wa_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'phone' => $santri->no_wa_ibu],
+            ['role' => 'wali', 'name' => $santri->nama_wali, 'phone' => $santri->no_wa_wali],
+        ])->filter(fn ($recipient) => !empty($recipient['phone']))->values()->all();
+
+        return [
+            'event' => 'status_verifikasi_diperbarui',
+            'event_label' => 'Status Verifikasi Data Diperbarui',
+            'santri' => [
+                'id' => $santri->id,
+                'nomor_pendaftaran' => $santri->nomor_pendaftaran,
+                'nomor_pendataan' => $santri->nomor_pendaftaran,
+                'nama_lengkap' => $santri->nama_lengkap,
+                'nik' => $santri->nik,
+                'jenis_kelamin' => $santri->jenis_kelamin,
+                'status_pendaftaran' => $newStatus,
+                'status_verifikasi' => $newStatus,
+                'status_label' => $statusLabels[$newStatus] ?? $newStatus,
+                'status_sebelumnya' => $oldStatus,
+                'status_sebelumnya_label' => $statusLabels[$oldStatus] ?? $oldStatus,
+                'pesan_status' => $statusMessages[$newStatus] ?? 'Status verifikasi data ananda telah diperbarui oleh panitia.',
+                'waktu_update_status' => now()->format('Y-m-d H:i:s'),
+            ],
+            'orang_tua' => [
+                'ayah' => [
+                    'nama' => $santri->nama_ayah,
+                    'no_wa' => $santri->no_wa_ayah,
+                    'email' => $santri->email_ayah,
+                ],
+                'ibu' => [
+                    'nama' => $santri->nama_ibu,
+                    'no_wa' => $santri->no_wa_ibu,
+                    'email' => $santri->email_ibu,
+                ],
+                'wali' => [
+                    'nama' => $santri->nama_wali,
+                    'no_wa' => $santri->no_wa_wali,
+                    'email' => $santri->email_wali,
+                ],
+            ],
+            'ringkasan' => [
+                'judul' => 'Update Status Verifikasi Data SPSB',
+                'baris' => [
+                    'Nomor Pendataan' => $santri->nomor_pendaftaran,
+                    'Nama Peserta Didik' => $santri->nama_lengkap,
+                    'NIK' => $santri->nik,
+                    'Status Sebelumnya' => $statusLabels[$oldStatus] ?? $oldStatus,
+                    'Status Terbaru' => $statusLabels[$newStatus] ?? $newStatus,
+                    'Waktu Update' => now()->format('d-m-Y H:i:s'),
+                ],
+            ],
+            'recipients' => [
+                'email' => $emailRecipients,
+                'whatsapp' => $whatsappRecipients,
+            ],
+            'links' => [
+                'cek_status' => route('pendaftaran.cek_status'),
+                'cetak' => route('pendaftaran.cetak', $santri->id),
+                'bukti' => route('pendaftaran.bukti', $santri->id),
+                'admin_detail' => route('admin.show', $santri->id),
+                'revisi' => $santri->revisi_token ? route('pendaftaran.revisi', $santri->revisi_token) : null,
+            ],
+        ];
+    }
+
+    private function recordNotificationLog(CalonSantri $santri, string $channel, array $payload, string $status, ?int $httpStatus, ?string $message): void
+    {
+        if (!Schema::hasTable('notification_logs')) {
+            return;
+        }
+
+        $recipients = collect($payload['recipients'][$channel] ?? []);
+        $recipientSummary = $recipients->map(fn ($item) => $item['email'] ?? $item['phone'] ?? null)->filter()->implode(', ');
+        $roleSummary = $recipients->pluck('role')->filter()->implode(', ');
+
+        NotificationLog::create([
+            'calon_santri_id' => $santri->id,
+            'channel' => $channel,
+            'recipient' => $recipientSummary,
+            'recipient_role' => $roleSummary,
+            'status' => $status,
+            'http_status' => $httpStatus,
+            'message' => $message ? Str::limit($message, 500) : null,
+            'payload' => $payload,
+        ]);
     }
 
     public function updateDocumentVerification(Request $request, $id) {

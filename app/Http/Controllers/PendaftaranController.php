@@ -135,6 +135,11 @@ class PendaftaranController extends Controller
         ];
 
         foreach ($webhooks as $channel => $webhookUrl) {
+            if (empty($payload['recipients'][$channel])) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Tidak ada penerima untuk channel ini.');
+                continue;
+            }
+
             if (!$webhookUrl) {
                 $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Webhook belum dikonfigurasi.');
                 continue;

@@ -1,5 +1,5 @@
 {
-  "name": "SPSB - WhatsApp Ringkasan dan Link Grup",
+  "name": "SPSB - WhatsApp Pendataan dan Status Verifikasi",
   "nodes": [
     {
       "parameters": {
@@ -9,26 +9,20 @@
         "options": {}
       },
       "id": "webhook_whatsapp_ringkasan",
-      "name": "Webhook WhatsApp Ringkasan",
+      "name": "Webhook WhatsApp SPSB",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        240,
-        300
-      ]
+      "position": [240, 300]
     },
     {
       "parameters": {
-        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.whatsapp ?? [];\nconst santri = payload.santri ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction normalizePhone(phone) {\n  const raw = String(phone ?? '').replace(/[^0-9]/g, '');\n  if (raw.startsWith('08')) return '62' + raw.slice(1);\n  if (raw.startsWith('8')) return '62' + raw;\n  return raw;\n}\n\nconst summaryText = Object.entries(ringkasan)\n  .map(([label, value]) => `- ${label}: ${value ?? '-'}`)\n  .join('\\n');\n\nreturn recipients.map((recipient) => {\n  const roleLabel = recipient.role === 'ibu' ? 'Ibu' : 'Bapak';\n  const kelasLabel = group.kelas === 'ikhwan'\n    ? 'ikhwan (putra)'\n    : 'akhwat (putri)';\n  const message = `Assalamu'alaikum ${roleLabel} ${recipient.name ?? ''},\\n\\nAlhamdulillah, data pendaftaran SPSB untuk ananda *${santri.nama_lengkap ?? '-'}* sudah masuk dan diterima oleh sistem.\\n\\n*Ringkasan data:*\\n${summaryText}\\n\\n*Informasi group kelas ${kelasLabel}:*\\n${group.aturan ?? '-'}\\n${group.link ? `Link group: ${group.link}` : 'Link group belum tersedia. Admin akan mengirimkan link menyusul.'}\\n\\nTautan cetak pendaftaran:\\n${payload.links?.cetak ?? '-'}\\n\\nJazakumullah khairan.\\nPanitia SPSB`;\n\n  return {\n    json: {\n      phone: normalizePhone(recipient.phone),\n      role: recipient.role,\n      name: recipient.name,\n      message,\n      payload\n    }\n  };\n});"
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.whatsapp ?? [];\nconst santri = payload.santri ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\nconst event = payload.event ?? 'pendaftaran_baru';\nconst isStatusUpdate = event === 'status_verifikasi_diperbarui';\n\nfunction normalizePhone(phone) {\n  const raw = String(phone ?? '').replace(/[^0-9]/g, '');\n  if (raw.startsWith('08')) return '62' + raw.slice(1);\n  if (raw.startsWith('8')) return '62' + raw;\n  return raw;\n}\n\nfunction roleLabel(role) {\n  if (role === 'ibu') return 'Ibu';\n  if (role === 'wali') return 'Bapak/Ibu Wali';\n  return 'Bapak';\n}\n\nconst summaryText = Object.entries(ringkasan)\n  .map(([label, value]) => `- ${label}: ${value ?? '-'}`)\n  .join('\\n');\n\nreturn recipients.map((recipient) => {\n  const kelasLabel = group.kelas === 'ikhwan' ? 'ikhwan (putra)' : 'akhwat (putri)';\n  const greeting = `${roleLabel(recipient.role)} ${recipient.name ?? ''}`.trim();\n  const message = isStatusUpdate\n    ? `Assalamu'alaikum ${greeting},\\n\\nStatus verifikasi data SPSB untuk ananda *${santri.nama_lengkap ?? '-'}* telah diperbarui oleh panitia.\\n\\n*Status terbaru:* ${santri.status_label ?? '-'}\\n${santri.pesan_status ?? ''}\\n\\n*Ringkasan:*\\n${summaryText}\\n\\nCek status pendataan:\\n${payload.links?.cek_status ?? '-'}\\n\\nJazakumullah khairan.\\nPanitia SPSB`\n    : `Assalamu'alaikum ${greeting},\\n\\nAlhamdulillah, data pendataan SPSB untuk ananda *${santri.nama_lengkap ?? '-'}* sudah masuk dan diterima oleh sistem.\\n\\n*Ringkasan data:*\\n${summaryText}\\n\\n*Informasi grup kelas ${kelasLabel}:*\\n${group.aturan ?? '-'}\\n${group.link ? `Link grup: ${group.link}` : 'Link grup belum tersedia. Admin akan mengirimkan link menyusul.'}\\n\\nTautan cetak bukti pendataan:\\n${payload.links?.cetak ?? '-'}\\n\\nJazakumullah khairan.\\nPanitia SPSB`;\n\n  return {\n    json: {\n      phone: normalizePhone(recipient.phone),\n      role: recipient.role,\n      name: recipient.name,\n      event,\n      message,\n      payload\n    }\n  };\n});"
       },
       "id": "build_whatsapp_messages",
       "name": "Siapkan Pesan WhatsApp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        480,
-        300
-      ]
+      "position": [480, 300]
     },
     {
       "parameters": {
@@ -56,67 +50,37 @@
       "name": "Kirim WhatsApp via API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [
-        720,
-        300
-      ],
+      "position": [720, 300],
       "notes": "Sesuaikan URL, token, dan bentuk JSON body dengan provider WhatsApp yang dipakai, misalnya Fonnte, Wablas, Z-API, atau server WA internal."
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: true, channel: 'whatsapp', sent_items: $items().length } }}",
+        "responseBody": "={{ { success: true, channel: 'whatsapp', event: $json.event, sent_items: $items().length } }}",
         "options": {}
       },
       "id": "respond_whatsapp",
       "name": "Response WhatsApp",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        960,
-        300
-      ]
+      "position": [960, 300]
     }
   ],
   "pinData": {},
   "connections": {
-    "Webhook WhatsApp Ringkasan": {
-      "main": [
-        [
-          {
-            "node": "Siapkan Pesan WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Webhook WhatsApp SPSB": {
+      "main": [[{ "node": "Siapkan Pesan WhatsApp", "type": "main", "index": 0 }]]
     },
     "Siapkan Pesan WhatsApp": {
-      "main": [
-        [
-          {
-            "node": "Kirim WhatsApp via API",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Kirim WhatsApp via API", "type": "main", "index": 0 }]]
     },
     "Kirim WhatsApp via API": {
-      "main": [
-        [
-          {
-            "node": "Response WhatsApp",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Response WhatsApp", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "spsb-whatsapp-ringkasan-v1"
+  "versionId": "spsb-whatsapp-pendataan-status-v2"
 }
