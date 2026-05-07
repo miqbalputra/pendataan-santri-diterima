@@ -26,18 +26,22 @@
     },
     {
       "parameters": {
-        "fromEmail": "admin@example.com",
-        "toEmail": "={{ $json.to_email }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.to_email }}",
         "subject": "={{ $json.subject }}",
-        "html": "={{ $json.html }}",
-        "options": {}
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
       },
       "id": "send_email",
-      "name": "Kirim Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
+      "name": "Kirim Email via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
       "position": [720, 300],
-      "notes": "Set credential SMTP di node ini, lalu ganti fromEmail sesuai alamat email lembaga."
+      "notes": "Hubungkan credential Gmail/Google Workspace pada node ini. Pengirim mengikuti akun Gmail yang dipakai di credential."
     },
     {
       "parameters": {
@@ -58,9 +62,9 @@
       "main": [[{ "node": "Siapkan Pesan Email", "type": "main", "index": 0 }]]
     },
     "Siapkan Pesan Email": {
-      "main": [[{ "node": "Kirim Email", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Kirim Email via Gmail", "type": "main", "index": 0 }]]
     },
-    "Kirim Email": {
+    "Kirim Email via Gmail": {
       "main": [[{ "node": "Response Email", "type": "main", "index": 0 }]]
     }
   },
@@ -68,5 +72,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "spsb-email-pendataan-status-v2"
+  "versionId": "spsb-email-pendataan-status-gmail-v3"
 }
