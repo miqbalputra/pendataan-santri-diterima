@@ -438,6 +438,10 @@ class AdminController extends Controller
     }
 
     public function askAi(Request $request) {
+        $request->validate([
+            'question' => 'required|string|max:1000',
+        ]);
+
         $question = $request->question;
         
         $endpoint = Setting::where('key', 'ai_endpoint')->value('value') ?? 'https://api.openai.com/v1/chat/completions';
@@ -453,31 +457,65 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'error' => 'API Key belum diatur di Pengaturan.']);
         }
 
-        $pendaftar = CalonSantri::select('nama_lengkap', 'jenis_kelamin', 'nama_ayah', 'no_wa_ayah', 'status_pendaftaran', 'created_at')->get();
+        $stats = [
+            'total' => CalonSantri::count(),
+            'pending' => CalonSantri::where('status_pendaftaran', 'Pending')->count(),
+            'diterima' => CalonSantri::where('status_pendaftaran', 'Diterima')->count(),
+            'ditolak' => CalonSantri::where('status_pendaftaran', 'Ditolak')->count(),
+            'putra' => CalonSantri::where('jenis_kelamin', 'Laki-laki')->count(),
+            'putri' => CalonSantri::where('jenis_kelamin', 'Perempuan')->count(),
+        ];
+
+        $pendaftar = CalonSantri::select('nomor_pendaftaran', 'nama_lengkap', 'jenis_kelamin', 'nama_ayah', 'nama_ibu', 'no_wa_ayah', 'status_pendaftaran', 'created_at')
+            ->latest()
+            ->take(80)
+            ->get();
         
-        $context = "Kamu adalah Asisten AI untuk Administrator Sekolah SPSB. Berikut adalah data pendaftar terbaru dalam format JSON:\n";
-        $context .= $pendaftar->toJson() . "\n\n";
-        $context .= "Gunakan data di atas untuk menjawab pertanyaan admin secara profesional dan akurat. Jika data tidak ada, katakan sejujurnya.";
+        $context = "Kamu adalah Asisten AI untuk Administrator Sekolah SPSB. Jawab singkat, profesional, dan berdasarkan data yang tersedia.\n";
+        $context .= "Statistik ringkas: " . json_encode($stats, JSON_UNESCAPED_UNICODE) . "\n";
+        $context .= "Data pendaftar terbaru maksimal 80 baris: " . $pendaftar->toJson(JSON_UNESCAPED_UNICODE) . "\n";
+        $context .= "Jika pertanyaan membutuhkan data yang tidak ada di konteks, katakan bahwa data tidak tersedia di konteks chat.";
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)->post($endpoint, [
+            $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
+                ->acceptJson()
+                ->timeout(60)
+                ->post($endpoint, [
                 'model' => $model,
                 'messages' => [
                     ['role' => 'system', 'content' => $context],
                     ['role' => 'user', 'content' => $question]
                 ],
-                'temperature' => 0.7
+                'temperature' => 0.2,
+                'max_tokens' => 800,
             ]);
 
             if ($response->successful()) {
-                $answer = $response->json('choices.0.message.content');
+                $answer = $response->json('choices.0.message.content')
+                    ?? $response->json('choices.0.text')
+                    ?? $response->json('output_text')
+                    ?? $response->json('message.content');
+
+                if (!$answer) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Endpoint AI merespons, tetapi format jawabannya tidak dikenali.',
+                    ]);
+                }
+
                 return response()->json(['success' => true, 'answer' => $answer]);
             }
 
             $errorBody = $response->json('error.message') ?? $response->json('message') ?? $response->body();
-            return response()->json(['success' => false, 'error' => 'AI Error [' . $response->status() . ']: ' . $errorBody]);
+            return response()->json([
+                'success' => false,
+                'error' => 'AI Error [' . $response->status() . ']: ' . substr((string) $errorBody, 0, 500),
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => 'Koneksi Gagal: ' . $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Koneksi AI gagal: ' . $e->getMessage(),
+            ], 500);
         }
     }
 }

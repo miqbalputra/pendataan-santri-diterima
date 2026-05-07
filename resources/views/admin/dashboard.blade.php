@@ -775,7 +775,14 @@
                     body: JSON.stringify({ question: question })
                 });
 
-                const data = await response.json();
+                const rawResponse = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(rawResponse);
+                } catch (parseError) {
+                    throw new Error(rawResponse ? rawResponse.substring(0, 220) : 'Respons server kosong.');
+                }
+
                 const loadingEl = document.getElementById(loadingId);
                 
                 if(data.success) {
@@ -785,7 +792,7 @@
                 }
             } catch (error) {
                 const loadingEl = document.getElementById(loadingId);
-                loadingEl.innerHTML = '<span class="text-rose-500 font-bold">Koneksi Gagal. Silakan coba lagi.</span>';
+                loadingEl.innerHTML = '<span class="text-rose-500 font-bold">Koneksi Gagal: ' + escapeHtml(error.message || 'Silakan coba lagi.') + '</span>';
             }
             
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -811,6 +818,15 @@
             `;
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
         @endif
 
