@@ -765,8 +765,9 @@
             addMessage('ai', '<span class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-75"></span><span class="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce delay-150"></span> Berpikir...</span>', loadingId);
 
             try {
-                const response = await fetch('{{ route("admin.ask_ai") }}', {
+                const response = await fetch('/admin/ask-ai', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
