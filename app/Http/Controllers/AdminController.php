@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CalonSantri;
 use App\Models\Setting;
 use App\Models\Periode;
+use App\Models\Gelombang;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
 use Illuminate\Http\Request;
@@ -52,10 +53,18 @@ class AdminController extends Controller
         $kop_baris_3 = Setting::where('key', 'kop_baris_3')->value('value') ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890';
 
         $periodes = Periode::all();
+        $gelombangs = Gelombang::withCount('calonSantris')->get();
         $logs = ActivityLog::latest()->take(100)->get();
         $notificationLogs = NotificationLog::with('calonSantri')->latest()->take(100)->get();
+        $followUpPendaftar = CalonSantri::with('gelombang')->latest()->get()->filter(function ($santri) {
+            $statuses = collect($santri->dokumen_status ?? []);
+            return !$santri->followup_sudah_masuk_grup
+                || !$santri->followup_sudah_dihubungi
+                || $santri->status_pendaftaran === 'Pending'
+                || $statuses->contains(fn ($status) => in_array($status, ['kosong', 'perlu_perbaikan', 'menunggu_review'], true));
+        })->take(100);
 
-        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'logs', 'notificationLogs', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
+        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }
 
     public function updateSettings(Request $request) {
@@ -260,6 +269,70 @@ class AdminController extends Controller
         Periode::destroy($id);
         return back()->with('success', 'Periode dihapus!');
     }
+
+    public function storeGelombang(Request $request) {
+        $request->validate([
+            'nama_gelombang' => 'required|string|max:255',
+            'kuota' => 'nullable|integer|min:1',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
+        ]);
+
+        if ($request->has('is_active')) {
+            Gelombang::query()->update(['is_active' => false]);
+        }
+
+        Gelombang::create([
+            'nama_gelombang' => $request->nama_gelombang,
+            'kuota' => $request->kuota,
+            'tanggal_mulai' => $request->tanggal_mulai,
+            'tanggal_selesai' => $request->tanggal_selesai,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return back()->with('success', 'Gelombang ditambahkan!');
+    }
+
+    public function updateGelombang(Request $request, $id) {
+        $gelombang = Gelombang::findOrFail($id);
+
+        if ($request->has('set_active')) {
+            Gelombang::query()->update(['is_active' => false]);
+            $gelombang->update(['is_active' => true]);
+            return back()->with('success', 'Gelombang aktif diubah!');
+        }
+
+        $gelombang->update([
+            'nama_gelombang' => $request->nama_gelombang,
+            'kuota' => $request->kuota,
+            'tanggal_mulai' => $request->tanggal_mulai,
+            'tanggal_selesai' => $request->tanggal_selesai,
+        ]);
+
+        return back()->with('success', 'Gelombang diperbarui!');
+    }
+
+    public function deleteGelombang($id) {
+        Gelombang::destroy($id);
+        return back()->with('success', 'Gelombang dihapus!');
+    }
+
+    public function updateFollowUp(Request $request, $id) {
+        $santri = CalonSantri::findOrFail($id);
+        $santri->update([
+            'followup_sudah_masuk_grup' => $request->has('followup_sudah_masuk_grup'),
+            'followup_sudah_dihubungi' => $request->has('followup_sudah_dihubungi'),
+            'followup_catatan' => $request->followup_catatan,
+        ]);
+
+        ActivityLog::create([
+            'aktivitas' => "Update Follow-up: {$santri->nama_lengkap}",
+            'aktor' => 'Admin',
+            'ip_address' => $request->ip()
+        ]);
+
+        return back()->with('success', 'Follow-up pendaftar diperbarui!');
+    }
     
     public function exportData(Request $request) {
         $format = $request->format;
@@ -275,6 +348,10 @@ class AdminController extends Controller
 
         if ($request->filled('periode_id')) {
             $query->where('periode_id', $request->periode_id);
+        }
+
+        if ($request->filled('gelombang_id')) {
+            $query->where('gelombang_id', $request->gelombang_id);
         }
 
         $data = $query->get();

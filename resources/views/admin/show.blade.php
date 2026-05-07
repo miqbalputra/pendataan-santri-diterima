@@ -359,12 +359,32 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                             Cetak Formulir (PDF)
                         </a>
+                        <a href="{{ route('pendaftaran.bukti', $santri->id) }}" target="_blank" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-emerald-100">
+                            Bukti Pendaftaran + QR
+                        </a>
                         @if($santri->revisi_token)
                         <a href="{{ route('pendaftaran.revisi', $santri->revisi_token) }}" target="_blank" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-amber-100">
                             Link Revisi Orang Tua
                         </a>
                         @endif
                     </div>
+                </div>
+
+                <div class="glass-card rounded-2xl shadow-sm p-6">
+                    <h3 class="font-bold text-lg mb-4">Follow-up Operasional</h3>
+                    <form action="{{ route('admin.followup.update', $santri->id) }}" method="POST" class="space-y-4">
+                        @csrf
+                        <label class="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm font-bold text-slate-700">
+                            <input type="checkbox" name="followup_sudah_masuk_grup" value="1" {{ $santri->followup_sudah_masuk_grup ? 'checked' : '' }}>
+                            Orang tua sudah masuk grup kelas
+                        </label>
+                        <label class="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm font-bold text-slate-700">
+                            <input type="checkbox" name="followup_sudah_dihubungi" value="1" {{ $santri->followup_sudah_dihubungi ? 'checked' : '' }}>
+                            Sudah dihubungi panitia
+                        </label>
+                        <textarea name="followup_catatan" rows="3" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700" placeholder="Catatan follow-up">{{ $santri->followup_catatan }}</textarea>
+                        <button class="w-full rounded-xl bg-slate-900 py-3 text-sm font-bold text-white hover:bg-emerald-700">Simpan Follow-up</button>
+                    </form>
                 </div>
 
                 <!-- DOCUMENTS -->

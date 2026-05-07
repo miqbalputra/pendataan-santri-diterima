@@ -166,6 +166,11 @@
 
         <form action="/pendaftaran" method="POST" enctype="multipart/form-data" id="form-pendaftaran" class="space-y-10">
             @csrf
+            @if($errors->any())
+                <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm font-bold text-rose-800">
+                    {{ $errors->first() }}
+                </div>
+            @endif
             
             <!-- LANGKAH 1: UPLOAD -->
             <div class="glass-card rounded-[2rem] shadow-2xl shadow-slate-200/50 overflow-hidden animate-fade border border-white" style="animation-delay: 0.1s">
@@ -311,7 +316,7 @@
                                     <option value="Perempuan">Perempuan</option>
                                 </select>
                             </div>
-                            <div><label class="form-label required-mark">NIK (Nomor Induk Kependudukan)</label><input type="text" name="nik" id="f_nik_anak" class="form-input" required></div>
+                            <div><label class="form-label required-mark">NIK (Nomor Induk Kependudukan)</label><input type="text" name="nik" id="f_nik_anak" class="form-input" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" required></div>
                             <div><label class="form-label required-mark">Tempat Lahir</label><input type="text" name="tempat_lahir" id="f_tempat_lahir" class="form-input" required></div>
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir" id="f_tanggal_lahir" class="form-input" required></div>
                             <div><label class="form-label required-mark">Agama</label><input type="text" name="agama" class="form-input" value="Islam" required></div>
@@ -365,9 +370,9 @@
                     </div>
                     <div class="p-6 lg:p-8 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            <div><label class="form-label required-mark">NIK Ayah</label><input type="text" name="nik_ayah" id="f_nik_ayah" class="form-input" required></div>
+                            <div><label class="form-label required-mark">NIK Ayah</label><input type="text" name="nik_ayah" id="f_nik_ayah" class="form-input" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" required></div>
                             <div><label class="form-label required-mark">Nama Ayah</label><input type="text" name="nama_ayah" id="f_nama_ayah" class="form-input" required></div>
-                            <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ayah" class="form-input format-wa" required></div>
+                            <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ayah" class="form-input format-wa" inputmode="tel" pattern="(08|628)[0-9]{8,13}" required></div>
                             <div><label class="form-label required-mark">Email Ayah</label><input type="email" name="email_ayah" class="form-input" placeholder="ayah@gmail.com" required></div>
                             <div><label class="form-label required-mark">Tempat Lahir</label><input type="text" name="tempat_lahir_ayah" id="f_tempat_lahir_ayah" class="form-input" required></div>
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir_ayah" id="f_tanggal_lahir_ayah" class="form-input" required></div>
@@ -423,9 +428,9 @@
                     </div>
                     <div class="p-6 lg:p-8 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                            <div><label class="form-label required-mark">NIK Ibu</label><input type="text" name="nik_ibu" id="f_nik_ibu" class="form-input" required></div>
+                            <div><label class="form-label required-mark">NIK Ibu</label><input type="text" name="nik_ibu" id="f_nik_ibu" class="form-input" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" required></div>
                             <div><label class="form-label required-mark">Nama Ibu</label><input type="text" name="nama_ibu" id="f_nama_ibu" class="form-input" required></div>
-                            <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ibu" class="form-input format-wa" required></div>
+                            <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ibu" class="form-input format-wa" inputmode="tel" pattern="(08|628)[0-9]{8,13}" required></div>
                             <div><label class="form-label required-mark">Email Ibu</label><input type="email" name="email_ibu" class="form-input" placeholder="ibu@gmail.com" required></div>
                             <div><label class="form-label required-mark">Tempat Lahir</label><input type="text" name="tempat_lahir_ibu" id="f_tempat_lahir_ibu" class="form-input" required></div>
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir_ibu" id="f_tanggal_lahir_ibu" class="form-input" required></div>

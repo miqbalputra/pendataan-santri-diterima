@@ -9,6 +9,7 @@ class CalonSantri extends Model
     protected $fillable = [
         'nomor_pendaftaran',
         'periode_id',
+        'gelombang_id',
         'nama_lengkap',
         'jenis_kelamin',
         'nisn',
@@ -106,6 +107,9 @@ class CalonSantri extends Model
         'revisi_token',
         'revisi_diminta_pada',
         'revisi_selesai_pada',
+        'followup_sudah_masuk_grup',
+        'followup_sudah_dihubungi',
+        'followup_catatan',
     ];
     
     protected $casts = [
@@ -117,6 +121,8 @@ class CalonSantri extends Model
         'dokumen_status' => 'array',
         'revisi_diminta_pada' => 'datetime',
         'revisi_selesai_pada' => 'datetime',
+        'followup_sudah_masuk_grup' => 'boolean',
+        'followup_sudah_dihubungi' => 'boolean',
     ];
 
     public function notificationLogs()
@@ -127,5 +133,10 @@ class CalonSantri extends Model
     public function periode()
     {
         return $this->belongsTo(Periode::class);
+    }
+
+    public function gelombang()
+    {
+        return $this->belongsTo(Gelombang::class);
     }
 }

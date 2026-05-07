@@ -180,6 +180,11 @@
                 <a href="{{ route('pendaftaran.cek_status') }}" class="block w-full text-center bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 border border-white/5 hover:border-white/10">
                     Cek Status Pendaftaran
                 </a>
+                @if(session('santri_id'))
+                <a href="{{ route('pendaftaran.bukti', session('santri_id')) }}" target="_blank" class="block w-full text-center bg-white text-emerald-700 hover:bg-emerald-50 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300">
+                    Cetak Bukti Pendaftaran
+                </a>
+                @endif
             </div>
         </div>
 

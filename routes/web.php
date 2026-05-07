@@ -17,6 +17,7 @@ Route::get('/revisi/{token}', [PendaftaranController::class, 'editRevisi'])->nam
 Route::post('/revisi/{token}', [PendaftaranController::class, 'updateRevisi'])->name('pendaftaran.revisi.update');
 Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->name('upload_ocr');
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->name('pendaftaran.cetak');
+Route::get('/pendaftaran/{id}/bukti', [PendaftaranController::class, 'bukti'])->name('pendaftaran.bukti');
 Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->name('pendaftaran.berkas');
 
 // Auth Routes
@@ -40,6 +41,10 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::post('/periode', [AdminController::class, 'storePeriode'])->name('admin.periode.store');
     Route::post('/periode/{id}', [AdminController::class, 'updatePeriode'])->name('admin.periode.update');
     Route::get('/periode/{id}/delete', [AdminController::class, 'deletePeriode'])->name('admin.periode.delete');
+    Route::post('/gelombang', [AdminController::class, 'storeGelombang'])->name('admin.gelombang.store');
+    Route::post('/gelombang/{id}', [AdminController::class, 'updateGelombang'])->name('admin.gelombang.update');
+    Route::get('/gelombang/{id}/delete', [AdminController::class, 'deleteGelombang'])->name('admin.gelombang.delete');
+    Route::post('/pendaftar/{id}/follow-up', [AdminController::class, 'updateFollowUp'])->name('admin.followup.update');
     Route::get('/export', [AdminController::class, 'exportData'])->name('admin.export');
     Route::post('/ask-ai', [AdminController::class, 'askAi'])->name('admin.ask_ai');
 });

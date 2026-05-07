@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
 use App\Models\Periode;
+use App\Models\Gelombang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -57,7 +58,15 @@ class PendaftaranController extends Controller
         // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
         $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
         $data['status_pendaftaran'] = $data['status_pendaftaran'] ?? 'Pending';
+        $activeGelombang = Gelombang::where('is_active', true)->first();
+        if ($activeGelombang && $activeGelombang->kuota && CalonSantri::where('gelombang_id', $activeGelombang->id)->count() >= $activeGelombang->kuota) {
+            return back()->withInput()->withErrors([
+                'gelombang' => "Kuota {$activeGelombang->nama_gelombang} sudah penuh. Silakan hubungi panitia.",
+            ]);
+        }
+
         $data['periode_id'] = Periode::where('is_active', true)->value('id');
+        $data['gelombang_id'] = $activeGelombang?->id;
         $data['dokumen_status'] = $this->initialDocumentStatuses($data);
         $data['revisi_token'] = Str::random(48);
 
@@ -80,6 +89,7 @@ class PendaftaranController extends Controller
 
         return redirect('/pendaftaran/sukses')
             ->with('nama_santri', $santri->nama_lengkap)
+            ->with('santri_id', $santri->id)
             ->with('nomor_pendaftaran', $santri->nomor_pendaftaran);
     }
 
@@ -249,14 +259,14 @@ class PendaftaranController extends Controller
 
         $request->validate([
             'nama_ayah' => 'required|string|max:255',
-            'nik_ayah' => 'required|string|size:16',
-            'no_wa_ayah' => 'required|string|max:25',
+            'nik_ayah' => 'required|digits:16',
+            'no_wa_ayah' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'email_ayah' => 'nullable|email|max:255',
             'pekerjaan_ayah' => 'nullable|string|max:255',
             'pendidikan_ayah' => 'nullable|string|max:255',
             'nama_ibu' => 'required|string|max:255',
-            'nik_ibu' => 'required|string|size:16',
-            'no_wa_ibu' => 'required|string|max:25',
+            'nik_ibu' => 'required|digits:16',
+            'no_wa_ibu' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'email_ibu' => 'nullable|email|max:255',
             'pekerjaan_ibu' => 'nullable|string|max:255',
             'pendidikan_ibu' => 'nullable|string|max:255',
@@ -335,7 +345,7 @@ class PendaftaranController extends Controller
         $request->validate([
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
-            'nik' => 'required|string|size:16',
+            'nik' => 'required|digits:16',
             'tempat_lahir' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'agama' => 'required|string|max:100',
@@ -349,11 +359,11 @@ class PendaftaranController extends Controller
             'jenis_tinggal' => 'required|string|max:255',
             'alat_transportasi' => 'required|string|max:255',
             'nama_ayah' => 'required|string|max:255',
-            'nik_ayah' => 'required|string|size:16',
-            'no_wa_ayah' => 'required|string|max:25',
+            'nik_ayah' => 'required|digits:16',
+            'no_wa_ayah' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'nama_ibu' => 'required|string|max:255',
-            'nik_ibu' => 'required|string|size:16',
-            'no_wa_ibu' => 'required|string|max:25',
+            'nik_ibu' => 'required|digits:16',
+            'no_wa_ibu' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'penandatangan_nama' => 'required|string|max:255',
             'pernyataan_kebenaran_data' => 'accepted',
             'foto_akta_anak' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
@@ -577,6 +587,14 @@ class PendaftaranController extends Controller
         ];
 
         return view('pendaftaran_pdf', compact('santri', 'kop'));
+    }
+
+    public function bukti($id) {
+        $santri = CalonSantri::with(['periode', 'gelombang'])->findOrFail($id);
+        $adminUrl = route('admin.show', $santri->id);
+        $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($adminUrl);
+
+        return view('bukti_pendaftaran', compact('santri', 'adminUrl', 'qrUrl'));
     }
 
     public function viewPublicDocument($id, string $field) {

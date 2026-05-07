@@ -105,7 +105,11 @@
             </button>
             <button id="tab-periode" onclick="switchTab('periode')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                Periode
+                Periode & Gelombang
+            </button>
+            <button id="tab-followup" onclick="switchTab('followup')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 13l2 2 4-4"></path></svg>
+                Follow-up
             </button>
             <button id="tab-laporan" onclick="switchTab('laporan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -452,8 +456,8 @@
         <div id="content-periode" class="tab-content hidden animate-fade">
             <div class="flex items-center justify-between mb-10">
                 <div>
-                    <h2 class="text-3xl font-black text-slate-800 tracking-tight">Periode Pendaftaran</h2>
-                    <p class="text-slate-500 font-medium">Kelola tahun ajaran aktif sistem.</p>
+                    <h2 class="text-3xl font-black text-slate-800 tracking-tight">Periode & Gelombang</h2>
+                    <p class="text-slate-500 font-medium">Kelola tahun ajaran, gelombang, dan kuota pendaftaran aktif.</p>
                 </div>
             </div>
 
@@ -530,6 +534,126 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mt-10 grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+                <div class="lg:col-span-2">
+                    <div class="glass-card rounded-[2rem] p-8 shadow-xl shadow-slate-900/5">
+                        <h3 class="font-black text-slate-800 mb-6">Tambah Gelombang</h3>
+                        <form action="{{ route('admin.gelombang.store') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <input type="text" name="nama_gelombang" placeholder="Gelombang 1 / Gelombang 2 / Cadangan" class="form-input font-black" required>
+                            <input type="number" name="kuota" placeholder="Kuota, contoh: 50" class="form-input">
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="date" name="tanggal_mulai" class="form-input">
+                                <input type="date" name="tanggal_selesai" class="form-input">
+                            </div>
+                            <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                                <input type="checkbox" name="is_active" value="1" class="w-5 h-5 text-emerald-600 rounded-lg cursor-pointer">
+                                <span class="text-xs font-black text-slate-600">Jadikan Gelombang Aktif</span>
+                            </label>
+                            <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-4 rounded-2xl font-black shadow-xl shadow-teal-500/20 transition-all active:scale-95">SIMPAN GELOMBANG</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="lg:col-span-3">
+                    <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                                <tr>
+                                    <th class="p-6">Gelombang</th>
+                                    <th class="p-6 text-center">Kuota</th>
+                                    <th class="p-6 text-center">Status</th>
+                                    <th class="p-6 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                @forelse($gelombangs as $gelombang)
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="p-6">
+                                        <div class="font-black text-slate-800">{{ $gelombang->nama_gelombang }}</div>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase">{{ optional($gelombang->tanggal_mulai)->format('d/m/Y') ?: '-' }} - {{ optional($gelombang->tanggal_selesai)->format('d/m/Y') ?: '-' }}</div>
+                                    </td>
+                                    <td class="p-6 text-center font-black">{{ $gelombang->calon_santris_count }} / {{ $gelombang->kuota ?: '-' }}</td>
+                                    <td class="p-6 text-center">
+                                        <span class="px-4 py-2 rounded-2xl text-[10px] font-black uppercase {{ $gelombang->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400' }}">{{ $gelombang->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                                    </td>
+                                    <td class="p-6 text-right">
+                                        <div class="flex justify-end gap-2">
+                                            @if(!$gelombang->is_active)
+                                            <form action="{{ route('admin.gelombang.update', $gelombang->id) }}" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="set_active" value="1">
+                                                <button class="bg-white text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Aktifkan</button>
+                                            </form>
+                                            @endif
+                                            <a href="{{ route('admin.gelombang.delete', $gelombang->id) }}" onclick="return confirm('Hapus gelombang ini?')" class="bg-white text-rose-500 border border-rose-100 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Hapus</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="p-12 text-center text-slate-400 font-bold">Belum ada gelombang.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT FOLLOW-UP -->
+        <div id="content-followup" class="tab-content hidden animate-fade">
+            <div class="mb-8">
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Dashboard Follow-up</h2>
+                <p class="text-slate-500 font-medium">Pantau pendaftar yang belum masuk grup, belum dihubungi, dokumen belum lengkap, atau belum diverifikasi.</p>
+            </div>
+            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
+                        <tr>
+                            <th class="p-6">Pendaftar</th>
+                            <th class="p-6">Kondisi</th>
+                            <th class="p-6">Follow-up</th>
+                            <th class="p-6 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @forelse($followUpPendaftar as $item)
+                        @php
+                            $docStatuses = collect($item->dokumen_status ?? []);
+                            $docIssue = $docStatuses->contains(fn ($status) => in_array($status, ['kosong', 'perlu_perbaikan', 'menunggu_review'], true));
+                        @endphp
+                        <tr class="hover:bg-slate-50/50 align-top">
+                            <td class="p-6">
+                                <div class="font-black text-slate-800">{{ $item->nama_lengkap }}</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">{{ $item->nomor_pendaftaran }} | {{ optional($item->gelombang)->nama_gelombang ?? 'Tanpa Gelombang' }}</div>
+                            </td>
+                            <td class="p-6">
+                                <div class="flex flex-wrap gap-2">
+                                    @if(!$item->followup_sudah_masuk_grup)<span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum masuk grup</span>@endif
+                                    @if(!$item->followup_sudah_dihubungi)<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum dihubungi</span>@endif
+                                    @if($docIssue)<span class="bg-rose-50 text-rose-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Dokumen belum lengkap</span>@endif
+                                    @if($item->status_pendaftaran === 'Pending')<span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum diverifikasi</span>@endif
+                                </div>
+                            </td>
+                            <td class="p-6">
+                                <form action="{{ route('admin.followup.update', $item->id) }}" method="POST" class="space-y-2 min-w-72">
+                                    @csrf
+                                    <label class="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" name="followup_sudah_masuk_grup" value="1" {{ $item->followup_sudah_masuk_grup ? 'checked' : '' }}> Sudah masuk grup</label>
+                                    <label class="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" name="followup_sudah_dihubungi" value="1" {{ $item->followup_sudah_dihubungi ? 'checked' : '' }}> Sudah dihubungi</label>
+                                    <input name="followup_catatan" value="{{ $item->followup_catatan }}" class="form-input py-2 text-xs" placeholder="Catatan follow-up">
+                                    <button class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Simpan</button>
+                                </form>
+                            </td>
+                            <td class="p-6 text-right">
+                                <a href="{{ route('admin.show', $item->id) }}" class="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-xs font-black">Detail</a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" class="p-20 text-center text-slate-400 font-bold">Tidak ada follow-up tertunda.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- TAB CONTENT LAPORAN -->
@@ -564,6 +688,15 @@
                             <option value="">Semua Periode</option>
                             @foreach($periodes as $periode)
                                 <option value="{{ $periode->id }}">{{ $periode->nama_periode }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Gelombang</span>
+                        <select name="gelombang_id" class="form-input mt-2">
+                            <option value="">Semua Gelombang</option>
+                            @foreach($gelombangs as $gelombang)
+                                <option value="{{ $gelombang->id }}">{{ $gelombang->nama_gelombang }}</option>
                             @endforeach
                         </select>
                     </label>
@@ -962,7 +1095,7 @@
             handleModelChange();
             
             const hash = window.location.hash.replace('#', '');
-            if(['dashboard', 'periode', 'laporan', 'log', 'pengaturan'].includes(hash)) {
+            if(['dashboard', 'periode', 'followup', 'laporan', 'log', 'pengaturan'].includes(hash)) {
                 switchTab(hash);
             }
         });
