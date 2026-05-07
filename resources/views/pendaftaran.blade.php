@@ -18,7 +18,7 @@
         }
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f8fafc;
+            background-color: #e2e8f0;
             color: #1e293b;
         }
         .mesh-gradient {
@@ -107,7 +107,7 @@
         });
     </script>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-200">
     <!-- Floating Progress Pill (Bottom) -->
     <div id="progress-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2.5 rounded-2xl shadow-2xl shadow-emerald-900/20 transition-transform duration-700">
         <div class="flex justify-between items-center mb-2 px-2">

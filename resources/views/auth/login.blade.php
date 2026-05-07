@@ -16,7 +16,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
     <div class="max-w-md w-full">
         <!-- Logo & Title -->
         <div class="text-center mb-8">
