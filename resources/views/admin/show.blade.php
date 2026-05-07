@@ -489,7 +489,7 @@
                         <div class="border rounded-xl p-4 bg-white shadow-inner">
                             <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Tanda Tangan Digital</p>
                             @if($santri->tanda_tangan)
-                                <img src="{{ Storage::url($santri->tanda_tangan) }}" class="h-32 mx-auto object-contain" alt="Tanda Tangan">
+                                <img src="{{ route('admin.documents.view', ['id' => $santri->id, 'field' => 'tanda_tangan']) }}" class="h-32 mx-auto object-contain" alt="Tanda Tangan">
                             @else
                                 <div class="h-32 flex items-center justify-center bg-slate-50 text-slate-300 italic text-xs">Belum ada tanda tangan</div>
                             @endif

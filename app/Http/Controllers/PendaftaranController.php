@@ -578,4 +578,15 @@ class PendaftaranController extends Controller
 
         return view('pendaftaran_pdf', compact('santri', 'kop'));
     }
+
+    public function viewPublicDocument($id, string $field) {
+        $allowedFields = ['foto_pas_siswa', 'foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'tanda_tangan'];
+        abort_unless(in_array($field, $allowedFields, true), 404);
+
+        $santri = CalonSantri::findOrFail($id);
+        $path = $santri->{$field};
+        abort_if(!$path || !Storage::disk('public')->exists($path), 404, 'Berkas tidak ditemukan di storage.');
+
+        return response()->file(Storage::disk('public')->path($path));
+    }
 }

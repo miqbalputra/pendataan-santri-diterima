@@ -230,7 +230,7 @@ class AdminController extends Controller
     }
 
     public function viewUploadedDocument($id, string $field) {
-        $allowedFields = ['foto_pas_siswa', 'foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk'];
+        $allowedFields = ['foto_pas_siswa', 'foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'tanda_tangan'];
         abort_unless(in_array($field, $allowedFields, true), 404);
 
         $santri = CalonSantri::findOrFail($id);

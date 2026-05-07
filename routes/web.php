@@ -17,6 +17,7 @@ Route::get('/revisi/{token}', [PendaftaranController::class, 'editRevisi'])->nam
 Route::post('/revisi/{token}', [PendaftaranController::class, 'updateRevisi'])->name('pendaftaran.revisi.update');
 Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->name('upload_ocr');
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->name('pendaftaran.cetak');
+Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->name('pendaftaran.berkas');
 
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
