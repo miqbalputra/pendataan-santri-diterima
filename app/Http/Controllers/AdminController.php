@@ -9,6 +9,8 @@ use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 
 class AdminController extends Controller
 {
@@ -216,7 +218,7 @@ class AdminController extends Controller
     
     public function exportData(Request $request) {
         $format = $request->format;
-        $data = CalonSantri::all();
+        $data = CalonSantri::orderBy('id')->get();
         
         ActivityLog::create([
             'aktivitas' => 'Export Data Pendaftar ('.$format.')',
@@ -249,9 +251,126 @@ class AdminController extends Controller
             
             return response()->stream($callback, 200, $headers);
         }
+
+        if ($format == 'excel') {
+            return $this->downloadExcel($data);
+        }
+
+        if ($format == 'uploads') {
+            return $this->downloadUploadedFiles($data);
+        }
         
         // Return HTML for printing (PDF)
         return view('admin.print_all', compact('data'));
+    }
+
+    private function downloadExcel($data)
+    {
+        $columns = array_merge(
+            ['id', 'created_at', 'updated_at'],
+            (new CalonSantri())->getFillable()
+        );
+
+        $headers = [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="Data_Pendaftar_SPSB_Full.xls"',
+            'Cache-Control' => 'max-age=0',
+        ];
+
+        $callback = function () use ($data, $columns) {
+            echo "\xEF\xBB\xBF";
+            echo '<?xml version="1.0" encoding="UTF-8"?>';
+            echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
+            echo 'xmlns:o="urn:schemas-microsoft-com:office:office" ';
+            echo 'xmlns:x="urn:schemas-microsoft-com:office:excel" ';
+            echo 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+            echo '<Worksheet ss:Name="Data Pendaftar"><Table>';
+
+            echo '<Row>';
+            foreach ($columns as $column) {
+                echo '<Cell><Data ss:Type="String">' . e($column) . '</Data></Cell>';
+            }
+            echo '</Row>';
+
+            foreach ($data as $row) {
+                echo '<Row>';
+                foreach ($columns as $column) {
+                    $value = $row->{$column} ?? '';
+
+                    if (is_bool($value)) {
+                        $value = $value ? 'Ya' : 'Tidak';
+                    } elseif (is_array($value)) {
+                        $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+                    } elseif ($value instanceof \Carbon\CarbonInterface) {
+                        $value = $value->format('Y-m-d H:i:s');
+                    }
+
+                    echo '<Cell><Data ss:Type="String">' . e((string) $value) . '</Data></Cell>';
+                }
+                echo '</Row>';
+            }
+
+            echo '</Table></Worksheet></Workbook>';
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function downloadUploadedFiles($data)
+    {
+        if (!class_exists(ZipArchive::class)) {
+            abort(500, 'Ekstensi ZIP belum tersedia di server.');
+        }
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'spsb_uploads_');
+        $zip = new ZipArchive();
+
+        if ($zip->open($zipPath, ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'Gagal menyiapkan arsip berkas upload.');
+        }
+
+        $documentFields = [
+            'foto_akta_anak' => 'akta',
+            'foto_kk' => 'kk',
+            'foto_ktp_ayah' => 'ktp-ayah',
+            'foto_ktp_ibu' => 'ktp-ibu',
+            'foto_pas_siswa' => 'foto-anak',
+        ];
+
+        foreach ($data as $santri) {
+            $folderName = sprintf(
+                '%03d-%s',
+                $santri->id,
+                $this->sanitizeFileName($santri->nama_lengkap ?: 'tanpa-nama')
+            );
+
+            foreach ($documentFields as $field => $label) {
+                $storedPath = $santri->{$field};
+                if (!$storedPath || !Storage::disk('public')->exists($storedPath)) {
+                    continue;
+                }
+
+                $extension = pathinfo($storedPath, PATHINFO_EXTENSION) ?: 'bin';
+                $zipEntry = $folderName . '/' . $label . '.' . $extension;
+                $zip->addFile(Storage::disk('public')->path($storedPath), $zipEntry);
+            }
+        }
+
+        $zip->close();
+
+        return response()->download(
+            $zipPath,
+            'Berkas_Pendaftaran_SPSB.zip',
+            ['Content-Type' => 'application/zip']
+        )->deleteFileAfterSend(true);
+    }
+
+    private function sanitizeFileName(string $value): string
+    {
+        $sanitized = preg_replace('/[^A-Za-z0-9\-]+/', '-', $value);
+        $sanitized = trim((string) $sanitized, '-');
+
+        return $sanitized !== '' ? strtolower($sanitized) : 'tanpa-nama';
     }
 
     public function askAi(Request $request) {

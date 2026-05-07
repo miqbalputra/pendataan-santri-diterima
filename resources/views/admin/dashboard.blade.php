@@ -506,17 +506,30 @@
                 <p class="text-slate-500 font-medium">Ekspor database pendaftar ke format Excel atau PDF.</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
                 <div class="glass-card rounded-[3rem] p-10 shadow-2xl shadow-emerald-900/5 group hover:-translate-y-2 transition-all duration-500 border border-white relative overflow-hidden">
                     <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-50 rounded-full blur-3xl opacity-60 group-hover:bg-emerald-200 transition-colors duration-500"></div>
                     <div class="w-20 h-20 bg-emerald-100 rounded-[2rem] flex items-center justify-center text-emerald-600 mb-8 shadow-inner group-hover:scale-110 transition-transform duration-500">
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Data Spreadsheet (.CSV)</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Berisi seluruh kolom data pendaftar mentah yang siap diolah menggunakan Microsoft Excel atau Google Sheets.</p>
-                    <a href="{{ route('admin.export', ['format'=>'csv']) }}" class="inline-flex items-center justify-center w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 transition-all hover:shadow-emerald-500/40 active:scale-95">
+                    <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Data Lengkap Excel</h3>
+                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Berisi seluruh kolom data pendaftar lengkap dalam format yang siap dibuka langsung di Microsoft Excel.</p>
+                    <a href="{{ route('admin.export', ['format'=>'excel']) }}" class="inline-flex items-center justify-center w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 transition-all hover:shadow-emerald-500/40 active:scale-95">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        UNDUH FORMAT EXCEL
+                        UNDUH EXCEL PENUH
+                    </a>
+                </div>
+
+                <div class="glass-card rounded-[3rem] p-10 shadow-2xl shadow-amber-900/5 group hover:-translate-y-2 transition-all duration-500 border border-white relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-amber-50 rounded-full blur-3xl opacity-60 group-hover:bg-amber-200 transition-colors duration-500"></div>
+                    <div class="w-20 h-20 bg-amber-100 rounded-[2rem] flex items-center justify-center text-amber-600 mb-8 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 11h16M4 15h10M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Berkas Upload (.ZIP)</h3>
+                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Unduh semua dokumen upload terpisah per pendaftar: akta, KK, KTP ayah, KTP ibu, dan foto anak.</p>
+                    <a href="{{ route('admin.export', ['format'=>'uploads']) }}" class="inline-flex items-center justify-center w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-amber-500/20 transition-all hover:shadow-amber-500/40 active:scale-95">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-8-4l-4 4m0 0l-4-4m4 4V4m8 7h.01"></path></svg>
+                        UNDUH BERKAS ZIP
                     </a>
                 </div>
 
