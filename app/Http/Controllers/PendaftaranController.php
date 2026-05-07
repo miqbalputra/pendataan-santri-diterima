@@ -443,6 +443,8 @@ class PendaftaranController extends Controller
                     $mimeType = $file->getMimeType();
                 }
 
+                $prompt = $this->buildDirectAiOcrPrompt($request->target);
+
                 $response = Http::withToken($api_key)->timeout(60)->post($endpoint, [
                     'model' => $model,
                     'messages' => [
@@ -451,15 +453,7 @@ class PendaftaranController extends Controller
                             'content' => [
                                 [
                                     'type' => 'text', 
-                                    'text' => 'Anda adalah asisten ekstraksi data dokumen. Baca dokumen ini (KTP/KK/Akta) dan KEMBALIKAN HANYA TEKS dengan format baku berikut ini (tanpa markdown, tanpa tambahan apapun). Jika data tidak ada, kosongkan saja nilainya:
-NAMA : [Nama Lengkap]
-NIK : [Nomor Induk Kependudukan 16 digit jika ada]
-Lahir : [Tempat Lahir], [DD-MM-YYYY]
-ALAMAT : [Nama Jalan/Dusun]
-RT/RW : [Nomor RT]/[Nomor RW]
-KEL/DESA : [Nama Kelurahan atau Desa]
-KECAMATAN : [Nama Kecamatan]
-PEKERJAAN : [Pekerjaan]'
+                                    'text' => $prompt
                                 ],
                                 [
                                     'type' => 'image_url', 
@@ -475,9 +469,12 @@ PEKERJAAN : [Pekerjaan]'
 
                 if ($response->successful()) {
                     $text = $response->json('choices.0.message.content') ?? '';
+                    $fields = $this->extractOcrJsonFields($text);
+
                     return response()->json([
                         'message' => 'OCR Direct AI Berhasil',
-                        'extracted_text' => $text
+                        'extracted_text' => $text,
+                        'fields' => $fields,
                     ]);
                 } else {
                     return response()->json(['error' => 'Gagal memproses via Direct AI: ' . $response->body()], 500);
@@ -524,6 +521,52 @@ PEKERJAAN : [Pekerjaan]'
 
         return response()->json(['error' => 'Engine OCR tidak didukung atau menggunakan mode lokal.'], 400);
     }
+
+    private function buildDirectAiOcrPrompt(string $target): string
+    {
+        $base = 'Anda adalah mesin ekstraksi data dokumen Indonesia untuk formulir SPSB. Baca gambar dengan teliti, lalu kembalikan HANYA JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan. Jika data tidak terlihat, isi string kosong. Jangan menebak. Bersihkan hasil dari label seperti NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Gol. Darah, dan tanda baca yang bukan bagian data. Tanggal wajib format YYYY-MM-DD. Nama wajib nama manusia saja, bukan label berikutnya.';
+
+        $schema = 'Gunakan schema ini: {"nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
+
+        if ($target === 'akta') {
+            return $base . "\nDokumen target: AKTA KELAHIRAN anak. Prioritas utama adalah data ANAK, bukan ayah/ibu/pejabat. Ambil nama anak dari kalimat seperti 'anak ... bernama ...' atau nama utama setelah tanggal lahir. Ambil NIK anak dari Nomor Induk Kependudukan jika terlihat. Ambil tempat lahir dan tanggal lahir anak dari narasi kelahiran. Jika nama ayah/ibu tertulis jelas, isi nama_ayah dan nama_ibu, tetapi jangan jadikan nama ayah/ibu sebagai nama anak.\n" . $schema;
+        }
+
+        if ($target === 'ayah') {
+            return $base . "\nDokumen target: KTP BAPAK/AYAH. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ibu dari dokumen ini.\n" . $schema;
+        }
+
+        if ($target === 'ibu') {
+            return $base . "\nDokumen target: KTP IBU. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ayah dari dokumen ini.\n" . $schema;
+        }
+
+        if ($target === 'kk') {
+            return $base . "\nDokumen target: KARTU KELUARGA. Prioritas ambil alamat keluarga dan data anggota keluarga jika sangat jelas. Jangan mengisi nama anak/ayah/ibu bila tidak yakin dari baris hubungan keluarga. Untuk nama ayah gunakan baris Kepala Keluarga atau kolom Ayah yang sesuai anak. Untuk nama ibu gunakan kolom Ibu yang sesuai anak.\n" . $schema;
+        }
+
+        return $base . "\nDokumen target tidak dikenal. Ekstrak data yang terlihat dengan hati-hati.\n" . $schema;
+    }
+
+    private function extractOcrJsonFields(string $text): array
+    {
+        $clean = trim($text);
+        $clean = preg_replace('/^```(?:json)?\s*/i', '', $clean);
+        $clean = preg_replace('/\s*```$/', '', $clean);
+
+        if (preg_match('/\{.*\}/s', $clean, $match)) {
+            $clean = $match[0];
+        }
+
+        $decoded = json_decode($clean, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)
+            ->mapWithKeys(fn ($value, $key) => [$key => is_scalar($value) ? trim((string) $value) : ''])
+            ->all();
+    }
+
     public function cetak($id) {
         $santri = CalonSantri::findOrFail($id);
         

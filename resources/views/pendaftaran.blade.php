@@ -784,6 +784,10 @@
                         throw new Error(data.error || "Gagal menghubungi server OCR (HTTP " + response.status + ")");
                     }
                     
+                    if (data.fields && Object.keys(data.fields).length > 0) {
+                        applyOcrFields(data.fields, target);
+                    }
+
                     if (data.extracted_text) {
                         parseAndFill(data.extracted_text, target);
                     } else {
@@ -811,6 +815,98 @@
             setTimeout(() => {
                 el.classList.remove('bg-emerald-50', 'border-emerald-500', 'ring-2', 'ring-emerald-200');
             }, 3000);
+        }
+
+        function cleanAiValue(value) {
+            return String(value || '')
+                .replace(/\b(NIK|NAMA|TEMPAT\s*\/?\s*TGL\s*LAHIR|TEMPAT\s*LAHIR|TANGGAL\s*LAHIR|JENIS\s*KELAMIN|GOL\.?\s*DARAH|ALAMAT|RT\s*\/?\s*RW|KEL\s*\/?\s*DESA|KECAMATAN|AGAMA|PEKERJAAN)\b.*$/i, '')
+                .replace(/\s+/g, ' ')
+                .replace(/^[\s:;,\.-]+|[\s:;,\.-]+$/g, '')
+                .trim();
+        }
+
+        function setOcrValue(id, value) {
+            const el = document.getElementById(id);
+            const clean = cleanAiValue(value);
+            if (!el || !clean) return;
+            el.value = clean;
+            triggerHighlight(el);
+        }
+
+        function normalizeAiDate(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+            const match = raw.match(/(\d{1,2})[-\s\/\.](\d{1,2})[-\s\/\.](\d{4})/);
+            if (!match) return '';
+
+            const day = match[1].padStart(2, '0');
+            const month = match[2].padStart(2, '0');
+            return `${match[3]}-${month}-${day}`;
+        }
+
+        function setOcrDate(id, value) {
+            const el = document.getElementById(id);
+            const date = normalizeAiDate(value);
+            if (!el || !date) return;
+            el.value = date;
+            triggerHighlight(el);
+        }
+
+        function applyOcrFields(fields, target) {
+            if (target === 'akta') {
+                setOcrValue('f_nama_anak', fields.nama);
+                setOcrValue('f_nik_anak', fields.nik);
+                setOcrValue('f_tempat_lahir', fields.tempat_lahir);
+                setOcrDate('f_tanggal_lahir', fields.tanggal_lahir);
+
+                if (fields.jenis_kelamin) {
+                    const gender = cleanAiValue(fields.jenis_kelamin).toUpperCase();
+                    const genderEl = document.getElementById('f_jk');
+                    if (genderEl) {
+                        genderEl.value = gender.includes('PEREMPUAN') ? 'Perempuan' : 'Laki-laki';
+                        triggerHighlight(genderEl);
+                    }
+                }
+
+                setOcrValue('f_nama_ayah', fields.nama_ayah);
+                setOcrValue('f_nama_ibu', fields.nama_ibu);
+                return;
+            }
+
+            if (target === 'ayah') {
+                setOcrValue('f_nik_ayah', fields.nik);
+                setOcrValue('f_nama_ayah', fields.nama);
+                setOcrValue('f_tempat_lahir_ayah', fields.tempat_lahir);
+                setOcrDate('f_tanggal_lahir_ayah', fields.tanggal_lahir);
+                setOcrValue('f_alamat_ayah', fields.alamat);
+                setOcrValue('f_rt_rw_ayah', fields.rt_rw);
+                setOcrValue('f_kelurahan_ayah', fields.kelurahan_desa);
+                setOcrValue('f_kecamatan_ayah', fields.kecamatan);
+                setOcrValue('f_pek_ayah', fields.pekerjaan);
+                return;
+            }
+
+            if (target === 'ibu') {
+                setOcrValue('f_nik_ibu', fields.nik);
+                setOcrValue('f_nama_ibu', fields.nama);
+                setOcrValue('f_tempat_lahir_ibu', fields.tempat_lahir);
+                setOcrDate('f_tanggal_lahir_ibu', fields.tanggal_lahir);
+                setOcrValue('f_alamat_ibu', fields.alamat);
+                setOcrValue('f_rt_rw_ibu', fields.rt_rw);
+                setOcrValue('f_kelurahan_ibu', fields.kelurahan_desa);
+                setOcrValue('f_kecamatan_ibu', fields.kecamatan);
+                setOcrValue('f_pek_ibu', fields.pekerjaan);
+                return;
+            }
+
+            if (target === 'kk') {
+                setOcrValue('f_alamat', fields.alamat);
+                setOcrValue('f_rt_rw', fields.rt_rw);
+                setOcrValue('f_kelurahan', fields.kelurahan_desa);
+                setOcrValue('f_kecamatan', fields.kecamatan);
+            }
         }
 
         function parseAndFill(text, target) {
@@ -867,7 +963,7 @@
 
             const namaMatch = fullText.match(/NAMA\s*[:;]?\s*([A-Z\s\.,]+)/i);
             if (namaMatch) {
-                const nama = namaMatch[1].replace(/TEMPAT.*/i, '').trim();
+                const nama = cleanAiValue(namaMatch[1]);
                 let el = null;
                 if (target === 'ayah') el = document.getElementById('f_nama_ayah');
                 if (target === 'ibu') el = document.getElementById('f_nama_ibu');
