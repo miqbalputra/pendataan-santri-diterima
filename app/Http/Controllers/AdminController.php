@@ -322,10 +322,16 @@ class AdminController extends Controller
             abort(500, 'Ekstensi ZIP belum tersedia di server.');
         }
 
-        $zipPath = tempnam(sys_get_temp_dir(), 'spsb_uploads_');
-        $zip = new ZipArchive();
+        $tempDirectory = storage_path('app/temp');
+        if (!is_dir($tempDirectory)) {
+            mkdir($tempDirectory, 0755, true);
+        }
 
-        if ($zip->open($zipPath, ZipArchive::OVERWRITE) !== true) {
+        $zipPath = $tempDirectory . DIRECTORY_SEPARATOR . 'berkas-pendaftaran-' . now()->format('YmdHis') . '-' . uniqid() . '.zip';
+        $zip = new ZipArchive();
+        $filesAdded = 0;
+
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             abort(500, 'Gagal menyiapkan arsip berkas upload.');
         }
 
@@ -352,11 +358,21 @@ class AdminController extends Controller
 
                 $extension = pathinfo($storedPath, PATHINFO_EXTENSION) ?: 'bin';
                 $zipEntry = $folderName . '/' . $label . '.' . $extension;
-                $zip->addFile(Storage::disk('public')->path($storedPath), $zipEntry);
+                if ($zip->addFile(Storage::disk('public')->path($storedPath), $zipEntry)) {
+                    $filesAdded++;
+                }
             }
         }
 
+        if ($filesAdded === 0) {
+            $zip->addFromString('README.txt', 'Belum ada berkas upload yang tersedia untuk diunduh.');
+        }
+
         $zip->close();
+
+        if (!is_file($zipPath)) {
+            abort(500, 'Arsip berkas upload gagal dibuat.');
+        }
 
         return response()->download(
             $zipPath,
