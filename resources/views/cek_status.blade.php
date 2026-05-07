@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cek Status Pendaftaran | SPSB</title>
+    <title>Cek Status Pendataan | SPSB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
@@ -14,8 +14,8 @@
 
         <section class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 md:p-8">
             <p class="text-xs font-extrabold text-emerald-700 uppercase tracking-widest">SPSB Online</p>
-            <h1 class="text-3xl font-extrabold tracking-tight mt-2">Cek Status Pendaftaran</h1>
-            <p class="text-slate-500 mt-2">Masukkan nomor pendaftaran resmi atau NIK anak untuk melihat status data.</p>
+            <h1 class="text-3xl font-extrabold tracking-tight mt-2">Cek Status Pendataan</h1>
+            <p class="text-slate-500 mt-2">Masukkan nomor pendataan resmi atau NIK anak untuk melihat status verifikasi data.</p>
 
             @if(session('success'))
                 <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
@@ -40,7 +40,8 @@
                     $perluPerbaikan = $dokumenStatus->contains('perlu_perbaikan');
                     $sudahDiterima = $santri->status_pendaftaran === 'Diterima';
                     $ditolak = $santri->status_pendaftaran === 'Ditolak';
-                    $dokumenLabel = $sudahDiterima ? 'Selesai Diverifikasi' : ($ditolak ? 'Tidak Dilanjutkan' : ($perluPerbaikan ? 'Perlu Perbaikan' : 'Menunggu Review'));
+                    $statusLabel = $sudahDiterima ? 'Data Lengkap / Terverifikasi' : ($ditolak ? 'Data Tidak Valid / Tidak Dilanjutkan' : 'Menunggu Verifikasi Data');
+    $dokumenLabel = $sudahDiterima ? 'Selesai Diverifikasi' : ($ditolak ? 'Tidak Dilanjutkan' : ($perluPerbaikan ? 'Perlu Perbaikan' : 'Menunggu Verifikasi'));
                     $labels = [
                         'foto_akta_anak' => 'Akta Kelahiran',
                         'foto_kk' => 'Kartu Keluarga',
@@ -51,14 +52,14 @@
                 @endphp
                 <section class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                     <div class="p-6 md:p-8 border-b border-slate-100">
-                        <p class="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Nomor Pendaftaran</p>
+                        <p class="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Nomor Pendataan</p>
                         <h2 class="text-2xl font-extrabold mt-1">{{ $santri->nomor_pendaftaran }}</h2>
                         <p class="text-slate-500 mt-1">{{ $santri->nama_lengkap }} | {{ $santri->jenis_kelamin }}</p>
                     </div>
                     <div class="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
                         <div class="p-6">
-                            <p class="text-xs font-bold uppercase text-slate-400">Status Pendaftaran</p>
-                            <p class="mt-2 text-lg font-extrabold {{ $santri->status_pendaftaran === 'Diterima' ? 'text-emerald-700' : ($santri->status_pendaftaran === 'Ditolak' ? 'text-rose-700' : 'text-amber-700') }}">{{ $santri->status_pendaftaran }}</p>
+                            <p class="text-xs font-bold uppercase text-slate-400">Status Verifikasi Data</p>
+                            <p class="mt-2 text-lg font-extrabold {{ $santri->status_pendaftaran === 'Diterima' ? 'text-emerald-700' : ($santri->status_pendaftaran === 'Ditolak' ? 'text-rose-700' : 'text-amber-700') }}">{{ $statusLabel }}</p>
                         </div>
                         <div class="p-6">
                             <p class="text-xs font-bold uppercase text-slate-400">Status Dokumen</p>
@@ -95,7 +96,7 @@
                 </section>
             @else
                 <section class="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800 font-bold">
-                    Data tidak ditemukan. Pastikan nomor pendaftaran atau NIK sudah benar.
+                    Data tidak ditemukan. Pastikan nomor pendataan atau NIK sudah benar.
                 </section>
             @endif
         @endif

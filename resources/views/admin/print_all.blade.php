@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Data Pendaftar SPSB</title>
+    <title>Laporan Data Peserta Didik SPSB</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         body { font-family: sans-serif; font-size: 12px; margin: 20px; }
@@ -21,7 +21,7 @@
         <button onclick="window.close()">Tutup</button>
     </div>
     
-    <h1>Laporan Data Pendaftar SPSB</h1>
+    <h1>Laporan Data Peserta Didik SPSB</h1>
     <p>Dicetak pada: {{ date('d-m-Y H:i:s') }}</p>
     
     <table>
@@ -43,7 +43,7 @@
                 <td>{{ $row->nik }}</td>
                 <td>{{ $row->nama_ayah }}</td>
                 <td>{{ $row->no_wa_ayah }}</td>
-                <td>{{ $row->status_pendaftaran }}</td>
+                <td>{{ $row->status_pendaftaran === 'Diterima' ? 'Data Lengkap / Terverifikasi' : ($row->status_pendaftaran === 'Ditolak' ? 'Data Tidak Valid / Tidak Dilanjutkan' : 'Menunggu Verifikasi Data') }}</td>
             </tr>
             @endforeach
         </tbody>

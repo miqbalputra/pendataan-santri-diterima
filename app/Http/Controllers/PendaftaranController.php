@@ -77,8 +77,8 @@ class PendaftaranController extends Controller
             ])->save();
 
             ActivityLog::create([
-                'aktivitas' => "Pendaftaran Baru: {$santri->nama_lengkap}",
-                'aktor' => "Calon Peserta Didik",
+                'aktivitas' => "Pendataan Baru: {$santri->nama_lengkap}",
+                'aktor' => "Orang Tua / Wali",
                 'ip_address' => $request->ip()
             ]);
 
@@ -144,8 +144,8 @@ class PendaftaranController extends Controller
         $kategoriKelamin = $isIkhwan ? 'putra' : 'putri';
         $groupLink = Setting::where('key', $isIkhwan ? 'group_ikhwan_url' : 'group_akhwat_url')->value('value') ?? '';
         $groupRule = $isIkhwan
-            ? 'Santri putra masuk group kelas ikhwan. Nomor WhatsApp bapak dan ibu mendapat pesan supaya masuk group kelas ikhwan.'
-            : 'Santri putri masuk group kelas akhwat. Hanya nomor WhatsApp ibu yang mendapat pesan supaya masuk group kelas akhwat.';
+            ? 'Peserta didik putra masuk grup kelas ikhwan. Nomor WhatsApp bapak dan ibu mendapat pesan supaya masuk grup kelas ikhwan.'
+            : 'Peserta didik putri masuk grup kelas akhwat. Hanya nomor WhatsApp ibu yang mendapat pesan supaya masuk grup kelas akhwat.';
 
         $emailRecipients = collect([
             ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
@@ -161,9 +161,11 @@ class PendaftaranController extends Controller
 
         return [
             'event' => 'pendaftaran_baru',
+            'event_label' => 'Pendataan Baru',
             'santri' => [
                 'id' => $santri->id,
                 'nomor_pendaftaran' => $santri->nomor_pendaftaran,
+                'nomor_pendataan' => $santri->nomor_pendaftaran,
                 'nama_lengkap' => $santri->nama_lengkap,
                 'nik' => $santri->nik,
                 'jenis_kelamin' => $santri->jenis_kelamin,
@@ -174,6 +176,7 @@ class PendaftaranController extends Controller
                 'sekolah_asal' => $santri->nama_sekolah_asal,
                 'status_pendaftaran' => $santri->status_pendaftaran,
                 'waktu_daftar' => $santri->created_at->format('Y-m-d H:i:s'),
+                'waktu_data_masuk' => $santri->created_at->format('Y-m-d H:i:s'),
             ],
             'orang_tua' => [
                 'ayah' => [
@@ -197,14 +200,14 @@ class PendaftaranController extends Controller
                 'kode_pos' => $santri->kode_pos,
             ],
             'ringkasan' => [
-                'judul' => 'Ringkasan Pendaftaran SPSB',
+                'judul' => 'Ringkasan Pendataan SPSB',
                 'baris' => [
-                    'Nomor Pendaftaran' => $santri->nomor_pendaftaran,
-                    'Nama Santri' => $santri->nama_lengkap,
+                    'Nomor Pendataan' => $santri->nomor_pendaftaran,
+                    'Nama Peserta Didik' => $santri->nama_lengkap,
                     'NIK' => $santri->nik,
                     'Jenis Kelamin' => $santri->jenis_kelamin,
-                    'Status' => $santri->status_pendaftaran,
-                    'Waktu Daftar' => $santri->created_at->format('d-m-Y H:i:s'),
+                    'Status Verifikasi Data' => $santri->status_pendaftaran === 'Diterima' ? 'Data Lengkap / Terverifikasi' : ($santri->status_pendaftaran === 'Ditolak' ? 'Data Tidak Valid / Tidak Dilanjutkan' : 'Menunggu Verifikasi Data'),
+                    'Waktu Data Masuk' => $santri->created_at->format('d-m-Y H:i:s'),
                 ],
             ],
             'group' => [
@@ -582,7 +585,7 @@ class PendaftaranController extends Controller
         
         $kop = [
             'baris_1' => Setting::where('key', 'kop_baris_1')->value('value') ?? 'GRIYA QUR\'AN BAITUL MANSHURIN',
-            'baris_2' => Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendaftaran Peserta Didik Baru (SPSB)',
+            'baris_2' => Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)',
             'baris_3' => Setting::where('key', 'kop_baris_3')->value('value') ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890',
         ];
 

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pendaftaran Berhasil | SPSB Griya Qur'an</title>
-    <meta name="description" content="Pendaftaran Peserta Didik Baru berhasil dikirim ke sistem SPSB Griya Qur'an">
+    <title>Pendataan Berhasil | SPSB Griya Qur'an</title>
+    <meta name="description" content="Pendataan Peserta Didik Baru berhasil dikirim ke sistem SPSB Griya Qur'an">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -113,12 +113,12 @@
 
             <!-- Title -->
             <div class="text-center animate-fade-up" style="animation-delay: 0.6s;">
-                <p class="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400/70 mb-3">Pendaftaran Berhasil</p>
+                <p class="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400/70 mb-3">Pendataan Berhasil</p>
                 <h1 class="text-2xl md:text-3xl font-black text-white leading-tight mb-3">
                     Alhamdulillah! 🎉
                 </h1>
                 <p class="text-slate-400 text-sm md:text-base font-medium leading-relaxed">
-                    Data pendaftaran peserta didik baru Anda telah <span class="text-emerald-400 font-bold">berhasil dikirim</span> dan tersimpan di sistem kami.
+                    Data peserta didik baru telah <span class="text-emerald-400 font-bold">berhasil dikirim</span> dan tersimpan di sistem kami.
                 </p>
             </div>
 
@@ -145,7 +145,7 @@
                         <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 11h10M7 15h6M5 3h14a2 2 0 012 2v14l-4-2-4 2-4-2-4 2V5a2 2 0 012-2z"></path></svg>
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nomor Pendaftaran</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nomor Pendataan</p>
                         <p class="text-white font-bold text-sm">{{ session('nomor_pendaftaran') }}</p>
                     </div>
                 </div>
@@ -156,8 +156,8 @@
                         <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status Pendaftaran</p>
-                        <p class="text-amber-400 font-bold text-sm">Menunggu Verifikasi</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status Verifikasi Data</p>
+                        <p class="text-amber-400 font-bold text-sm">Menunggu Verifikasi Data</p>
                     </div>
                 </div>
 
@@ -167,7 +167,7 @@
                     </div>
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Informasi Selanjutnya</p>
-                        <p class="text-slate-300 font-medium text-xs leading-relaxed">Panitia akan menghubungi Anda melalui nomor WhatsApp yang terdaftar untuk informasi seleksi.</p>
+                        <p class="text-slate-300 font-medium text-xs leading-relaxed">Panitia akan menghubungi Anda melalui nomor WhatsApp yang terdaftar untuk informasi verifikasi data.</p>
                     </div>
                 </div>
             </div>
@@ -175,14 +175,14 @@
             <!-- Action Buttons -->
             <div class="mt-8 space-y-3 animate-fade-up" style="animation-delay: 1s;">
                 <a href="/" class="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5">
-                    Daftarkan Peserta Didik Lainnya
+                    Isi Data Peserta Didik Lainnya
                 </a>
                 <a href="{{ route('pendaftaran.cek_status') }}" class="block w-full text-center bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300 border border-white/5 hover:border-white/10">
-                    Cek Status Pendaftaran
+                    Cek Status Pendataan
                 </a>
                 @if(session('santri_id'))
                 <a href="{{ route('pendaftaran.bukti', session('santri_id')) }}" target="_blank" class="block w-full text-center bg-white text-emerald-700 hover:bg-emerald-50 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all duration-300">
-                    Cetak Bukti Pendaftaran
+                    Cetak Bukti Pendataan
                 </a>
                 @endif
             </div>

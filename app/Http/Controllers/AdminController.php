@@ -49,7 +49,7 @@ class AdminController extends Controller
         $app_locked = Setting::where('key', 'app_locked')->value('value') == '1';
         
         $kop_baris_1 = Setting::where('key', 'kop_baris_1')->value('value') ?? 'GRIYA QUR\'AN BAITUL MANSHURIN';
-        $kop_baris_2 = Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendaftaran Peserta Didik Baru (SPSB)';
+        $kop_baris_2 = Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)';
         $kop_baris_3 = Setting::where('key', 'kop_baris_3')->value('value') ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890';
 
         $periodes = Periode::all();
@@ -189,7 +189,7 @@ class AdminController extends Controller
         $santri->update($data);
 
         ActivityLog::create([
-            'aktivitas' => "Edit Data Pendaftar: {$santri->nama_lengkap}",
+            'aktivitas' => "Edit Data Peserta Didik: {$santri->nama_lengkap}",
             'aktor' => 'Admin',
             'ip_address' => $request->ip()
         ]);
@@ -331,7 +331,7 @@ class AdminController extends Controller
             'ip_address' => $request->ip()
         ]);
 
-        return back()->with('success', 'Follow-up pendaftar diperbarui!');
+        return back()->with('success', 'Follow-up peserta didik diperbarui!');
     }
     
     public function exportData(Request $request) {
@@ -357,13 +357,13 @@ class AdminController extends Controller
         $data = $query->get();
         
         ActivityLog::create([
-            'aktivitas' => 'Export Data Pendaftar ('.$format.') - '.$data->count().' data',
+            'aktivitas' => 'Export Data Peserta Didik ('.$format.') - '.$data->count().' data',
             'aktor' => 'Admin',
             'ip_address' => $request->ip()
         ]);
         
         if ($format == 'csv') {
-            $fileName = 'Data_Pendaftar_SPSB.csv';
+            $fileName = 'Data_Peserta_Didik_SPSB.csv';
             $headers = [
                 "Content-type"        => "text/csv",
                 "Content-Disposition" => "attachment; filename=$fileName",
@@ -409,7 +409,7 @@ class AdminController extends Controller
 
         $headers = [
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="Data_Pendaftar_SPSB_Full.xls"',
+            'Content-Disposition' => 'attachment; filename="Data_Peserta_Didik_SPSB_Full.xls"',
             'Cache-Control' => 'max-age=0',
         ];
 
@@ -420,7 +420,7 @@ class AdminController extends Controller
             echo 'xmlns:o="urn:schemas-microsoft-com:office:office" ';
             echo 'xmlns:x="urn:schemas-microsoft-com:office:excel" ';
             echo 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
-            echo '<Worksheet ss:Name="Data Pendaftar"><Table>';
+            echo '<Worksheet ss:Name="Data Peserta Didik"><Table>';
 
             echo '<Row>';
             foreach ($columns as $column) {
@@ -463,7 +463,7 @@ class AdminController extends Controller
             mkdir($tempDirectory, 0755, true);
         }
 
-        $zipPath = $tempDirectory . DIRECTORY_SEPARATOR . 'berkas-pendaftaran-' . now()->format('YmdHis') . '-' . uniqid() . '.zip';
+        $zipPath = $tempDirectory . DIRECTORY_SEPARATOR . 'berkas-pendataan-' . now()->format('YmdHis') . '-' . uniqid() . '.zip';
         $zip = new ZipArchive();
         $filesAdded = 0;
 
@@ -512,7 +512,7 @@ class AdminController extends Controller
 
         return response()->download(
             $zipPath,
-            'Berkas_Pendaftaran_SPSB.zip',
+            'Berkas_Pendataan_SPSB.zip',
             ['Content-Type' => 'application/zip']
         )->deleteFileAfterSend(true);
     }
@@ -559,9 +559,9 @@ class AdminController extends Controller
             ->take(80)
             ->get();
         
-        $context = "Kamu adalah Asisten AI untuk Administrator Sekolah SPSB. Jawab singkat, profesional, dan berdasarkan data yang tersedia.\n";
+        $context = "Kamu adalah Asisten AI untuk Administrator SPSB. Aplikasi ini dipakai untuk pendataan peserta didik baru yang sudah diterima. Jawab singkat, profesional, dan berdasarkan data yang tersedia.\n";
         $context .= "Statistik ringkas: " . json_encode($stats, JSON_UNESCAPED_UNICODE) . "\n";
-        $context .= "Data pendaftar terbaru maksimal 80 baris: " . $pendaftar->toJson(JSON_UNESCAPED_UNICODE) . "\n";
+        $context .= "Data peserta didik terbaru maksimal 80 baris: " . $pendaftar->toJson(JSON_UNESCAPED_UNICODE) . "\n";
         $context .= "Jika pertanyaan membutuhkan data yang tidak ada di konteks, katakan bahwa data tidak tersedia di konteks chat.";
 
         try {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pendaftaran Ditutup</title>
+    <title>Form Pendataan Ditutup</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -16,7 +16,7 @@
         </div>
         <h1 class="text-3xl font-black text-slate-800 mb-4">Mohon Maaf</h1>
         <p class="text-slate-600 text-lg mb-8 leading-relaxed">
-            Formulir Sistem Pendaftaran Peserta Didik Baru (SPSB) saat ini <b>sedang ditutup</b> atau masa pendaftaran telah berakhir.
+            Formulir Sistem Pendataan Peserta Didik Baru (SPSB) saat ini <b>sedang ditutup</b>.
         </p>
         <a href="https://griyaquran.web.id" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-xl transition inline-block">
             Kembali ke Beranda

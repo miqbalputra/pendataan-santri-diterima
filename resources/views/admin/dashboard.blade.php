@@ -133,7 +133,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-blue-900/5 group hover:-translate-y-1 transition-all duration-300">
                     <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Total Pendaftar</p>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Total Peserta Didik</p>
                         <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['total'] }}</p>
                     </div>
                     <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 group-hover:rotate-6 transition-transform">
@@ -143,7 +143,7 @@
                 
                 <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-amber-900/5 group hover:-translate-y-1 transition-all duration-300">
                     <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Menunggu Review</p>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Menunggu Verifikasi</p>
                         <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['pending'] }}</p>
                     </div>
                     <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-200 group-hover:rotate-6 transition-transform">
@@ -153,7 +153,7 @@
 
                 <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-emerald-900/5 group hover:-translate-y-1 transition-all duration-300">
                     <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Telah Diterima</p>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Data Lengkap</p>
                         <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['diterima'] }}</p>
                     </div>
                     <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 group-hover:rotate-6 transition-transform">
@@ -162,12 +162,12 @@
                 </div>
             </div>
 
-            <!-- Tabel Pendaftar Premium -->
+            <!-- Tabel Peserta Didik -->
             <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 border border-white overflow-hidden mb-8">
                 <div class="p-8 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-center gap-6 bg-white/50">
                     <div>
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Data Pendaftar Terbaru</h2>
-                        <p class="text-xs text-slate-500 mt-1 font-bold italic opacity-70">Monitor pendaftaran calon peserta didik secara real-time.</p>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Data Peserta Didik Terbaru</h2>
+                        <p class="text-xs text-slate-500 mt-1 font-bold italic opacity-70">Monitor pendataan peserta didik baru secara real-time.</p>
                     </div>
                     <form action="" method="GET" class="flex gap-3 w-full lg:w-auto">
                         <div class="relative w-full lg:w-72">
@@ -231,15 +231,15 @@
                                 <td class="p-6 text-center">
                                     @if($p->status_pendaftaran == 'Diterima')
                                         <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-emerald-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> DITERIMA
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> DATA LENGKAP
                                         </span>
                                     @elseif($p->status_pendaftaran == 'Ditolak')
                                         <span class="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-rose-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> DITOLAK
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> TIDAK VALID
                                         </span>
                                     @else
                                         <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-amber-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"></span> REVIEW
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"></span> VERIFIKASI
                                         </span>
                                     @endif
                                 </td>
@@ -257,7 +257,7 @@
                                         <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100 shadow-inner">
                                             <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
                                         </div>
-                                        <p class="text-slate-500 font-black text-lg tracking-tight">Belum ada data pendaftar.</p>
+                                        <p class="text-slate-500 font-black text-lg tracking-tight">Belum ada data peserta didik.</p>
                                         <p class="text-xs text-slate-400 mt-1 font-bold italic opacity-60">Silakan periksa kembali filter pencarian Anda.</p>
                                     </div>
                                 </td>
@@ -324,9 +324,9 @@
                                         <input type="checkbox" name="app_locked" value="1" {{ $app_locked ? 'checked' : '' }} class="w-12 h-6 bg-slate-300 rounded-full appearance-none checked:bg-rose-500 transition-colors cursor-pointer relative z-10">
                                         <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform transform translate-x-0 group-hover:scale-110 z-20" id="lock-switch"></div>
                                     </div>
-                                    <span class="font-black text-rose-900 text-sm tracking-tight uppercase">Tutup Pendaftaran</span>
+                                    <span class="font-black text-rose-900 text-sm tracking-tight uppercase">Tutup Form Pendataan</span>
                                 </label>
-                                <p class="text-[10px] text-rose-500 font-bold mt-2 italic">* Jika aktif, pendaftar tidak dapat mengakses formulir.</p>
+                                <p class="text-[10px] text-rose-500 font-bold mt-2 italic">* Jika aktif, orang tua/wali tidak dapat mengakses formulir pendataan.</p>
                             </div>
 
                             <!-- Tombol submit dipindah ke bawah agar mencakup semua field -->
@@ -334,13 +334,13 @@
                 </div>
 
                 <div class="space-y-8">
-                    <!-- Notifikasi Pendaftaran -->
+                    <!-- Notifikasi Pendataan -->
                     <div class="glass-card rounded-[2rem] p-8 shadow-xl shadow-emerald-900/5">
                         <h3 class="font-black text-emerald-900 text-lg mb-6 flex items-center gap-3">
                             <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 shadow-inner">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 001.9 0L21 8m-18 8h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
                             </div>
-                            Notifikasi Pendaftaran n8n
+                            Notifikasi Pendataan n8n
                         </h3>
                         <div class="space-y-5">
                             <div>
@@ -355,12 +355,12 @@
                                 <div>
                                     <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Ikhwan (Putra)</label>
                                     <input type="text" name="group_ikhwan_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_ikhwan_url }}" placeholder="https://chat.whatsapp.com/...">
-                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika pendaftar putra, bapak dan ibu mendapat pesan masuk group ikhwan.</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika peserta didik putra, bapak dan ibu mendapat pesan masuk grup ikhwan.</p>
                                 </div>
                                 <div>
                                     <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Akhwat (Putri)</label>
                                     <input type="text" name="group_akhwat_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_akhwat_url }}" placeholder="https://chat.whatsapp.com/...">
-                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika pendaftar putri, hanya ibu yang mendapat pesan masuk group akhwat.</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika peserta didik putri, hanya ibu yang mendapat pesan masuk grup akhwat.</p>
                                 </div>
                             </div>
                         </div>
@@ -457,7 +457,7 @@
             <div class="flex items-center justify-between mb-10">
                 <div>
                     <h2 class="text-3xl font-black text-slate-800 tracking-tight">Periode & Gelombang</h2>
-                    <p class="text-slate-500 font-medium">Kelola tahun ajaran, gelombang, dan kuota pendaftaran aktif.</p>
+                    <p class="text-slate-500 font-medium">Kelola tahun ajaran, gelombang, dan kuota pendataan aktif.</p>
                 </div>
             </div>
 
@@ -604,13 +604,13 @@
         <div id="content-followup" class="tab-content hidden animate-fade">
             <div class="mb-8">
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight">Dashboard Follow-up</h2>
-                <p class="text-slate-500 font-medium">Pantau pendaftar yang belum masuk grup, belum dihubungi, dokumen belum lengkap, atau belum diverifikasi.</p>
+                <p class="text-slate-500 font-medium">Pantau peserta didik yang orang tuanya belum masuk grup, belum dihubungi, dokumen belum lengkap, atau belum diverifikasi.</p>
             </div>
             <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
                         <tr>
-                            <th class="p-6">Pendaftar</th>
+                            <th class="p-6">Peserta Didik</th>
                             <th class="p-6">Kondisi</th>
                             <th class="p-6">Follow-up</th>
                             <th class="p-6 text-right">Aksi</th>
@@ -669,9 +669,9 @@
                         <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</span>
                         <select name="status_pendaftaran" class="form-input mt-2">
                             <option value="">Semua Status</option>
-                            @foreach(['Pending', 'Diterima', 'Ditolak'] as $status)
-                                <option value="{{ $status }}">{{ $status }}</option>
-                            @endforeach
+                            <option value="Pending">Menunggu Verifikasi Data</option>
+                            <option value="Diterima">Data Lengkap / Terverifikasi</option>
+                            <option value="Ditolak">Data Tidak Valid / Tidak Dilanjutkan</option>
                         </select>
                     </label>
                     <label class="block">
@@ -722,7 +722,7 @@
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Data Lengkap Excel</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Berisi seluruh kolom data pendaftar lengkap dalam format yang siap dibuka langsung di Microsoft Excel.</p>
+                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Berisi seluruh kolom data peserta didik lengkap dalam format yang siap dibuka langsung di Microsoft Excel.</p>
                     <a href="{{ route('admin.export', ['format'=>'excel']) }}" class="inline-flex items-center justify-center w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 transition-all hover:shadow-emerald-500/40 active:scale-95">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         UNDUH EXCEL PENUH
@@ -735,7 +735,7 @@
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 11h16M4 15h10M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Berkas Upload (.ZIP)</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Unduh semua dokumen upload terpisah per pendaftar: akta, KK, KTP ayah, KTP ibu, dan foto anak.</p>
+                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Unduh semua dokumen upload terpisah per peserta didik: akta, KK, KTP ayah, KTP ibu, dan foto anak.</p>
                     <a href="{{ route('admin.export', ['format'=>'uploads']) }}" class="inline-flex items-center justify-center w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-amber-500/20 transition-all hover:shadow-amber-500/40 active:scale-95">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-8-4l-4 4m0 0l-4-4m4 4V4m8 7h.01"></path></svg>
                         UNDUH BERKAS ZIP
@@ -748,7 +748,7 @@
                         <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800 mb-3 tracking-tight">Rekapitulasi Cetak (.PDF)</h3>
-                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Hasilkan dokumen PDF rapi yang siap cetak untuk keperluan arsip fisik pendaftaran lembaga.</p>
+                    <p class="text-slate-500 font-medium leading-relaxed mb-8">Hasilkan dokumen PDF rapi yang siap cetak untuk keperluan arsip fisik pendataan lembaga.</p>
                     <a href="{{ route('admin.export', ['format'=>'pdf']) }}" target="_blank" class="inline-flex items-center justify-center w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-rose-500/20 transition-all hover:shadow-rose-500/40 active:scale-95">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         LIHAT & CETAK PDF
@@ -795,7 +795,7 @@
                         <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
                             <tr>
                                 <th class="p-6">Waktu</th>
-                                <th class="p-6">Pendaftar</th>
+                                <th class="p-6">Peserta Didik</th>
                                 <th class="p-6">Channel</th>
                                 <th class="p-6">Penerima</th>
                                 <th class="p-6">Status</th>
@@ -853,7 +853,7 @@
                 <div class="flex items-start gap-3">
                     <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs flex-shrink-0">AI</div>
                     <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed border border-slate-100">
-                        Halo Admin! Saya sudah membaca data pendaftar. Ada yang ingin ditanyakan seputar data hari ini?
+                        Halo Admin! Saya sudah membaca data peserta didik. Ada yang ingin ditanyakan seputar data hari ini?
                     </div>
                 </div>
             </div>
@@ -861,7 +861,7 @@
             <!-- Input Area -->
             <div class="p-6 bg-white/50 border-t border-slate-100">
                 <form id="chat-form" class="flex gap-2">
-                    <input type="text" id="chat-input" class="form-input text-sm py-3 px-4" placeholder="Tanya tentang pendaftar..." required>
+                    <input type="text" id="chat-input" class="form-input text-sm py-3 px-4" placeholder="Tanya tentang data peserta didik..." required>
                     <button type="submit" id="chat-submit" class="bg-slate-900 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-emerald-600 transition shadow-lg flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
                     </button>

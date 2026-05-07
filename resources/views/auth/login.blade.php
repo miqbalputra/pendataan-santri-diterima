@@ -26,7 +26,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-extrabold text-slate-800">Admin Login</h1>
-            <p class="text-slate-500 text-sm mt-1">Sistem Pendaftaran Peserta Didik Baru</p>
+            <p class="text-slate-500 text-sm mt-1">Sistem Pendataan Peserta Didik Baru</p>
         </div>
 
         <div class="glass-card rounded-3xl shadow-2xl p-8">

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revisi Data Pendaftaran | SPSB</title>
+    <title>Revisi Data Pendataan | SPSB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
     <main class="max-w-4xl mx-auto px-4 py-10">
-        <a href="{{ route('pendaftaran.cek_status') }}" class="text-sm font-bold text-emerald-700 hover:text-emerald-900">Kembali ke Cek Status</a>
+        <a href="{{ route('pendaftaran.cek_status') }}" class="text-sm font-bold text-emerald-700 hover:text-emerald-900">Kembali ke Cek Status Data</a>
 
         <section class="mt-6 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 md:p-8">
             <p class="text-xs font-extrabold text-emerald-700 uppercase tracking-widest">{{ $santri->nomor_pendaftaran }}</p>

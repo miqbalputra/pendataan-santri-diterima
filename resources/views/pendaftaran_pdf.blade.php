@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Formulir Pendaftaran - {{ $santri->nama_lengkap }}</title>
+    <title>Formulir Pendataan - {{ $santri->nama_lengkap }}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         @page {
@@ -87,11 +87,11 @@
             <p class="address">{{ $kop['baris_3'] }}</p>
         </div>
 
-        <div class="main-title">Formulir Pendaftaran Peserta Didik Baru</div>
-        <div class="reg-number">Nomor Registrasi: PSB-{{ str_pad($santri->id, 5, '0', STR_PAD_LEFT) }}</div>
+        <div class="main-title">Formulir Pendataan Peserta Didik Baru</div>
+        <div class="reg-number">Nomor Pendataan: {{ $santri->nomor_pendaftaran ?? ('SPSB-' . str_pad($santri->id, 5, '0', STR_PAD_LEFT)) }}</div>
 
         <!-- I. IDENTITAS -->
-        <div class="section-title">I. Identitas Calon Peserta Didik</div>
+        <div class="section-title">I. Identitas Peserta Didik</div>
         <div class="grid-2">
             <div class="col">
                 <table>
@@ -230,8 +230,8 @@
         </div>
 
         <div class="footer-note">
-            Dokumen ini dihasilkan secara otomatis oleh Sistem Pendaftaran Peserta Didik Baru (SPSB) pada {{ date('d-m-Y H:i:s') }}.<br>
-            Seluruh data yang tertera adalah benar dan sesuai dengan dokumen yang diunggah oleh pendaftar.
+            Dokumen ini dihasilkan secara otomatis oleh Sistem Pendataan Peserta Didik Baru (SPSB) pada {{ date('d-m-Y H:i:s') }}.<br>
+            Seluruh data yang tertera adalah benar dan sesuai dengan dokumen yang diunggah oleh orang tua/wali.
         </div>
     </div>
 
@@ -251,7 +251,7 @@
             </div>
             <div style="display:table-cell; width:80%; text-align:left; vertical-align:middle; padding-left:30px">
                 <h2 style="font-size:12pt; margin:0 0 5px 0;">VERIFIKASI BERKAS DIGITAL</h2>
-                <p style="font-size:9pt; margin:0; color:#333;">Dokumen di bawah ini merupakan salinan digital dari berkas asli yang diunggah oleh pendaftar sebagai syarat validasi data di Dapodik.</p>
+                <p style="font-size:9pt; margin:0; color:#333;">Dokumen di bawah ini merupakan salinan digital dari berkas asli yang diunggah oleh orang tua/wali sebagai syarat validasi data di Dapodik.</p>
             </div>
         </div>
 

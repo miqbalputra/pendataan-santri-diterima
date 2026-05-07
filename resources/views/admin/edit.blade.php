@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Pendaftar: {{ $santri->nama_lengkap }}</title>
+    <title>Edit Peserta Didik: {{ $santri->nama_lengkap }}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -49,12 +49,12 @@
                     <ol class="inline-flex items-center space-x-1 md:space-x-3 text-xs font-medium text-slate-500">
                         <li><a href="{{ route('admin.dashboard') }}" class="hover:text-emerald-600 transition">Dashboard</a></li>
                         <li><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></li>
-                        <li><a href="{{ route('admin.show', $santri->id) }}" class="hover:text-emerald-600 transition">Detail Pendaftar</a></li>
+                        <li><a href="{{ route('admin.show', $santri->id) }}" class="hover:text-emerald-600 transition">Detail Peserta Didik</a></li>
                         <li><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></li>
                         <li class="text-slate-800">Edit Data</li>
                     </ol>
                 </nav>
-                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Edit Data Pendaftar</h1>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Edit Data Peserta Didik</h1>
                 <p class="text-slate-500 mt-1">Mengubah informasi untuk <span class="font-bold text-emerald-600">{{ $santri->nama_lengkap }}</span></p>
             </div>
             <a href="{{ route('admin.show', $santri->id) }}" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">

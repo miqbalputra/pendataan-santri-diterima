@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bukti Pendaftaran - {{ $santri->nama_lengkap }}</title>
+    <title>Bukti Pendataan - {{ $santri->nama_lengkap }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -16,6 +16,11 @@
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900">
+    @php
+        $statusLabel = $santri->status_pendaftaran === 'Diterima'
+            ? 'Data Lengkap / Terverifikasi'
+            : ($santri->status_pendaftaran === 'Ditolak' ? 'Data Tidak Valid / Tidak Dilanjutkan' : 'Menunggu Verifikasi Data');
+    @endphp
     <main class="max-w-4xl mx-auto px-4 py-8">
         <div class="no-print mb-5 flex justify-between gap-3">
             <a href="{{ url('/') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600">Kembali</a>
@@ -26,12 +31,12 @@
             <div class="bg-gradient-to-br from-emerald-800 to-teal-700 p-8 text-white">
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                     <div>
-                        <p class="text-xs font-black uppercase tracking-[0.3em] text-emerald-100">Bukti Pendaftaran SPSB</p>
-                        <h1 class="mt-3 text-3xl font-black tracking-tight">Pendaftaran Berhasil Diterima Sistem</h1>
+                        <p class="text-xs font-black uppercase tracking-[0.3em] text-emerald-100">Bukti Pendataan SPSB</p>
+                        <h1 class="mt-3 text-3xl font-black tracking-tight">Data Berhasil Diterima Sistem</h1>
                         <p class="mt-2 text-emerald-50/85 font-semibold">Griya Qur'an & PKBM Tunas Ilmu</p>
                     </div>
                     <div class="rounded-2xl bg-white/10 border border-white/20 p-4 text-right">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-100">Nomor Pendaftaran</p>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-100">Nomor Pendataan</p>
                         <p class="mt-1 text-2xl font-black">{{ $santri->nomor_pendaftaran }}</p>
                     </div>
                 </div>
@@ -54,7 +59,7 @@
                         </div>
                         <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
                             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                            <p class="mt-1 font-extrabold">{{ $santri->status_pendaftaran }}</p>
+                            <p class="mt-1 font-extrabold">{{ $statusLabel }}</p>
                         </div>
                         <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
                             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Periode</p>
@@ -68,7 +73,7 @@
 
                     <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                         <p class="font-extrabold text-amber-900">Simpan bukti ini.</p>
-                        <p class="mt-1 text-sm font-semibold text-amber-800">Panitia dapat memindai QR untuk validasi data dan membuka detail pendaftar di dashboard admin.</p>
+                        <p class="mt-1 text-sm font-semibold text-amber-800">Panitia dapat memindai QR untuk validasi data dan membuka detail peserta didik di dashboard admin.</p>
                     </div>
                 </div>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPSB | Pendaftaran Peserta Didik Baru</title>
+    <title>SPSB | Pendataan Peserta Didik Baru</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -119,7 +119,7 @@
     <div class="mesh-gradient pt-10 pb-32 px-4 sm:px-6 relative overflow-hidden">
         <div class="max-w-4xl mx-auto relative z-10 text-center animate-fade">
             <div class="flex justify-center gap-3 mb-8">
-                <a href="{{ route('pendaftaran.cek_status') }}" class="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-4 py-2 rounded-xl text-xs font-bold transition">Cek Status</a>
+                <a href="{{ route('pendaftaran.cek_status') }}" class="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-4 py-2 rounded-xl text-xs font-bold transition">Cek Status Data</a>
             </div>
 
             <div class="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-5 py-2 rounded-full text-emerald-50 mb-8 border border-white/15 shadow-lg">
@@ -127,11 +127,11 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-100">Pendaftaran Online SPSB</span>
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-100">Pendataan Online SPSB</span>
             </div>
             
             <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-5 tracking-tight leading-[1.1] drop-shadow-sm">
-                Formulir Pendaftaran Peserta Didik Baru
+                Formulir Pendataan Peserta Didik Baru
             </h1>
             <p class="text-emerald-50/90 text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
                 Unggah dokumen, periksa data hasil baca AI, lengkapi kolom wajib, lalu kirim formulir ke panitia.
