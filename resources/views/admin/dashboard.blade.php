@@ -348,14 +348,14 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Ikhwan</label>
+                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Ikhwan (Putra)</label>
                                     <input type="text" name="group_ikhwan_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_ikhwan_url }}" placeholder="https://chat.whatsapp.com/...">
-                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Boleh diisi bapak dan ibu.</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika pendaftar putra, bapak dan ibu mendapat pesan masuk group ikhwan.</p>
                                 </div>
                                 <div>
-                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Akhwat</label>
+                                    <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Link Grup Kelas Akhwat (Putri)</label>
                                     <input type="text" name="group_akhwat_url" class="form-input text-slate-700 font-mono text-xs" value="{{ $group_akhwat_url }}" placeholder="https://chat.whatsapp.com/...">
-                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Hanya boleh diisi ibu.</p>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-2 italic">Jika pendaftar putri, hanya ibu yang mendapat pesan masuk group akhwat.</p>
                                 </div>
                             </div>
                         </div>

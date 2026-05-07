@@ -109,10 +109,11 @@ class PendaftaranController extends Controller
     {
         $isIkhwan = $santri->jenis_kelamin === 'Laki-laki';
         $kelas = $isIkhwan ? 'ikhwan' : 'akhwat';
+        $kategoriKelamin = $isIkhwan ? 'putra' : 'putri';
         $groupLink = Setting::where('key', $isIkhwan ? 'group_ikhwan_url' : 'group_akhwat_url')->value('value') ?? '';
         $groupRule = $isIkhwan
-            ? 'Group kelas ikhwan boleh diisi oleh bapak dan ibu.'
-            : 'Group kelas akhwat hanya boleh diisi oleh ibu.';
+            ? 'Santri putra masuk group kelas ikhwan. Nomor WhatsApp bapak dan ibu mendapat pesan supaya masuk group kelas ikhwan.'
+            : 'Santri putri masuk group kelas akhwat. Hanya nomor WhatsApp ibu yang mendapat pesan supaya masuk group kelas akhwat.';
 
         $emailRecipients = collect([
             ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
@@ -135,6 +136,7 @@ class PendaftaranController extends Controller
                 'nik' => $santri->nik,
                 'jenis_kelamin' => $santri->jenis_kelamin,
                 'kelas' => $kelas,
+                'kategori_kelamin' => $kategoriKelamin,
                 'tempat_lahir' => $santri->tempat_lahir,
                 'tanggal_lahir' => $santri->tanggal_lahir ? \Carbon\Carbon::parse($santri->tanggal_lahir)->format('Y-m-d') : null,
                 'sekolah_asal' => $santri->nama_sekolah_asal,
@@ -175,8 +177,10 @@ class PendaftaranController extends Controller
             ],
             'group' => [
                 'kelas' => $kelas,
+                'kategori_kelamin' => $kategoriKelamin,
                 'link' => $groupLink,
                 'aturan' => $groupRule,
+                'penerima_whatsapp' => $isIkhwan ? ['ayah', 'ibu'] : ['ibu'],
             ],
             'recipients' => [
                 'email' => $emailRecipients,
