@@ -220,7 +220,7 @@
                 <p>Orang Tua / Wali,</p>
                 <div class="signature-space">
                     @if($santri->tanda_tangan)
-                        <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'tanda_tangan']) }}" class="ttd-img">
+                        <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'tanda_tangan']) }}" class="ttd-img">
                     @else
                         <div style="color:#666; padding-top:20px; font-style:italic; font-size:8pt; border: 1px dashed #ccc; width: 140px; margin: auto;">Tanda tangan tidak tersedia</div>
                     @endif
@@ -243,7 +243,7 @@
         <div style="display:table; width:100%; text-align:center; margin-bottom:20px; border-bottom: 0.5pt solid #000; padding-bottom: 15px;">
             <div style="display:table-cell; width:20%">
                 @if($santri->foto_pas_siswa)
-                    <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_pas_siswa']) }}" style="width:3cm; height:4cm; border:0.5pt solid #000">
+                    <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_pas_siswa']) }}" style="width:3cm; height:4cm; border:0.5pt solid #000">
                     <p style="font-size:7pt; margin-top:5px;">Pas Foto 3x4</p>
                 @else
                     <div style="width:3cm; height:4cm; border:0.5pt dashed #ccc; margin:auto"></div>
@@ -261,7 +261,7 @@
                 <div style="display:table-cell; width:50%; padding:10px; text-align:center">
                     <p style="font-weight:bold; margin-bottom:5px; font-size:9pt;">KTP AYAH</p>
                     @if($santri->foto_ktp_ayah)
-                        <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_ktp_ayah']) }}" class="document-image">
+                        <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_ktp_ayah']) }}" class="document-image">
                     @else
                         <div style="height:100px; border:0.5pt dashed #ccc; padding-top:40px; font-size:8pt; color:#666;">Berkas tidak tersedia</div>
                     @endif
@@ -269,7 +269,7 @@
                 <div style="display:table-cell; width:50%; padding:10px; text-align:center">
                     <p style="font-weight:bold; margin-bottom:5px; font-size:9pt;">KTP IBU</p>
                     @if($santri->foto_ktp_ibu)
-                        <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_ktp_ibu']) }}" class="document-image">
+                        <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_ktp_ibu']) }}" class="document-image">
                     @else
                         <div style="height:100px; border:0.5pt dashed #ccc; padding-top:40px; font-size:8pt; color:#666;">Berkas tidak tersedia</div>
                     @endif
@@ -281,7 +281,7 @@
         <div style="margin-top:20px; text-align:center; border-top: 0.5pt dashed #ccc; padding-top:15px;">
             <p style="font-weight:bold; margin-bottom:5px; font-size:9pt;">KARTU KELUARGA (KK)</p>
             @if($santri->foto_kk)
-                <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_kk']) }}" style="width:100%; max-height:450px; border:0.5pt solid #000">
+                <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_kk']) }}" style="width:100%; max-height:450px; border:0.5pt solid #000">
             @else
                 <div style="height:100px; border:0.5pt dashed #ccc; padding-top:40px; font-size:8pt; color:#666;">Berkas KK tidak tersedia</div>
             @endif
@@ -294,7 +294,7 @@
             <div style="margin-top:10px; text-align:center;">
                 <p style="font-weight:bold; margin-bottom:5px; font-size:9pt;">AKTA KELAHIRAN ANAK</p>
                 @if($santri->foto_akta_anak)
-                    <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_akta_anak']) }}" style="width:100%; max-height:750px; border:0.5pt solid #000">
+                    <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'foto_akta_anak']) }}" style="width:100%; max-height:750px; border:0.5pt solid #000">
                 @else
                     <div style="height:150px; border:0.5pt dashed #ccc; padding-top:70px; font-size:8pt; color:#666;">Berkas Akta tidak tersedia</div>
                 @endif

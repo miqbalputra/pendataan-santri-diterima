@@ -68,7 +68,7 @@
             <div class="text-center">
                 <p class="text-sm">Orang Tua / Wali,</p>
                 @if($santri->tanda_tangan)
-                    <img src="{{ route('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'tanda_tangan']) }}" class="h-20 mx-auto block my-2" alt="Tanda Tangan">
+                    <img src="{{ \Illuminate\Support\Facades\URL::signedRoute('pendaftaran.berkas', ['id' => $santri->id, 'field' => 'tanda_tangan']) }}" class="h-20 mx-auto block my-2" alt="Tanda Tangan">
                 @else
                     <br><br><br>
                 @endif

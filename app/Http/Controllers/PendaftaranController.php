@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PendaftaranController extends Controller
@@ -122,6 +123,7 @@ class PendaftaranController extends Controller
         return redirect('/pendaftaran/sukses')
             ->with('nama_santri', $santri->nama_lengkap)
             ->with('santri_id', $santri->id)
+            ->with('bukti_url', URL::signedRoute('pendaftaran.bukti', ['id' => $santri->id]))
             ->with('nomor_pendaftaran', $santri->nomor_pendaftaran ?? $this->generateNomorPendaftaran($santri));
     }
 
@@ -261,7 +263,7 @@ class PendaftaranController extends Controller
                 'whatsapp' => $whatsappRecipients,
             ],
             'links' => [
-                'cetak' => route('pendaftaran.cetak', $santri->id),
+                'cetak' => URL::signedRoute('pendaftaran.cetak', ['id' => $santri->id]),
                 'admin_detail' => route('admin.show', $santri->id),
                 'cek_status' => route('pendaftaran.cek_status'),
                 'revisi' => route('pendaftaran.revisi', $santri->revisi_token),

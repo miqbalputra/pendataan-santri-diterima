@@ -7,22 +7,22 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PendaftaranController::class, 'index']);
 Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
-Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
+Route::post('/pendaftaran', [PendaftaranController::class, 'store'])->middleware('throttle:5,1');
 Route::get('/pendaftaran/sukses', function () {
     return view('sukses');
 })->name('pendaftaran.sukses');
 Route::get('/cek-status', [PendaftaranController::class, 'cekStatus'])->name('pendaftaran.cek_status');
-Route::post('/cek-status', [PendaftaranController::class, 'cariStatus'])->name('pendaftaran.cari_status');
+Route::post('/cek-status', [PendaftaranController::class, 'cariStatus'])->middleware('throttle:10,1')->name('pendaftaran.cari_status');
 Route::get('/revisi/{token}', [PendaftaranController::class, 'editRevisi'])->name('pendaftaran.revisi');
 Route::post('/revisi/{token}', [PendaftaranController::class, 'updateRevisi'])->name('pendaftaran.revisi.update');
-Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->name('upload_ocr');
-Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->name('pendaftaran.cetak');
-Route::get('/pendaftaran/{id}/bukti', [PendaftaranController::class, 'bukti'])->name('pendaftaran.bukti');
-Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->name('pendaftaran.berkas');
+Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->middleware('throttle:20,1')->name('upload_ocr');
+Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->middleware('signed')->name('pendaftaran.cetak');
+Route::get('/pendaftaran/{id}/bukti', [PendaftaranController::class, 'bukti'])->middleware('signed')->name('pendaftaran.bukti');
+Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->middleware('signed')->name('pendaftaran.berkas');
 
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::prefix('admin')->middleware('auth')->group(function () {
