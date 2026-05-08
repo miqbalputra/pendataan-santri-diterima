@@ -290,6 +290,11 @@ class AdminController extends Controller
             ['role' => 'wali', 'name' => $santri->nama_wali, 'phone' => $santri->no_wa_wali],
         ])->filter(fn ($recipient) => !empty($recipient['phone']))->values()->all();
 
+        $isIkhwan = $santri->jenis_kelamin === 'Laki-laki';
+        $documentStatuses = collect($santri->dokumen_status ?? []);
+        $needsRevision = $newStatus === 'Ditolak'
+            || $documentStatuses->contains(fn ($status) => in_array($status, ['perlu_perbaikan', 'kosong'], true));
+
         return [
             'event' => 'status_verifikasi_diperbarui',
             'event_label' => 'Status Verifikasi Data Diperbarui',
@@ -307,6 +312,7 @@ class AdminController extends Controller
                 'status_sebelumnya_label' => $statusLabels[$oldStatus] ?? $oldStatus,
                 'pesan_status' => $statusMessages[$newStatus] ?? 'Status verifikasi data ananda telah diperbarui oleh panitia.',
                 'waktu_update_status' => now()->format('Y-m-d H:i:s'),
+                'perlu_revisi' => $needsRevision,
             ],
             'orang_tua' => [
                 'ayah' => [
@@ -335,6 +341,140 @@ class AdminController extends Controller
                     'Status Terbaru' => $statusLabels[$newStatus] ?? $newStatus,
                     'Waktu Update' => now()->format('d-m-Y H:i:s'),
                 ],
+            ],
+            'dokumen' => [
+                'status' => $santri->dokumen_status ?? [],
+                'catatan' => $santri->dokumen_catatan,
+                'perlu_revisi' => $needsRevision,
+            ],
+            'group' => [
+                'kelas' => $isIkhwan ? 'ikhwan' : 'akhwat',
+                'kategori_kelamin' => $isIkhwan ? 'putra' : 'putri',
+                'link' => Setting::where('key', $isIkhwan ? 'group_ikhwan_url' : 'group_akhwat_url')->value('value') ?? '',
+                'penerima_whatsapp' => $isIkhwan ? ['ayah', 'ibu'] : ['ibu'],
+                'pesan_akses_ayah' => $isIkhwan
+                    ? 'Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.'
+                    : 'Grup kelas sudah dikirim ke nomor Ibu. Yang diperbolehkan masuk grup kelas akhwat adalah nomor ibu.',
+                'pesan_akses_ibu' => $isIkhwan
+                    ? 'Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.'
+                    : 'Hanya nomor WhatsApp ibu yang diperbolehkan untuk masuk grup kelas akhwat ini.',
+            ],
+            'recipients' => [
+                'email' => $emailRecipients,
+                'whatsapp' => $whatsappRecipients,
+            ],
+            'links' => [
+                'cek_status' => route('pendaftaran.cek_status'),
+                'cetak' => route('pendaftaran.cetak', $santri->id),
+                'bukti' => route('pendaftaran.bukti', $santri->id),
+                'admin_detail' => route('admin.show', $santri->id),
+                'revisi' => $santri->revisi_token ? route('pendaftaran.revisi', $santri->revisi_token) : null,
+            ],
+        ];
+    }
+
+    private function sendDocumentRevisionNotifications(CalonSantri $santri, Request $request): void
+    {
+        $payload = $this->buildDocumentRevisionPayload($santri);
+
+        $webhooks = [
+            'email' => Setting::where('key', 'n8n_email_webhook_url')->value('value'),
+            'whatsapp' => Setting::where('key', 'n8n_whatsapp_webhook_url')->value('value'),
+        ];
+
+        foreach ($webhooks as $channel => $webhookUrl) {
+            if (empty($payload['recipients'][$channel])) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Tidak ada penerima untuk channel ini.');
+                continue;
+            }
+
+            if (empty($webhookUrl)) {
+                $this->recordNotificationLog($santri, $channel, $payload, 'skipped', null, 'Webhook n8n belum diisi.');
+                continue;
+            }
+
+            try {
+                $response = Http::timeout(15)->post($webhookUrl, $payload);
+                $this->recordNotificationLog(
+                    $santri,
+                    $channel,
+                    $payload,
+                    $response->successful() ? 'success' : 'failed',
+                    $response->status(),
+                    $response->successful() ? 'Webhook revisi dokumen terkirim.' : $response->body()
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Webhook revisi dokumen gagal.', [
+                    'calon_santri_id' => $santri->id,
+                    'channel' => $channel,
+                    'error' => $e->getMessage(),
+                ]);
+                $this->recordNotificationLog($santri, $channel, $payload, 'failed', null, $e->getMessage());
+            }
+        }
+    }
+
+    private function buildDocumentRevisionPayload(CalonSantri $santri): array
+    {
+        $emailRecipients = collect([
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'email' => $santri->email_ibu],
+            ['role' => 'wali', 'name' => $santri->nama_wali, 'email' => $santri->email_wali],
+        ])->filter(fn ($recipient) => !empty($recipient['email']))->unique('email')->values()->all();
+
+        $whatsappRecipients = collect([
+            ['role' => 'ayah', 'name' => $santri->nama_ayah, 'phone' => $santri->no_wa_ayah],
+            ['role' => 'ibu', 'name' => $santri->nama_ibu, 'phone' => $santri->no_wa_ibu],
+            ['role' => 'wali', 'name' => $santri->nama_wali, 'phone' => $santri->no_wa_wali],
+        ])->filter(fn ($recipient) => !empty($recipient['phone']))->values()->all();
+
+        return [
+            'event' => 'revisi_dokumen_diminta',
+            'event_label' => 'Revisi Data/Berkas Diminta',
+            'santri' => [
+                'id' => $santri->id,
+                'nomor_pendaftaran' => $santri->nomor_pendaftaran,
+                'nomor_pendataan' => $santri->nomor_pendaftaran,
+                'nama_lengkap' => $santri->nama_lengkap,
+                'nik' => $santri->nik,
+                'jenis_kelamin' => $santri->jenis_kelamin,
+                'status_pendaftaran' => $santri->status_pendaftaran,
+                'status_verifikasi' => $santri->status_pendaftaran,
+                'status_label' => 'Perlu Revisi Data/Berkas',
+                'pesan_status' => 'Ada data atau berkas yang perlu diperbaiki. Silakan buka link revisi dan unggah ulang hanya dokumen yang diminta oleh panitia.',
+                'perlu_revisi' => true,
+            ],
+            'orang_tua' => [
+                'ayah' => [
+                    'nama' => $santri->nama_ayah,
+                    'no_wa' => $santri->no_wa_ayah,
+                    'email' => $santri->email_ayah,
+                ],
+                'ibu' => [
+                    'nama' => $santri->nama_ibu,
+                    'no_wa' => $santri->no_wa_ibu,
+                    'email' => $santri->email_ibu,
+                ],
+                'wali' => [
+                    'nama' => $santri->nama_wali,
+                    'no_wa' => $santri->no_wa_wali,
+                    'email' => $santri->email_wali,
+                ],
+            ],
+            'ringkasan' => [
+                'judul' => 'Revisi Data/Berkas SPSB',
+                'baris' => [
+                    'Nomor Pendataan' => $santri->nomor_pendaftaran,
+                    'Nama Peserta Didik' => $santri->nama_lengkap,
+                    'NIK' => $santri->nik,
+                    'Status' => 'Perlu Revisi Data/Berkas',
+                    'Waktu Permintaan Revisi' => now()->format('d-m-Y H:i:s'),
+                ],
+            ],
+            'dokumen' => [
+                'status' => $santri->dokumen_status ?? [],
+                'catatan' => $santri->dokumen_catatan,
+                'perlu_revisi' => true,
             ],
             'recipients' => [
                 'email' => $emailRecipients,
@@ -381,10 +521,13 @@ class AdminController extends Controller
             'dokumen_catatan' => 'nullable|string|max:2000',
         ]);
 
+        $needsRevision = collect($request->dokumen_status)
+            ->contains(fn ($status) => in_array($status, ['perlu_perbaikan', 'kosong'], true));
+
         $santri->update([
             'dokumen_status' => $request->dokumen_status,
             'dokumen_catatan' => $request->dokumen_catatan,
-            'revisi_diminta_pada' => in_array('perlu_perbaikan', $request->dokumen_status, true) ? now() : $santri->revisi_diminta_pada,
+            'revisi_diminta_pada' => $needsRevision ? now() : $santri->revisi_diminta_pada,
         ]);
 
         ActivityLog::create([
@@ -392,6 +535,10 @@ class AdminController extends Controller
             'aktor' => 'Admin',
             'ip_address' => $request->ip()
         ]);
+
+        if ($needsRevision) {
+            $this->sendDocumentRevisionNotifications($santri->fresh(), $request);
+        }
 
         return back()->with('success', 'Status dokumen berhasil diperbarui!');
     }

@@ -1,76 +1,118 @@
 {
-  "name": "SPSB - Email Pendataan dan Status Verifikasi",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "spsb-email-ringkasan",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "webhook_email_ringkasan",
-      "name": "Webhook Email SPSB",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [240, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.email ?? [];\nconst santri = payload.santri ?? {};\nconst orangTua = payload.orang_tua ?? {};\nconst alamat = payload.alamat ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\nconst event = payload.event ?? 'pendaftaran_baru';\n\nfunction esc(value) {\n  return String(value ?? '-').replace(/[&<>\"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[char]));\n}\n\nconst summaryRows = Object.entries(ringkasan)\n  .map(([label, value]) => `<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">${esc(label)}</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">${esc(value)}</td></tr>`)\n  .join('');\n\nconst isStatusUpdate = event === 'status_verifikasi_diperbarui';\nconst title = isStatusUpdate ? 'Update Status Verifikasi Data SPSB' : 'Pendataan SPSB Berhasil Diterima';\nconst subject = isStatusUpdate\n  ? `Update Status Verifikasi Data SPSB - ${santri.nama_lengkap ?? ''}`\n  : `Ringkasan Pendataan SPSB - ${santri.nama_lengkap ?? ''}`;\nconst statusBlock = isStatusUpdate\n  ? `<div style=\"background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin:16px 0;\"><p style=\"margin:0 0 6px;font-weight:700;color:#047857;\">Status terbaru: ${esc(santri.status_label)}</p><p style=\"margin:0;color:#334155;\">${esc(santri.pesan_status)}</p></div>`\n  : '';\nconst groupBlock = !isStatusUpdate\n  ? `<p><strong>Informasi grup kelas:</strong><br>${esc(group.aturan)}</p><p>Link grup kelas: ${group.link ? `<a href=\"${esc(group.link)}\">${esc(group.link)}</a>` : 'Belum tersedia. Admin akan mengirimkan link menyusul.'}</p>`\n  : '';\nconst actionLink = isStatusUpdate ? payload.links?.cek_status : payload.links?.cetak;\nconst actionText = isStatusUpdate ? 'Cek status pendataan' : 'Cetak bukti pendataan';\n\nconst html = `\n<div style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;\">\n  <h2 style=\"margin:0 0 12px;color:#047857;\">${title}</h2>\n  <p>Assalamu'alaikum Bapak/Ibu,</p>\n  <p>${isStatusUpdate ? 'Status verifikasi data' : 'Data pendataan'} ananda <strong>${esc(santri.nama_lengkap)}</strong> ${isStatusUpdate ? 'telah diperbarui oleh panitia.' : 'telah masuk ke sistem SPSB.'}</p>\n  ${statusBlock}\n  <table style=\"border-collapse:collapse;width:100%;max-width:720px;margin:16px 0;font-size:14px;\">\n    ${summaryRows}\n    <tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ayah</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">${esc(orangTua.ayah?.nama)}</td></tr>\n    <tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ibu</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">${esc(orangTua.ibu?.nama)}</td></tr>\n    ${alamat.alamat_lengkap ? `<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Alamat</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">${esc(alamat.alamat_lengkap)}, ${esc(alamat.kelurahan_desa)}, ${esc(alamat.kecamatan)}</td></tr>` : ''}\n  </table>\n  ${groupBlock}\n  <p>${actionText}:<br><a href=\"${esc(actionLink)}\">${esc(actionLink)}</a></p>\n  <p style=\"margin-top:20px;\">Jazakumullah khairan,<br>Panitia SPSB</p>\n</div>`;\n\nreturn recipients.map((recipient) => ({\n  json: {\n    to_email: recipient.email,\n    to_name: recipient.name,\n    subject,\n    html,\n    event,\n    payload\n  }\n}));"
-      },
-      "id": "build_email_messages",
-      "name": "Siapkan Pesan Email",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 300]
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "send",
-        "sendTo": "={{ $json.to_email }}",
-        "subject": "={{ $json.subject }}",
-        "emailType": "html",
-        "message": "={{ $json.html }}",
-        "options": {
-          "appendAttribution": false
-        }
-      },
-      "id": "send_email",
-      "name": "Kirim Email via Gmail",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [720, 300],
-      "notes": "Hubungkan credential Gmail/Google Workspace pada node ini. Pengirim mengikuti akun Gmail yang dipakai di credential."
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { success: true, channel: 'email', event: $json.event, sent_items: $items().length } }}",
-        "options": {}
-      },
-      "id": "respond_email",
-      "name": "Response Email",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [960, 300]
-    }
-  ],
-  "pinData": {},
-  "connections": {
-    "Webhook Email SPSB": {
-      "main": [[{ "node": "Siapkan Pesan Email", "type": "main", "index": 0 }]]
-    },
-    "Siapkan Pesan Email": {
-      "main": [[{ "node": "Kirim Email via Gmail", "type": "main", "index": 0 }]]
-    },
-    "Kirim Email via Gmail": {
-      "main": [[{ "node": "Response Email", "type": "main", "index": 0 }]]
-    }
-  },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "spsb-email-pendataan-status-gmail-v3"
+    "name":  "SPSB - Email Pendataan dan Status Verifikasi",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "httpMethod":  "POST",
+                                         "path":  "spsb-email-ringkasan",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "webhook_email_ringkasan",
+                      "name":  "Webhook Email SPSB",
+                      "type":  "n8n-nodes-base.webhook",
+                      "typeVersion":  2,
+                      "position":  [
+                                       240,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.email ?? [];\nconst santri = payload.santri ?? {};\nconst orangTua = payload.orang_tua ?? {};\nconst alamat = payload.alamat ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\nconst dokumen = payload.dokumen ?? {};\nconst event = payload.event ?? \u0027pendataan_baru\u0027;\n\nfunction esc(value) {\n  return String(value ?? \u0027-\u0027).replace(/[\u0026\u003c\u003e\"\u0027]/g, (char) =\u003e ({ \u0027\u0026\u0027: \u0027\u0026amp;\u0027, \u0027\u003c\u0027: \u0027\u0026lt;\u0027, \u0027\u003e\u0027: \u0027\u0026gt;\u0027, \u0027\"\u0027: \u0027\u0026quot;\u0027, \"\u0027\": \u0027\u0026#39;\u0027 }[char]));\n}\n\nfunction isRevisionNeeded() {\n  return event === \u0027revisi_dokumen_diminta\u0027\n    || santri.perlu_revisi === true\n    || dokumen.perlu_revisi === true\n    || santri.status_pendaftaran === \u0027Ditolak\u0027\n    || santri.status_verifikasi === \u0027Ditolak\u0027;\n}\n\nconst isStatusUpdate = event === \u0027status_verifikasi_diperbarui\u0027;\nconst isRevisionRequest = event === \u0027revisi_dokumen_diminta\u0027;\nconst needsRevision = isRevisionNeeded();\nconst title = isRevisionRequest\n  ? \u0027Revisi Data/Berkas SPSB Diperlukan\u0027\n  : (isStatusUpdate ? \u0027Update Status Verifikasi Data SPSB\u0027 : \u0027Pendataan SPSB Berhasil Diterima\u0027);\nconst subject = isRevisionRequest\n  ? `Revisi Data/Berkas SPSB - ${santri.nama_lengkap ?? \u0027\u0027}`\n  : (isStatusUpdate\n    ? `Update Status Verifikasi Data SPSB - ${santri.nama_lengkap ?? \u0027\u0027}`\n    : `Ringkasan Pendataan SPSB - ${santri.nama_lengkap ?? \u0027\u0027}`);\n\nconst summaryRows = Object.entries(ringkasan)\n  .map(([label, value]) =\u003e `\u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003e${esc(label)}\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(value)}\u003c/td\u003e\u003c/tr\u003e`)\n  .join(\u0027\u0027);\n\nconst statusBlock = (isStatusUpdate || isRevisionRequest)\n  ? `\u003cdiv style=\"background:${needsRevision ? \u0027#fff7ed\u0027 : \u0027#ecfdf5\u0027};border:1px solid ${needsRevision ? \u0027#fed7aa\u0027 : \u0027#bbf7d0\u0027};border-radius:12px;padding:14px;margin:16px 0;\"\u003e\u003cp style=\"margin:0 0 6px;font-weight:700;color:${needsRevision ? \u0027#c2410c\u0027 : \u0027#047857\u0027};\"\u003eStatus terbaru: ${esc(santri.status_label)}\u003c/p\u003e\u003cp style=\"margin:0;color:#334155;\"\u003e${esc(santri.pesan_status)}\u003c/p\u003e${dokumen.catatan ? `\u003cp style=\"margin:10px 0 0;color:#334155;\"\u003e\u003cstrong\u003eCatatan panitia:\u003c/strong\u003e\u003cbr\u003e${esc(dokumen.catatan)}\u003c/p\u003e` : \u0027\u0027}\u003c/div\u003e`\n  : \u0027\u0027;\n\nconst groupBlock = (!isStatusUpdate \u0026\u0026 !isRevisionRequest)\n  ? `\u003cp\u003e\u003cstrong\u003eInformasi grup kelas:\u003c/strong\u003e\u003cbr\u003e${esc(group.aturan)}\u003c/p\u003e\u003cp\u003eLink grup kelas: ${group.link ? `\u003ca href=\"${esc(group.link)}\"\u003e${esc(group.link)}\u003c/a\u003e` : \u0027Belum tersedia. Admin akan mengirimkan link menyusul.\u0027}\u003c/p\u003e`\n  : \u0027\u0027;\nconst revisionBlock = needsRevision\n  ? `\u003cp\u003e\u003cstrong\u003eLink revisi data/berkas:\u003c/strong\u003e\u003cbr\u003e${payload.links?.revisi ? `\u003ca href=\"${esc(payload.links.revisi)}\"\u003e${esc(payload.links.revisi)}\u003c/a\u003e` : \u0027Link revisi belum tersedia. Silakan hubungi admin.\u0027}\u003c/p\u003e\u003cp\u003eSilakan unggah ulang hanya dokumen yang diminta oleh panitia.\u003c/p\u003e`\n  : \u0027\u0027;\nconst actionLink = needsRevision ? payload.links?.revisi : (isStatusUpdate ? payload.links?.cek_status : payload.links?.cetak);\nconst actionText = needsRevision ? \u0027Buka link revisi\u0027 : (isStatusUpdate ? \u0027Cek status pendataan\u0027 : \u0027Cetak bukti pendataan\u0027);\n\nconst html = `\n\u003cdiv style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;\"\u003e\n  \u003ch2 style=\"margin:0 0 12px;color:#047857;\"\u003e${title}\u003c/h2\u003e\n  \u003cp\u003eAssalamu\u0027alaikum Bapak/Ibu,\u003c/p\u003e\n  \u003cp\u003e${isRevisionRequest ? \u0027Panitia meminta revisi data/berkas\u0027 : (isStatusUpdate ? \u0027Status verifikasi data\u0027 : \u0027Data pendataan\u0027)} ananda \u003cstrong\u003e${esc(santri.nama_lengkap)}\u003c/strong\u003e ${isRevisionRequest ? \u0027agar dapat ditinjau kembali.\u0027 : (isStatusUpdate ? \u0027telah diperbarui oleh panitia.\u0027 : \u0027telah masuk ke sistem SPSB.\u0027)}\u003c/p\u003e\n  ${statusBlock}\n  \u003ctable style=\"border-collapse:collapse;width:100%;max-width:720px;margin:16px 0;font-size:14px;\"\u003e\n    ${summaryRows}\n    \u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eNama Ayah\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(orangTua.ayah?.nama)}\u003c/td\u003e\u003c/tr\u003e\n    \u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eNama Ibu\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(orangTua.ibu?.nama)}\u003c/td\u003e\u003c/tr\u003e\n    ${alamat.alamat_lengkap ? `\u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eAlamat\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(alamat.alamat_lengkap)}, ${esc(alamat.kelurahan_desa)}, ${esc(alamat.kecamatan)}\u003c/td\u003e\u003c/tr\u003e` : \u0027\u0027}\n  \u003c/table\u003e\n  ${groupBlock}\n  ${revisionBlock}\n  ${actionLink ? `\u003cp\u003e${actionText}:\u003cbr\u003e\u003ca href=\"${esc(actionLink)}\"\u003e${esc(actionLink)}\u003c/a\u003e\u003c/p\u003e` : \u0027\u0027}\n  \u003cp style=\"margin-top:20px;\"\u003eJazakumullah khairan,\u003cbr\u003ePanitia SPSB\u003c/p\u003e\n\u003c/div\u003e`;\n\nreturn recipients.map((recipient) =\u003e ({\n  json: {\n    to_email: recipient.email,\n    to_name: recipient.name,\n    subject,\n    html,\n    event,\n    payload\n  }\n}));"
+                                     },
+                      "id":  "build_email_messages",
+                      "name":  "Siapkan Pesan Email",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       480,
+                                       300
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "resource":  "message",
+                                         "operation":  "send",
+                                         "sendTo":  "={{ $json.to_email }}",
+                                         "subject":  "={{ $json.subject }}",
+                                         "emailType":  "html",
+                                         "message":  "={{ $json.html }}",
+                                         "options":  {
+                                                         "appendAttribution":  false
+                                                     }
+                                     },
+                      "id":  "send_email",
+                      "name":  "Kirim Email via Gmail",
+                      "type":  "n8n-nodes-base.gmail",
+                      "typeVersion":  2.1,
+                      "position":  [
+                                       720,
+                                       300
+                                   ],
+                      "notes":  "Hubungkan credential Gmail/Google Workspace pada node ini. Pengirim mengikuti akun Gmail yang dipakai di credential."
+                  },
+                  {
+                      "parameters":  {
+                                         "respondWith":  "json",
+                                         "responseBody":  "={{ { success: true, channel: \u0027email\u0027, event: $json.event, sent_items: $items().length } }}",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "respond_email",
+                      "name":  "Response Email",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "typeVersion":  1,
+                      "position":  [
+                                       960,
+                                       300
+                                   ]
+                  }
+              ],
+    "pinData":  {
+
+                },
+    "connections":  {
+                        "Webhook Email SPSB":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Siapkan Pesan Email",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Siapkan Pesan Email":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Kirim Email via Gmail",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Kirim Email via Gmail":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Response Email",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "versionId":  "spsb-email-pendataan-status-gmail-v4"
 }
