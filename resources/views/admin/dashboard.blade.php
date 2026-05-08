@@ -119,6 +119,13 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Log Aktivitas
             </button>
+            <a href="{{ route('admin.trash') }}" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500 hover:text-rose-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12"></path></svg>
+                Sampah
+                @if(($stats['sampah'] ?? 0) > 0)
+                    <span class="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">{{ $stats['sampah'] }}</span>
+                @endif
+            </a>
             <button id="tab-pengaturan" onclick="switchTab('pengaturan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Pengaturan
@@ -130,7 +137,7 @@
         <div id="content-dashboard" class="tab-content block">
             
             <!-- Stats Cards Premium -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                 <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-blue-900/5 group hover:-translate-y-1 transition-all duration-300">
                     <div>
                         <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Total Peserta Didik</p>
@@ -160,6 +167,16 @@
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                 </div>
+
+                <a href="{{ route('admin.trash') }}" class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-rose-900/5 group hover:-translate-y-1 transition-all duration-300">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Di Sampah</p>
+                        <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['sampah'] ?? 0 }}</p>
+                    </div>
+                    <div class="w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-200 group-hover:rotate-6 transition-transform">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12"></path></svg>
+                    </div>
+                </a>
             </div>
 
             <!-- Tabel Peserta Didik -->
@@ -247,6 +264,10 @@
                                     <div class="flex items-center justify-center gap-2">
                                         <a href="{{ route('admin.show', $p->id) }}" class="bg-slate-900 text-white hover:bg-emerald-600 px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-slate-900/5 active:scale-95">Detail</a>
                                         <a href="{{ route('admin.edit', $p->id) }}" class="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95">Edit</a>
+                                        <form action="{{ route('admin.trash.move', $p->id) }}" method="POST" class="delete-to-trash-form">
+                                            @csrf
+                                            <button type="submit" class="bg-white text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95">Hapus</button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -984,6 +1005,28 @@
             }
         }
 // ... rest of script ...
+
+        document.querySelectorAll('.delete-to-trash-form').forEach((form) => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                Swal.fire({
+                    title: 'Pindahkan data ke sampah?',
+                    text: 'Data tidak langsung hilang. Admin masih bisa memulihkannya dari halaman Sampah.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, pindahkan',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#e11d48',
+                    cancelButtonColor: '#64748b',
+                    customClass: { popup: 'rounded-[2rem]' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
 
         async function testConnection() {
             const endpoint = document.getElementById('ai_endpoint').value;

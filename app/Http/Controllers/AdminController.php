@@ -25,9 +25,11 @@ class AdminController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where('nama_lengkap', 'like', "%$search%")
-                  ->orWhere('nama_ayah', 'like', "%$search%")
-                  ->orWhere('no_wa_ayah', 'like', "%$search%");
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                    ->orWhere('nama_ayah', 'like', "%{$search}%")
+                    ->orWhere('no_wa_ayah', 'like', "%{$search}%");
+            });
         }
 
         $pendaftar = $query->paginate(20);
@@ -36,6 +38,7 @@ class AdminController extends Controller
             'total' => CalonSantri::count(),
             'pending' => CalonSantri::where('status_pendaftaran', 'Pending')->count(),
             'diterima' => CalonSantri::where('status_pendaftaran', 'Diterima')->count(),
+            'sampah' => CalonSantri::onlyTrashed()->count(),
         ];
 
         $ocr_engine = Setting::where('key', 'ocr_engine')->value('value') ?? 'local';
@@ -201,6 +204,78 @@ class AdminController extends Controller
         return redirect()->route('admin.dashboard')->with('success', 'Data diperbarui!');
     }
 
+    public function trash(Request $request)
+    {
+        $query = CalonSantri::onlyTrashed()->latest('deleted_at');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                    ->orWhere('nama_ayah', 'like', "%{$search}%")
+                    ->orWhere('nama_ibu', 'like', "%{$search}%")
+                    ->orWhere('nomor_pendaftaran', 'like', "%{$search}%");
+            });
+        }
+
+        $trashedPendaftar = $query->paginate(20);
+
+        return view('admin.trash', compact('trashedPendaftar'));
+    }
+
+    public function moveToTrash($id)
+    {
+        $santri = CalonSantri::findOrFail($id);
+        $santri->delete();
+
+        ActivityLog::create([
+            'aktivitas' => "Pindah ke Sampah: {$santri->nama_lengkap}",
+            'aktor' => 'Admin',
+            'ip_address' => request()->ip(),
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Data peserta didik dipindahkan ke sampah.');
+    }
+
+    public function restoreFromTrash($id)
+    {
+        $santri = CalonSantri::onlyTrashed()->findOrFail($id);
+        $santri->restore();
+
+        ActivityLog::create([
+            'aktivitas' => "Pulihkan dari Sampah: {$santri->nama_lengkap}",
+            'aktor' => 'Admin',
+            'ip_address' => request()->ip(),
+        ]);
+
+        return back()->with('success', 'Data peserta didik berhasil dipulihkan.');
+    }
+
+    public function forceDeleteFromTrash(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Password admin tidak sesuai. Data tidak dihapus permanen.']);
+        }
+
+        $santri = CalonSantri::onlyTrashed()->findOrFail($id);
+        $name = $santri->nama_lengkap;
+        $this->deleteSantriUploadedFiles($santri);
+        $santri->forceDelete();
+
+        ActivityLog::create([
+            'aktivitas' => "Hapus Permanen: {$name}",
+            'aktor' => 'Admin',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return back()->with('success', 'Data peserta didik berhasil dihapus permanen.');
+    }
+
     public function updateStatus(Request $request, $id) {
         $request->validate([
             'status_pendaftaran' => 'required|in:Pending,Diterima,Ditolak',
@@ -276,6 +351,18 @@ class AdminController extends Controller
         abort_if(!$path || !Storage::disk('public')->exists($path), 404, 'Berkas tidak ditemukan di storage.');
 
         return response()->file(Storage::disk('public')->path($path));
+    }
+
+    private function deleteSantriUploadedFiles(CalonSantri $santri): void
+    {
+        $fields = ['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa', 'tanda_tangan'];
+
+        foreach ($fields as $field) {
+            $path = $santri->{$field};
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
     }
 
     public function storePeriode(Request $request) {

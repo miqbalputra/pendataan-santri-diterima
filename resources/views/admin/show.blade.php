@@ -6,6 +6,7 @@
     <title>Detail Peserta Didik: {{ $santri->nama_lengkap }}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -367,6 +368,12 @@
                             Link Revisi Orang Tua
                         </a>
                         @endif
+                        <form action="{{ route('admin.trash.move', $santri->id) }}" method="POST" class="delete-to-trash-form">
+                            @csrf
+                            <button type="submit" class="w-full bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-rose-100">
+                                Pindahkan ke Sampah
+                            </button>
+                        </form>
                     </div>
                 </div>
 
@@ -525,6 +532,29 @@
             </div>
         </div>
     </div>
+    <script>
+        document.querySelectorAll('.delete-to-trash-form').forEach((form) => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                Swal.fire({
+                    title: 'Pindahkan data ke sampah?',
+                    text: 'Data tidak langsung hilang. Admin masih bisa memulihkannya dari halaman Sampah.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, pindahkan',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#e11d48',
+                    cancelButtonColor: '#64748b',
+                    customClass: { popup: 'rounded-[2rem]' }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
 

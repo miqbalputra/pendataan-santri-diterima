@@ -33,6 +33,10 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/pendaftar/{id}', [AdminController::class, 'show'])->name('admin.show');
     Route::get('/pendaftar/{id}/edit', [AdminController::class, 'edit'])->name('admin.edit');
     Route::post('/pendaftar/{id}', [AdminController::class, 'update'])->name('admin.update');
+    Route::get('/sampah', [AdminController::class, 'trash'])->name('admin.trash');
+    Route::post('/pendaftar/{id}/hapus', [AdminController::class, 'moveToTrash'])->name('admin.trash.move');
+    Route::post('/sampah/{id}/pulihkan', [AdminController::class, 'restoreFromTrash'])->name('admin.trash.restore');
+    Route::delete('/sampah/{id}/hapus-permanen', [AdminController::class, 'forceDeleteFromTrash'])->name('admin.trash.force_delete');
     Route::post('/pendaftar/{id}/status', [AdminController::class, 'updateStatus'])->name('admin.status');
     Route::post('/pendaftar/{id}/dokumen', [AdminController::class, 'updateDocumentVerification'])->name('admin.documents');
     Route::get('/pendaftar/{id}/berkas/{field}', [AdminController::class, 'viewUploadedDocument'])->name('admin.documents.view');

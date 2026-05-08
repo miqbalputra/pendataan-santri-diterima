@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CalonSantri extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'nomor_pendaftaran',
         'periode_id',
