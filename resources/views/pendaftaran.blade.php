@@ -869,9 +869,32 @@
             return `Sepertinya dokumen yang dipilih belum sesuai dengan kolom ini.<br><br>Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon periksa kembali foto yang dipilih, lalu unggah foto ${expectedLabel} yang jelas dan terbaca.`;
         }
 
+        async function confirmChildPhotoCheck(documentCheck) {
+            if (!documentCheck || documentCheck.is_expected_document !== false) {
+                return true;
+            }
+
+            const result = await Swal.fire({
+                icon: 'info',
+                title: 'Mohon periksa kembali foto',
+                html: 'Sistem belum dapat memastikan foto ini dengan baik.<br><br>Mohon pastikan foto menampilkan wajah anak dengan cukup jelas. Jika foto yang dipilih sudah benar, Bapak/Ibu tetap dapat melanjutkan.',
+                showCancelButton: true,
+                confirmButtonText: 'Tetap Gunakan',
+                cancelButtonText: 'Ganti Foto',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b'
+            });
+
+            return result.isConfirmed;
+        }
+
         async function confirmOcrDocumentCheck(documentCheck, target) {
             if (!documentCheck || documentCheck.is_expected_document !== false) {
                 return true;
+            }
+
+            if (target === 'foto') {
+                return confirmChildPhotoCheck(documentCheck);
             }
 
             const expectedLabel = DOCUMENT_LABELS[target] || 'dokumen yang sesuai';
