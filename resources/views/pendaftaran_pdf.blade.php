@@ -8,6 +8,10 @@
         @page {
             margin: 1.5cm;
         }
+        @media print {
+            .download-toolbar { display: none !important; }
+            body { padding-top: 0 !important; }
+        }
         body { 
             font-family: 'Helvetica', 'Arial', sans-serif; 
             font-size: 10px; 
@@ -17,6 +21,32 @@
             padding: 0;
             background-color: #fff; 
         }
+        body.has-toolbar { padding-top: 58px; }
+        .download-toolbar {
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #0f172a;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+        }
+        .download-toolbar button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .download-toolbar .download-btn { background: #047857; color: #fff; }
+        .download-toolbar .print-btn { background: #e2e8f0; color: #0f172a; }
+        .download-toolbar button:disabled { cursor: wait; opacity: 0.72; }
         .header { 
             text-align: center; 
             border-bottom: 1.5pt solid #000; 
@@ -77,8 +107,17 @@
         /* Specific adjustments for smaller tables in grid */
         .col table td.label { width: 90px; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" defer></script>
 </head>
-<body>
+<body class="has-toolbar">
+    @php
+        $downloadFileName = 'Formulir-' . ($santri->nomor_pendaftaran ?? 'SPSB-' . $santri->id) . '-' . \Illuminate\Support\Str::slug($santri->nama_lengkap ?: 'peserta-didik') . '.pdf';
+    @endphp
+    <div class="download-toolbar">
+        <button type="button" class="download-btn" id="downloadPdfBtn" onclick="downloadPdf()">Download PDF</button>
+        <button type="button" class="print-btn" onclick="window.print()">Cetak</button>
+    </div>
+    <div id="pdf-content">
     <div class="container">
         <!-- HEADER -->
         <div class="header">
@@ -304,6 +343,50 @@
                 Lembar Lampiran Berkas Digital - Halaman 3
             </div>
         </div>
+    </div>
+    <script>
+        const pdfFileName = @json($downloadFileName);
+
+        async function downloadPdf() {
+            const button = document.getElementById('downloadPdfBtn');
+            const source = document.getElementById('pdf-content');
+
+            if (!window.html2pdf) {
+                window.print();
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Menyiapkan PDF...';
+
+            try {
+                await html2pdf()
+                    .set({
+                        margin: [10, 10, 10, 10],
+                        filename: pdfFileName,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            scrollY: 0
+                        },
+                        jsPDF: {
+                            unit: 'mm',
+                            format: 'a4',
+                            orientation: 'portrait'
+                        },
+                        pagebreak: {
+                            mode: ['css', 'legacy']
+                        }
+                    })
+                    .from(source)
+                    .save();
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Download PDF';
+            }
+        }
+    </script>
 </body>
 </html>
 
