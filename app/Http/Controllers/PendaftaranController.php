@@ -442,6 +442,14 @@ class PendaftaranController extends Controller
             $endpoint = Setting::where('key', 'ai_endpoint')->value('value') ?? 'https://api.openai.com/v1/chat/completions';
             $api_key = Setting::where('key', 'ai_api_key')->value('value');
             $model = Setting::where('key', 'ai_model')->value('value') ?? 'gpt-4o';
+
+            if ($file->getMimeType() === 'application/pdf') {
+                return response()->json([
+                    'message' => 'PDF siap diunggah. OCR Direct AI hanya membaca file gambar.',
+                    'extracted_text' => '',
+                    'fields' => [],
+                ]);
+            }
             
             if (!str_ends_with($endpoint, '/chat/completions')) {
                 $endpoint = rtrim($endpoint, '/') . '/chat/completions';

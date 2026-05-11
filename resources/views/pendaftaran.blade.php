@@ -1296,10 +1296,11 @@
                     if (pdfIcon) pdfIcon.classList.remove('hidden');
                     dropzone.classList.replace('border-blue-400', 'border-emerald-500');
                     dropzone.classList.replace('bg-blue-50', 'bg-white');
+                    status.innerText = "PDF siap diunggah";
                 }
 
-                // 2. Jalankan OCR
-                if (target !== 'foto') {
+                // 2. Jalankan OCR hanya untuk gambar. PDF tetap diterima, tetapi tidak dibaca Direct AI.
+                if (target !== 'foto' && !isPdf) {
                     status.innerText = "AI sedang membaca...";
                     await runOCR(file, target);
                 }
