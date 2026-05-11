@@ -379,10 +379,13 @@
 
                 <div class="glass-card rounded-2xl shadow-sm p-6">
                     <h3 class="font-bold text-lg mb-4">Follow-up Operasional</h3>
-                    @if($santri->groupJoinLinks->isNotEmpty())
+                    @php
+                        $groupJoinLinks = $santri->relationLoaded('groupJoinLinks') ? $santri->groupJoinLinks : collect();
+                    @endphp
+                    @if($groupJoinLinks->isNotEmpty())
                         <div class="mb-4 space-y-2">
                             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tracking Link Grup</p>
-                            @foreach($santri->groupJoinLinks->sortBy(fn ($link) => $link->role . '-' . $link->channel) as $link)
+                            @foreach($groupJoinLinks->sortBy(fn ($link) => $link->role . '-' . $link->channel) as $link)
                                 @php
                                     $roleLabel = $link->role === 'ibu' ? 'Ibu' : 'Ayah';
                                     $channelLabel = $link->channel === 'whatsapp' ? 'WhatsApp' : 'Email';

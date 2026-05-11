@@ -649,12 +649,15 @@
                                 <div class="text-[10px] font-bold text-slate-400 uppercase">{{ $item->nomor_pendaftaran }} | {{ optional($item->gelombang)->nama_gelombang ?? 'Tanpa Gelombang' }}</div>
                             </td>
                             <td class="p-6">
+                                @php
+                                    $groupJoinLinks = $item->relationLoaded('groupJoinLinks') ? $item->groupJoinLinks : collect();
+                                @endphp
                                 <div class="flex flex-wrap gap-2">
                                     @if(!$item->followup_sudah_masuk_grup)<span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum masuk grup</span>@endif
-                                    @if($item->groupJoinLinks->isNotEmpty() && !$item->groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
+                                    @if($groupJoinLinks->isNotEmpty() && !$groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
                                         <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Link grup belum dibuka</span>
                                     @endif
-                                    @if($item->groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
+                                    @if($groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
                                         <span class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Link grup pernah dibuka</span>
                                     @endif
                                     @if(!$item->followup_sudah_dihubungi)<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum dihubungi</span>@endif
