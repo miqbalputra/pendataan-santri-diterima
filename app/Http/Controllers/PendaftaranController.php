@@ -187,7 +187,7 @@ class PendaftaranController extends Controller
         $groupLink = Setting::where('key', $isIkhwan ? 'group_ikhwan_url' : 'group_akhwat_url')->value('value') ?? '';
         $groupRule = $isIkhwan
             ? 'Untuk peserta didik putra, Bapak dan Ibu dipersilakan bergabung ke grup kelas ikhwan.'
-            : 'Untuk peserta didik putri, link grup kelas akhwat dikirim khusus ke nomor WhatsApp Ibu.';
+            : 'Untuk peserta didik putri, link grup kelas akhwat dikirim khusus ke nomor WhatsApp Ibu. Hanya Ibu yang diperbolehkan bergabung ke group tersebut.';
 
         $emailRecipients = collect([
             ['role' => 'ayah', 'name' => $santri->nama_ayah, 'email' => $santri->email_ayah],
