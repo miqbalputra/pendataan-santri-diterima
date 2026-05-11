@@ -1,118 +1,126 @@
 {
-    "name":  "SPSB - Email Ringkasan Pendataan",
-    "nodes":  [
-                  {
-                      "parameters":  {
-                                         "httpMethod":  "POST",
-                                         "path":  "spsb-email-ringkasan",
-                                         "responseMode":  "responseNode",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "webhook_email_ringkasan",
-                      "name":  "Webhook Email SPSB",
-                      "type":  "n8n-nodes-base.webhook",
-                      "typeVersion":  2,
-                      "position":  [
-                                       240,
-                                       300
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "jsCode":  "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.email ?? [];\nconst santri = payload.santri ?? {};\nconst orangTua = payload.orang_tua ?? {};\nconst alamat = payload.alamat ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction esc(value) {\n  return String(value ?? \u0027-\u0027).replace(/[\u0026\u003c\u003e\"\u0027]/g, (char) =\u003e ({ \u0027\u0026\u0027: \u0027\u0026amp;\u0027, \u0027\u003c\u0027: \u0027\u0026lt;\u0027, \u0027\u003e\u0027: \u0027\u0026gt;\u0027, \u0027\"\u0027: \u0027\u0026quot;\u0027, \"\u0027\": \u0027\u0026#39;\u0027 }[char]));\n}\n\nfunction groupNoticeFor(recipient) {\n  const isAkhwat = group.kelas === \u0027akhwat\u0027;\n  if (!isAkhwat) return group.aturan ?? \u0027Peserta didik putra masuk grup kelas ikhwan. Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.\u0027;\n  if (recipient.role === \u0027ibu\u0027) return group.aturan ?? \u0027Peserta didik putri masuk grup kelas akhwat. Hanya nomor WhatsApp ibu yang diperbolehkan untuk masuk grup kelas akhwat ini.\u0027;\n  return \u0027Peserta didik putri masuk grup kelas akhwat. Link grup kelas akhwat hanya dikirim ke nomor WhatsApp/email ibu.\u0027;\n}\n\nfunction groupLinkFor(recipient) {\n  if (group.kelas === \u0027akhwat\u0027 \u0026\u0026 recipient.role !== \u0027ibu\u0027) return \u0027\u0027;\n  return group.link ?? \u0027\u0027;\n}\n\nconst summaryRows = Object.entries(ringkasan)\n  .map(([label, value]) =\u003e `\u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003e${esc(label)}\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(value)}\u003c/td\u003e\u003c/tr\u003e`)\n  .join(\u0027\u0027);\n\nconst subject = `Ringkasan Pendataan SPSB - ${santri.nama_lengkap ?? \u0027\u0027}`;\n\nreturn recipients.map((recipient) =\u003e {\n  const groupLink = groupLinkFor(recipient);\n  const groupLinkText = groupLink\n    ? `\u003cp\u003eLink grup kelas: \u003ca href=\"${esc(groupLink)}\"\u003e${esc(groupLink)}\u003c/a\u003e\u003c/p\u003e`\n    : (group.kelas === \u0027akhwat\u0027 \u0026\u0026 recipient.role !== \u0027ibu\u0027 ? \u0027\u0027 : \u0027\u003cp\u003eLink grup kelas belum tersedia. Admin akan mengirimkan link menyusul.\u003c/p\u003e\u0027);\n  const html = `\n\u003cdiv style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;\"\u003e\n  \u003ch2 style=\"margin:0 0 12px;color:#047857;\"\u003ePendataan SPSB Berhasil Diterima\u003c/h2\u003e\n  \u003cp\u003eAssalamu\u0027alaikum Bapak/Ibu,\u003c/p\u003e\n  \u003cp\u003eData pendataan ananda \u003cstrong\u003e${esc(santri.nama_lengkap)}\u003c/strong\u003e telah masuk ke sistem SPSB.\u003c/p\u003e\n  \u003ctable style=\"border-collapse:collapse;width:100%;max-width:720px;margin:16px 0;font-size:14px;\"\u003e\n    ${summaryRows}\n    \u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eNama Ayah\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(orangTua.ayah?.nama)}\u003c/td\u003e\u003c/tr\u003e\n    \u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eNama Ibu\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(orangTua.ibu?.nama)}\u003c/td\u003e\u003c/tr\u003e\n    ${alamat.alamat_lengkap ? `\u003ctr\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\"\u003eAlamat\u003c/td\u003e\u003ctd style=\"padding:7px 10px;border:1px solid #e5e7eb;\"\u003e${esc(alamat.alamat_lengkap)}, ${esc(alamat.kelurahan_desa)}, ${esc(alamat.kecamatan)}\u003c/td\u003e\u003c/tr\u003e` : \u0027\u0027}\n  \u003c/table\u003e\n  \u003cp\u003e\u003cstrong\u003eInformasi grup kelas:\u003c/strong\u003e\u003cbr\u003e${esc(groupNoticeFor(recipient))}\u003c/p\u003e\n  ${groupLinkText}\n  \u003cp\u003eDokumen pendataan dapat dibuka melalui tautan berikut:\u003cbr\u003e\u003ca href=\"${esc(payload.links?.cetak)}\"\u003e${esc(payload.links?.cetak)}\u003c/a\u003e\u003c/p\u003e\n  \u003cp style=\"margin-top:20px;\"\u003eJazakumullah khairan,\u003cbr\u003ePanitia SPSB\u003c/p\u003e\n\u003c/div\u003e`;\n\n  return {\n    json: {\n      to_email: recipient.email,\n      to_name: recipient.name,\n      subject,\n      html,\n      event: \u0027pendataan_baru\u0027,\n      payload\n    }\n  };\n});"
-                                     },
-                      "id":  "build_email_messages",
-                      "name":  "Siapkan Pesan Email",
-                      "type":  "n8n-nodes-base.code",
-                      "typeVersion":  2,
-                      "position":  [
-                                       480,
-                                       300
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "resource":  "message",
-                                         "operation":  "send",
-                                         "sendTo":  "={{ $json.to_email }}",
-                                         "subject":  "={{ $json.subject }}",
-                                         "emailType":  "html",
-                                         "message":  "={{ $json.html }}",
-                                         "options":  {
-                                                         "appendAttribution":  false
-                                                     }
-                                     },
-                      "id":  "send_email",
-                      "name":  "Kirim Email via Gmail",
-                      "type":  "n8n-nodes-base.gmail",
-                      "typeVersion":  2.1,
-                      "position":  [
-                                       720,
-                                       300
-                                   ],
-                      "notes":  "Hubungkan credential Gmail/Google Workspace pada node ini. Pengirim mengikuti akun Gmail yang dipakai di credential."
-                  },
-                  {
-                      "parameters":  {
-                                         "respondWith":  "json",
-                                         "responseBody":  "={{ { success: true, channel: \u0027email\u0027, event: $json.event, sent_items: $items().length } }}",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "respond_email",
-                      "name":  "Response Email",
-                      "type":  "n8n-nodes-base.respondToWebhook",
-                      "typeVersion":  1,
-                      "position":  [
-                                       960,
-                                       300
-                                   ]
-                  }
-              ],
-    "pinData":  {
-
-                },
-    "connections":  {
-                        "Webhook Email SPSB":  {
-                                                   "main":  [
-                                                                [
-                                                                    {
-                                                                        "node":  "Siapkan Pesan Email",
-                                                                        "type":  "main",
-                                                                        "index":  0
-                                                                    }
-                                                                ]
-                                                            ]
-                                               },
-                        "Siapkan Pesan Email":  {
-                                                    "main":  [
-                                                                 [
-                                                                     {
-                                                                         "node":  "Kirim Email via Gmail",
-                                                                         "type":  "main",
-                                                                         "index":  0
-                                                                     }
-                                                                 ]
-                                                             ]
-                                                },
-                        "Kirim Email via Gmail":  {
-                                                      "main":  [
-                                                                   [
-                                                                       {
-                                                                           "node":  "Response Email",
-                                                                           "type":  "main",
-                                                                           "index":  0
-                                                                       }
-                                                                   ]
-                                                               ]
-                                                  }
-                    },
-    "active":  false,
-    "settings":  {
-                     "executionOrder":  "v1"
-                 },
-    "versionId":  "spsb-email-ringkasan-pendataan-only-v1"
+  "name": "SPSB - Email Ringkasan Pendaftaran",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3056,
+        160
+      ],
+      "id": "7025e220-19c0-477a-bdbf-3fbff8399045",
+      "name": "Send a message",
+      "webhookId": "5c5d8e8b-b62e-4bcb-92a8-38505e071eb3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ALF8Ri4cJZktblS8",
+          "name": "griyaqurantunasilmu"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spsb-email-ringkasan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "624ac8b5-e773-4717-a8f4-4af4b955c325",
+      "name": "Webhook Email Ringkasan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        160
+      ],
+      "webhookId": "ecb00949-e758-4284-b933-0ef25e54ef21"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.email ?? [];\nconst santri = payload.santri ?? {};\nconst orangTua = payload.orang_tua ?? {};\nconst alamat = payload.alamat ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction esc(value) {\n  return String(value ?? '-').replace(/[&<>\\\"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[char]));\n}\n\nfunction groupNoticeFor(recipient) {\n  const isAkhwat = group.kelas === 'akhwat';\n  if (!isAkhwat) return group.aturan ?? 'Peserta didik putra masuk grup kelas ikhwan. Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.';\n  if (recipient.role === 'ibu') return group.aturan ?? 'Peserta didik putri masuk grup kelas akhwat. Hanya nomor WhatsApp ibu yang diperbolehkan untuk masuk grup kelas akhwat ini.';\n  return 'Peserta didik putri masuk grup kelas akhwat. Link grup kelas akhwat hanya dikirim ke nomor WhatsApp/email ibu.';\n}\n\nfunction roleLabel(role) {\n  if (role === 'ibu') return 'Ibu';\n  if (role === 'wali') return 'Bapak/Ibu Wali';\n  return 'Bapak';\n}\n\nfunction groupLinkHtmlFor(recipient) {\n  if (recipient.group_join_url) {\n    return '<p>Link grup kelas:<br><a href=\"' + esc(recipient.group_join_url) + '\">' + esc(recipient.group_join_url) + '</a></p><p style=\"font-size:13px;color:#64748b;\">Tautan ini khusus untuk ' + esc(roleLabel(recipient.role)) + ' dan membantu panitia mencatat bahwa link grup sudah dibuka.</p>';\n  }\n  if (group.kelas === 'akhwat' && recipient.role !== 'ibu') return '';\n  return '<p>Link grup kelas belum tersedia. Admin akan mengirimkan link menyusul.</p>';\n}\n\nconst summaryRows = Object.entries(ringkasan)\n  .map(([label, value]) => '<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">' + esc(label) + '</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">' + esc(value) + '</td></tr>')\n  .join('');\n\nconst subject = 'Ringkasan Pendataan SPSB - ' + (santri.nama_lengkap ?? '');\n\nreturn recipients.map((recipient) => {\n  const html = '<div style=\"font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;\">' +\n    '<h2 style=\"margin:0 0 12px;color:#047857;\">Pendataan SPSB Berhasil Diterima</h2>' +\n    '<p>Assalamu\\'alaikum Bapak/Ibu,</p>' +\n    '<p>Data pendataan ananda <strong>' + esc(santri.nama_lengkap) + '</strong> telah masuk ke sistem SPSB.</p>' +\n    '<table style=\"border-collapse:collapse;width:100%;max-width:720px;margin:16px 0;font-size:14px;\">' +\n    summaryRows +\n    '<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ayah</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">' + esc(orangTua.ayah?.nama) + '</td></tr>' +\n    '<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Nama Ibu</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">' + esc(orangTua.ibu?.nama) + '</td></tr>' +\n    (alamat.alamat_lengkap ? '<tr><td style=\"padding:7px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;\">Alamat</td><td style=\"padding:7px 10px;border:1px solid #e5e7eb;\">' + esc(alamat.alamat_lengkap) + ', ' + esc(alamat.kelurahan_desa) + ', ' + esc(alamat.kecamatan) + '</td></tr>' : '') +\n    '</table>' +\n    '<p><strong>Informasi grup kelas:</strong><br>' + esc(groupNoticeFor(recipient)) + '</p>' +\n    groupLinkHtmlFor(recipient) +\n    '<p>Dokumen pendataan dapat dibuka melalui tautan berikut:<br><a href=\"' + esc(payload.links?.cetak) + '\">' + esc(payload.links?.cetak) + '</a></p>' +\n    '<p style=\"margin-top:20px;\">Jazakumullah khairan,<br>Panitia SPSB</p>' +\n    '</div>';\n\n  return {\n    json: {\n      to_email: recipient.email,\n      to_name: recipient.name,\n      subject,\n      html,\n      event: 'pendataan_baru',\n      payload\n    }\n  };\n});"
+      },
+      "id": "fede18df-d2f8-47c5-bff2-8fb44999d4d8",
+      "name": "Siapkan Pesan Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, channel: 'email', sent_items: $items().length } }}",
+        "options": {}
+      },
+      "id": "1c5759ef-3bb1-483c-9f18-4351c1e8544e",
+      "name": "Response Email",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        160
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Response Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Email Ringkasan": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Pesan Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Pesan Email": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Jakarta",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "c7d20748-86c9-460f-85d5-61f40cd541fd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6fa8ea173e4db9bb56b4dac4742e156c9246046ab1879cdfd0cc1523f7e45eed"
+  },
+  "id": "bJPh7L1XY4r83yBd39CdO",
+  "tags": []
 }

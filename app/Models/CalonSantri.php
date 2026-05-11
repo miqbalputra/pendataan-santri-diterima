@@ -133,6 +133,11 @@ class CalonSantri extends Model
         return $this->hasMany(NotificationLog::class);
     }
 
+    public function groupJoinLinks()
+    {
+        return $this->hasMany(GroupJoinLink::class);
+    }
+
     public function periode()
     {
         return $this->belongsTo(Periode::class);

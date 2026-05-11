@@ -63,7 +63,7 @@ class AdminController extends Controller
         $gelombangs = Gelombang::withCount('calonSantris')->get();
         $logs = ActivityLog::latest()->take(100)->get();
         $notificationLogs = NotificationLog::with('calonSantri')->latest()->take(100)->get();
-        $followUpPendaftar = CalonSantri::with('gelombang')->latest()->get()->filter(function ($santri) {
+        $followUpPendaftar = CalonSantri::with(['gelombang', 'groupJoinLinks'])->latest()->get()->filter(function ($santri) {
             $statuses = collect($santri->dokumen_status ?? []);
             return !$santri->followup_sudah_masuk_grup
                 || !$santri->followup_sudah_dihubungi
@@ -168,7 +168,7 @@ class AdminController extends Controller
     }
 
     public function show($id) {
-        $santri = CalonSantri::with('notificationLogs')->findOrFail($id);
+        $santri = CalonSantri::with(['notificationLogs', 'groupJoinLinks'])->findOrFail($id);
         return view('admin.show', compact('santri'));
     }
 

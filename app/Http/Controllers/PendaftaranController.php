@@ -8,6 +8,7 @@ use App\Models\ActivityLog;
 use App\Models\NotificationLog;
 use App\Models\Periode;
 use App\Models\Gelombang;
+use App\Models\GroupJoinLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -200,6 +201,9 @@ class PendaftaranController extends Controller
             ['role' => 'ibu', 'name' => $santri->nama_ibu, 'phone' => $santri->no_wa_ibu],
         ])->filter(fn ($recipient) => !empty($recipient['phone']))->values()->all();
 
+        $emailRecipients = $this->withGroupJoinLinks($santri, $emailRecipients, 'email', $kelas, $groupLink);
+        $whatsappRecipients = $this->withGroupJoinLinks($santri, $whatsappRecipients, 'whatsapp', $kelas, $groupLink);
+
         return [
             'event' => 'pendaftaran_baru',
             'event_label' => 'Pendataan Baru',
@@ -269,6 +273,76 @@ class PendaftaranController extends Controller
                 'revisi' => route('pendaftaran.revisi', $santri->revisi_token),
             ],
         ];
+    }
+
+    private function withGroupJoinLinks(CalonSantri $santri, array $recipients, string $channel, string $groupType, string $targetUrl): array
+    {
+        if (!$targetUrl) {
+            return $recipients;
+        }
+
+        return collect($recipients)->map(function (array $recipient) use ($santri, $channel, $groupType, $targetUrl) {
+            if (!$this->roleMayReceiveGroupLink($recipient['role'] ?? '', $groupType)) {
+                return $recipient + ['group_join_url' => null];
+            }
+
+            $recipient['group_join_url'] = $this->groupJoinTrackingUrl(
+                $santri,
+                (string) $recipient['role'],
+                $channel,
+                $groupType,
+                $targetUrl
+            );
+
+            return $recipient;
+        })->all();
+    }
+
+    private function roleMayReceiveGroupLink(string $role, string $groupType): bool
+    {
+        if ($groupType === 'akhwat') {
+            return $role === 'ibu';
+        }
+
+        return in_array($role, ['ayah', 'ibu'], true);
+    }
+
+    private function groupJoinTrackingUrl(CalonSantri $santri, string $role, string $channel, string $groupType, string $targetUrl): string
+    {
+        $link = GroupJoinLink::where([
+            'calon_santri_id' => $santri->id,
+            'role' => $role,
+            'channel' => $channel,
+            'group_type' => $groupType,
+        ])->first();
+
+        if (!$link) {
+            $link = GroupJoinLink::create([
+                'calon_santri_id' => $santri->id,
+                'token' => $this->uniqueGroupJoinToken(),
+                'role' => $role,
+                'channel' => $channel,
+                'group_type' => $groupType,
+                'target_url' => $targetUrl,
+                'expires_at' => now()->addMonths(6),
+            ]);
+        } else {
+            $link->update([
+                'target_url' => $targetUrl,
+                'expires_at' => $link->expires_at ?? now()->addMonths(6),
+            ]);
+        }
+
+        return route('group.join', ['token' => $link->token]);
+    }
+
+    private function uniqueGroupJoinToken(): string
+    {
+        do {
+            $token = Str::random(56);
+        } while (GroupJoinLink::where('token', $token)->exists());
+
+        return $token;
     }
 
     public function cekStatus()
@@ -741,6 +815,32 @@ class PendaftaranController extends Controller
         $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($adminUrl);
 
         return view('bukti_pendaftaran', compact('santri', 'adminUrl', 'qrUrl'));
+    }
+
+    public function redirectGroupJoin(Request $request, string $token) {
+        $link = GroupJoinLink::where('token', $token)->firstOrFail();
+
+        if ($link->expires_at && $link->expires_at->isPast()) {
+            abort(410, 'Link grup sudah tidak aktif. Silakan hubungi panitia.');
+        }
+
+        $link->forceFill([
+            'clicked_at' => now(),
+            'click_count' => $link->click_count + 1,
+            'last_clicked_ip' => $request->ip(),
+            'last_clicked_user_agent' => Str::limit((string) $request->userAgent(), 1000),
+        ])->save();
+
+        if (Schema::hasTable('activity_logs')) {
+            $roleLabel = $link->role === 'ibu' ? 'Ibu' : 'Ayah';
+            ActivityLog::create([
+                'aktivitas' => "Link grup {$link->group_type} dibuka oleh {$roleLabel}: {$link->calonSantri?->nama_lengkap}",
+                'aktor' => 'Orang Tua / Wali',
+                'ip_address' => $request->ip(),
+            ]);
+        }
+
+        return redirect()->away($link->target_url);
     }
 
     public function viewPublicDocument($id, string $field) {

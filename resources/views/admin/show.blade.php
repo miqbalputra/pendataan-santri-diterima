@@ -379,6 +379,34 @@
 
                 <div class="glass-card rounded-2xl shadow-sm p-6">
                     <h3 class="font-bold text-lg mb-4">Follow-up Operasional</h3>
+                    @if($santri->groupJoinLinks->isNotEmpty())
+                        <div class="mb-4 space-y-2">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tracking Link Grup</p>
+                            @foreach($santri->groupJoinLinks->sortBy(fn ($link) => $link->role . '-' . $link->channel) as $link)
+                                @php
+                                    $roleLabel = $link->role === 'ibu' ? 'Ibu' : 'Ayah';
+                                    $channelLabel = $link->channel === 'whatsapp' ? 'WhatsApp' : 'Email';
+                                @endphp
+                                <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs font-bold text-slate-600">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span>{{ $roleLabel }} via {{ $channelLabel }} - Grup {{ strtoupper($link->group_type) }}</span>
+                                        @if($link->clicked_at)
+                                            <span class="rounded-lg bg-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-700">Dibuka</span>
+                                        @else
+                                            <span class="rounded-lg bg-amber-100 px-2 py-1 text-[10px] font-black text-amber-700">Belum dibuka</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-1 text-[11px] text-slate-400">
+                                        @if($link->clicked_at)
+                                            Terakhir dibuka {{ $link->clicked_at->format('d/m/Y H:i') }} ({{ $link->click_count }}x)
+                                        @else
+                                            Link sudah dibuat, menunggu dibuka wali.
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                     <form action="{{ route('admin.followup.update', $santri->id) }}" method="POST" class="space-y-4">
                         @csrf
                         <label class="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm font-bold text-slate-700">

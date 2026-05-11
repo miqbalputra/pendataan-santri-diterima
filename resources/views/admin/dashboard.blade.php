@@ -651,6 +651,12 @@
                             <td class="p-6">
                                 <div class="flex flex-wrap gap-2">
                                     @if(!$item->followup_sudah_masuk_grup)<span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum masuk grup</span>@endif
+                                    @if($item->groupJoinLinks->isNotEmpty() && !$item->groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
+                                        <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Link grup belum dibuka</span>
+                                    @endif
+                                    @if($item->groupJoinLinks->contains(fn ($link) => filled($link->clicked_at)))
+                                        <span class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Link grup pernah dibuka</span>
+                                    @endif
                                     @if(!$item->followup_sudah_dihubungi)<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum dihubungi</span>@endif
                                     @if($docIssue)<span class="bg-rose-50 text-rose-700 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Dokumen belum lengkap</span>@endif
                                     @if($item->status_pendaftaran === 'Pending')<span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-xl text-[10px] font-black uppercase">Belum diverifikasi</span>@endif

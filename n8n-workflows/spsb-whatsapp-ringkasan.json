@@ -1,130 +1,121 @@
 {
-    "name":  "SPSB - WhatsApp Ringkasan Pendataan",
-    "nodes":  [
-                  {
-                      "parameters":  {
-                                         "httpMethod":  "POST",
-                                         "path":  "spsb-whatsapp-ringkasan",
-                                         "responseMode":  "responseNode",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "webhook_whatsapp_ringkasan",
-                      "name":  "Webhook WhatsApp SPSB",
-                      "type":  "n8n-nodes-base.webhook",
-                      "typeVersion":  2,
-                      "position":  [
-                                       240,
-                                       300
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "jsCode":  "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.whatsapp ?? [];\nconst santri = payload.santri ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction normalizePhone(phone) {\n  const raw = String(phone ?? \u0027\u0027).replace(/[^0-9]/g, \u0027\u0027);\n  if (raw.startsWith(\u002708\u0027)) return \u002762\u0027 + raw.slice(1);\n  if (raw.startsWith(\u00278\u0027)) return \u002762\u0027 + raw;\n  return raw;\n}\n\nfunction roleLabel(role) {\n  if (role === \u0027ibu\u0027) return \u0027Ibu\u0027;\n  if (role === \u0027wali\u0027) return \u0027Bapak/Ibu Wali\u0027;\n  return \u0027Bapak\u0027;\n}\n\nfunction groupNoticeFor(recipient) {\n  const isAkhwat = group.kelas === \u0027akhwat\u0027;\n  if (!isAkhwat) return group.aturan ?? \u0027Peserta didik putra masuk grup kelas ikhwan. Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.\u0027;\n  if (recipient.role === \u0027ibu\u0027) return group.aturan ?? \u0027Peserta didik putri masuk grup kelas akhwat. Hanya nomor WhatsApp ibu yang diperbolehkan untuk masuk grup kelas akhwat ini.\u0027;\n  return \u0027Peserta didik putri masuk grup kelas akhwat. Link grup kelas akhwat hanya dikirim ke nomor WhatsApp ibu.\u0027;\n}\n\nfunction groupLinkFor(recipient) {\n  if (group.kelas === \u0027akhwat\u0027 \u0026\u0026 recipient.role !== \u0027ibu\u0027) return \u0027\u0027;\n  return group.link ?? \u0027\u0027;\n}\n\nconst summaryText = Object.entries(ringkasan)\n  .map(([label, value]) =\u003e `- ${label}: ${value ?? \u0027-\u0027}`)\n  .join(\u0027\\n\u0027);\n\nreturn recipients.map((recipient) =\u003e {\n  const kelasLabel = group.kelas === \u0027ikhwan\u0027 ? \u0027ikhwan (putra)\u0027 : \u0027akhwat (putri)\u0027;\n  const greeting = `${roleLabel(recipient.role)} ${recipient.name ?? \u0027\u0027}`.trim();\n  const groupLink = groupLinkFor(recipient);\n  const groupLinkText = groupLink\n    ? `Link grup: ${groupLink}`\n    : (group.kelas === \u0027akhwat\u0027 \u0026\u0026 recipient.role !== \u0027ibu\u0027 ? \u0027\u0027 : \u0027Link grup belum tersedia. Admin akan mengirimkan link menyusul.\u0027);\n  const message = `Assalamu\u0027alaikum ${greeting},\\n\\nAlhamdulillah, data pendataan SPSB untuk ananda *${santri.nama_lengkap ?? \u0027-\u0027}* sudah masuk dan diterima oleh sistem.\\n\\n*Ringkasan data:*\\n${summaryText}\\n\\n*Informasi grup kelas ${kelasLabel}:*\\n${groupNoticeFor(recipient)}\\n${groupLinkText}\\n\\nTautan lihat/cetak data pendataan:\\n${payload.links?.cetak ?? \u0027-\u0027}\\n\\nJazakumullah khairan.\\nPanitia SPSB`;\n\n  return {\n    json: {\n      phone: normalizePhone(recipient.phone),\n      role: recipient.role,\n      name: recipient.name,\n      event: \u0027pendataan_baru\u0027,\n      message,\n      payload\n    }\n  };\n});"
-                                     },
-                      "id":  "build_whatsapp_messages",
-                      "name":  "Siapkan Pesan WhatsApp",
-                      "type":  "n8n-nodes-base.code",
-                      "typeVersion":  2,
-                      "position":  [
-                                       480,
-                                       300
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "method":  "POST",
-                                         "url":  "https://your-whatsapp-api.example/send-message",
-                                         "sendHeaders":  true,
-                                         "headerParameters":  {
-                                                                  "parameters":  [
-                                                                                     {
-                                                                                         "name":  "Authorization",
-                                                                                         "value":  "Bearer GANTI_DENGAN_TOKEN_WHATSAPP_API"
-                                                                                     },
-                                                                                     {
-                                                                                         "name":  "Content-Type",
-                                                                                         "value":  "application/json"
-                                                                                     }
-                                                                                 ]
-                                                              },
-                                         "sendBody":  true,
-                                         "specifyBody":  "json",
-                                         "jsonBody":  "={{ { phone: $json.phone, message: $json.message } }}",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "send_whatsapp_http",
-                      "name":  "Kirim WhatsApp via API",
-                      "type":  "n8n-nodes-base.httpRequest",
-                      "typeVersion":  4,
-                      "position":  [
-                                       720,
-                                       300
-                                   ],
-                      "notes":  "Sesuaikan URL, token, dan bentuk JSON body dengan provider WhatsApp yang dipakai, misalnya Fonnte, Wablas, Z-API, atau server WA internal."
-                  },
-                  {
-                      "parameters":  {
-                                         "respondWith":  "json",
-                                         "responseBody":  "={{ { success: true, channel: \u0027whatsapp\u0027, event: $json.event, sent_items: $items().length } }}",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "respond_whatsapp",
-                      "name":  "Response WhatsApp",
-                      "type":  "n8n-nodes-base.respondToWebhook",
-                      "typeVersion":  1,
-                      "position":  [
-                                       960,
-                                       300
-                                   ]
-                  }
-              ],
-    "pinData":  {
-
-                },
-    "connections":  {
-                        "Webhook WhatsApp SPSB":  {
-                                                      "main":  [
-                                                                   [
-                                                                       {
-                                                                           "node":  "Siapkan Pesan WhatsApp",
-                                                                           "type":  "main",
-                                                                           "index":  0
-                                                                       }
-                                                                   ]
-                                                               ]
-                                                  },
-                        "Siapkan Pesan WhatsApp":  {
-                                                       "main":  [
-                                                                    [
-                                                                        {
-                                                                            "node":  "Kirim WhatsApp via API",
-                                                                            "type":  "main",
-                                                                            "index":  0
-                                                                        }
-                                                                    ]
-                                                                ]
-                                                   },
-                        "Kirim WhatsApp via API":  {
-                                                       "main":  [
-                                                                    [
-                                                                        {
-                                                                            "node":  "Response WhatsApp",
-                                                                            "type":  "main",
-                                                                            "index":  0
-                                                                        }
-                                                                    ]
-                                                                ]
-                                                   }
-                    },
-    "active":  false,
-    "settings":  {
-                     "executionOrder":  "v1"
-                 },
-    "versionId":  "spsb-whatsapp-ringkasan-pendataan-only-v1"
+  "name": "SPSB - WhatsApp Ringkasan dan Link Grup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spsb-whatsapp-ringkasan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2437c243-8925-450e-b210-6e8bfe475826",
+      "name": "Webhook WhatsApp Ringkasan",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -400
+      ],
+      "webhookId": "31c92af9-2d8c-4089-b7f6-7bf019fc8af7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body ?? $input.first().json;\nconst recipients = payload.recipients?.whatsapp ?? [];\nconst santri = payload.santri ?? {};\nconst group = payload.group ?? {};\nconst ringkasan = payload.ringkasan?.baris ?? {};\n\nfunction normalizePhone(phone) {\n  const raw = String(phone ?? '').replace(/[^0-9]/g, '');\n  if (raw.startsWith('08')) return '62' + raw.slice(1);\n  if (raw.startsWith('8')) return '62' + raw;\n  return raw;\n}\n\nfunction roleLabel(role) {\n  if (role === 'ibu') return 'Ibu';\n  if (role === 'wali') return 'Bapak/Ibu Wali';\n  return 'Bapak';\n}\n\nfunction groupNoticeFor(recipient) {\n  const isAkhwat = group.kelas === 'akhwat';\n  if (!isAkhwat) return group.aturan ?? 'Peserta didik putra masuk grup kelas ikhwan. Nomor WhatsApp bapak dan ibu diperbolehkan untuk masuk grup kelas ikhwan ini.';\n  if (recipient.role === 'ibu') return group.aturan ?? 'Peserta didik putri masuk grup kelas akhwat. Hanya nomor WhatsApp ibu yang diperbolehkan untuk masuk grup kelas akhwat ini.';\n  return 'Peserta didik putri masuk grup kelas akhwat. Link grup kelas akhwat hanya dikirim ke nomor WhatsApp ibu.';\n}\n\nfunction groupLinkTextFor(recipient) {\n  if (recipient.group_join_url) {\n    return 'Link grup: ' + recipient.group_join_url + '\\n\\nCatatan: tautan ini khusus untuk ' + roleLabel(recipient.role) + ' dan membantu panitia mencatat bahwa link grup sudah dibuka.';\n  }\n  if (group.kelas === 'akhwat' && recipient.role !== 'ibu') return '';\n  return 'Link grup belum tersedia. Admin akan mengirimkan link menyusul.';\n}\n\nconst summaryText = Object.entries(ringkasan)\n  .map(([label, value]) => '- ' + label + ': ' + (value ?? '-'))\n  .join('\\n');\n\nreturn recipients.map((recipient) => {\n  const kelasLabel = group.kelas === 'ikhwan' ? 'ikhwan (putra)' : 'akhwat (putri)';\n  const greeting = (roleLabel(recipient.role) + ' ' + (recipient.name ?? '')).trim();\n  const groupLinkText = groupLinkTextFor(recipient);\n  const message = 'Assalamu\\'alaikum ' + greeting + ',\\n\\n' +\n    'Alhamdulillah, data pendataan SPSB untuk ananda *' + (santri.nama_lengkap ?? '-') + '* sudah masuk dan diterima oleh sistem.\\n\\n' +\n    '*Ringkasan data:*\\n' + summaryText + '\\n\\n' +\n    '*Informasi grup kelas ' + kelasLabel + ':*\\n' + groupNoticeFor(recipient) + (groupLinkText ? '\\n' + groupLinkText : '') + '\\n\\n' +\n    'Tautan lihat/cetak data pendataan:\\n' + (payload.links?.cetak ?? '-') + '\\n\\n' +\n    'Jazakumullah khairan.\\nPanitia SPSB';\n\n  return {\n    json: {\n      phone: normalizePhone(recipient.phone),\n      role: recipient.role,\n      name: recipient.name,\n      event: 'pendataan_baru',\n      message,\n      payload\n    }\n  };\n});"
+      },
+      "id": "2bbc132c-23f0-4b60-ac28-4b1505fb9352",
+      "name": "Siapkan Pesan WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "phoneNumber": "={{ $json.phone }}",
+        "message": "={{ $json.message }}"
+      },
+      "type": "@aldinokemal2104/n8n-nodes-gowa.gowa",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -400
+      ],
+      "id": "fb625d49-d75f-40f3-9ca6-8001bca15121",
+      "name": "Send a text message",
+      "credentials": {
+        "goWhatsappApi": {
+          "id": "eUT5RcCw0CNXWo8u",
+          "name": "GQ System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, channel: 'whatsapp', sent_items: $items().length } }}",
+        "options": {}
+      },
+      "id": "9dfe7b5c-2359-47ef-8f1e-1a6ad7740164",
+      "name": "Response WhatsApp",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook WhatsApp Ringkasan": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Pesan WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Pesan WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Response WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Jakarta",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "83893635-d8f1-46e0-9bdc-9ed06a97c274",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6fa8ea173e4db9bb56b4dac4742e156c9246046ab1879cdfd0cc1523f7e45eed"
+  },
+  "id": "mXLTpBn6wMBOsEZ6FVUtz",
+  "tags": []
 }

@@ -19,6 +19,7 @@ Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->middlew
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->middleware('signed')->name('pendaftaran.cetak');
 Route::get('/pendaftaran/{id}/bukti', [PendaftaranController::class, 'bukti'])->middleware('signed')->name('pendaftaran.bukti');
 Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->middleware('signed')->name('pendaftaran.berkas');
+Route::get('/grup/masuk/{token}', [PendaftaranController::class, 'redirectGroupJoin'])->middleware('throttle:60,1')->name('group.join');
 
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
