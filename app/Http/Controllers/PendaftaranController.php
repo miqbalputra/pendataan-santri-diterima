@@ -541,11 +541,16 @@ class PendaftaranController extends Controller
                 if ($response->successful()) {
                     $text = $response->json('choices.0.message.content') ?? '';
                     $fields = $this->extractOcrJsonFields($text);
+                    $documentCheck = $this->buildOcrDocumentCheck($fields, $request->target);
+                    $fields = collect($fields)
+                        ->except(['document_type', 'confidence', 'is_expected_document', 'reason'])
+                        ->all();
 
                     return response()->json([
                         'message' => 'OCR Direct AI Berhasil',
                         'extracted_text' => $text,
                         'fields' => $fields,
+                        'document_check' => $documentCheck,
                     ]);
                 } else {
                     return response()->json(['error' => 'Gagal memproses via Direct AI: ' . $response->body()], 500);
@@ -597,25 +602,28 @@ class PendaftaranController extends Controller
     {
         $base = 'Anda adalah mesin ekstraksi data dokumen Indonesia untuk formulir SPSB. Baca gambar dengan teliti, lalu kembalikan HANYA JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan. Jika data tidak terlihat, isi string kosong. Jangan menebak. Bersihkan hasil dari label seperti NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Gol. Darah, dan tanda baca yang bukan bagian data. Tanggal wajib format YYYY-MM-DD. Nama wajib nama manusia saja, bukan label berikutnya.';
 
-        $schema = 'Gunakan schema ini: {"nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
+        $expectedType = $this->expectedOcrDocumentType($target);
+        $documentGuard = "Sebelum ekstraksi, kenali jenis dokumen. Isi document_type hanya salah satu dari: akta, kk, ktp, foto, unknown. Target kolom ini adalah {$expectedType}. Isi confidence high hanya bila ciri dokumen sangat jelas; gunakan medium atau low bila ragu. Isi is_expected_document true hanya jika document_type sesuai target.";
+
+        $schema = 'Gunakan schema ini: {"document_type":"","confidence":"","is_expected_document":false,"reason":"","nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
 
         if ($target === 'akta') {
-            return $base . "\nDokumen target: AKTA KELAHIRAN anak. Prioritas utama adalah data ANAK, bukan ayah/ibu/pejabat. Ambil nama anak dari kalimat seperti 'anak ... bernama ...' atau nama utama setelah tanggal lahir. Ambil NIK anak dari Nomor Induk Kependudukan jika terlihat. Ambil tempat lahir dan tanggal lahir anak dari narasi kelahiran. Jika nama ayah/ibu tertulis jelas, isi nama_ayah dan nama_ibu, tetapi jangan jadikan nama ayah/ibu sebagai nama anak.\n" . $schema;
+            return $base . "\n" . $documentGuard . "\nDokumen target: AKTA KELAHIRAN anak. Ciri akta biasanya berisi judul/kata Akta Kelahiran, Kutipan Akta, Pencatatan Sipil, narasi kelahiran, atau nomor akta. Prioritas utama adalah data ANAK, bukan ayah/ibu/pejabat. Ambil nama anak dari kalimat seperti 'anak ... bernama ...' atau nama utama setelah tanggal lahir. Ambil NIK anak dari Nomor Induk Kependudukan jika terlihat. Ambil tempat lahir dan tanggal lahir anak dari narasi kelahiran. Jika nama ayah/ibu tertulis jelas, isi nama_ayah dan nama_ibu, tetapi jangan jadikan nama ayah/ibu sebagai nama anak.\n" . $schema;
         }
 
         if ($target === 'ayah') {
-            return $base . "\nDokumen target: KTP BAPAK/AYAH. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ibu dari dokumen ini.\n" . $schema;
+            return $base . "\n" . $documentGuard . "\nDokumen target: KTP BAPAK/AYAH. Ciri KTP biasanya berisi Republik Indonesia, Provinsi/Kabupaten, NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Alamat, RT/RW, Kel/Desa, Kecamatan. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ibu dari dokumen ini.\n" . $schema;
         }
 
         if ($target === 'ibu') {
-            return $base . "\nDokumen target: KTP IBU. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ayah dari dokumen ini.\n" . $schema;
+            return $base . "\n" . $documentGuard . "\nDokumen target: KTP IBU. Ciri KTP biasanya berisi Republik Indonesia, Provinsi/Kabupaten, NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Alamat, RT/RW, Kel/Desa, Kecamatan. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ayah dari dokumen ini.\n" . $schema;
         }
 
         if ($target === 'kk') {
-            return $base . "\nDokumen target: KARTU KELUARGA. Prioritas ambil alamat keluarga dan data anggota keluarga jika sangat jelas. Jangan mengisi nama anak/ayah/ibu bila tidak yakin dari baris hubungan keluarga. Untuk nama ayah gunakan baris Kepala Keluarga atau kolom Ayah yang sesuai anak. Untuk nama ibu gunakan kolom Ibu yang sesuai anak.\n" . $schema;
+            return $base . "\n" . $documentGuard . "\nDokumen target: KARTU KELUARGA. Ciri KK biasanya berisi judul Kartu Keluarga, Nomor KK, nama kepala keluarga, alamat keluarga, dan tabel anggota keluarga. Prioritas ambil alamat keluarga dan data anggota keluarga jika sangat jelas. Jangan mengisi nama anak/ayah/ibu bila tidak yakin dari baris hubungan keluarga. Untuk nama ayah gunakan baris Kepala Keluarga atau kolom Ayah yang sesuai anak. Untuk nama ibu gunakan kolom Ibu yang sesuai anak.\n" . $schema;
         }
 
-        return $base . "\nDokumen target tidak dikenal. Ekstrak data yang terlihat dengan hati-hati.\n" . $schema;
+        return $base . "\n" . $documentGuard . "\nDokumen target tidak dikenal. Ekstrak data yang terlihat dengan hati-hati.\n" . $schema;
     }
 
     private function extractOcrJsonFields(string $text): array
@@ -636,6 +644,44 @@ class PendaftaranController extends Controller
         return collect($decoded)
             ->mapWithKeys(fn ($value, $key) => [$key => is_scalar($value) ? trim((string) $value) : ''])
             ->all();
+    }
+
+    private function expectedOcrDocumentType(string $target): string
+    {
+        return match ($target) {
+            'akta' => 'akta',
+            'kk' => 'kk',
+            'ayah', 'ibu' => 'ktp',
+            default => 'unknown',
+        };
+    }
+
+    private function buildOcrDocumentCheck(array $fields, string $target): array
+    {
+        $expectedType = $this->expectedOcrDocumentType($target);
+        $documentType = Str::lower(trim((string) ($fields['document_type'] ?? 'unknown')));
+        $confidence = Str::lower(trim((string) ($fields['confidence'] ?? 'low')));
+        $reason = trim((string) ($fields['reason'] ?? ''));
+
+        if (!in_array($documentType, ['akta', 'kk', 'ktp', 'foto', 'unknown'], true)) {
+            $documentType = 'unknown';
+        }
+
+        if (!in_array($confidence, ['high', 'medium', 'low'], true)) {
+            $confidence = 'low';
+        }
+
+        $isExpected = $expectedType === 'unknown' || $documentType === 'unknown'
+            ? true
+            : $documentType === $expectedType;
+
+        return [
+            'expected_type' => $expectedType,
+            'document_type' => $documentType,
+            'confidence' => $confidence,
+            'is_expected_document' => $isExpected,
+            'reason' => $reason,
+        ];
     }
 
     public function cetak($id) {

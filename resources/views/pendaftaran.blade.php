@@ -841,6 +841,60 @@
         const OCR_ENGINE = "{{ $ocr_engine }}";
         const OCR_WEBHOOK_URL = "{{ $ocr_webhook_url }}";
 
+        const DOCUMENT_LABELS = {
+            akta: 'Akta Anak',
+            kk: 'Kartu Keluarga',
+            ayah: 'KTP Ayah',
+            ibu: 'KTP Ibu',
+        };
+
+        const DETECTED_DOCUMENT_LABELS = {
+            akta: 'Akta Anak',
+            kk: 'Kartu Keluarga',
+            ktp: 'KTP',
+            foto: 'foto biasa',
+            unknown: 'dokumen yang belum dikenali',
+        };
+
+        async function confirmOcrDocumentCheck(documentCheck, target) {
+            if (!documentCheck || documentCheck.is_expected_document !== false) {
+                return true;
+            }
+
+            const expectedLabel = DOCUMENT_LABELS[target] || 'dokumen yang sesuai';
+            const detectedLabel = DETECTED_DOCUMENT_LABELS[documentCheck.document_type] || 'dokumen lain';
+            const confidence = String(documentCheck.confidence || 'low').toLowerCase();
+
+            if (confidence === 'high') {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'Mohon periksa kembali dokumen',
+                    html: `Sepertinya dokumen yang dipilih belum sesuai dengan kolom ini.<br><br>Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon periksa kembali foto yang dipilih, lalu unggah foto ${expectedLabel} yang jelas dan terbaca.`,
+                    confirmButtonText: 'Unggah Ulang',
+                    confirmButtonColor: '#10b981'
+                });
+
+                return false;
+            }
+
+            if (confidence === 'medium') {
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Kami belum yakin dokumennya sesuai',
+                    html: `Kolom ini digunakan untuk <strong>${expectedLabel}</strong>. Sistem membaca foto ini mungkin sebagai ${detectedLabel}.<br><br>Mohon pastikan foto yang diunggah sudah sesuai dan terlihat jelas.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Tetap Gunakan',
+                    cancelButtonText: 'Ganti Foto',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#64748b'
+                });
+
+                return result.isConfirmed;
+            }
+
+            return true;
+        }
+
         // Fungsi OCR menggunakan Tesseract atau Webhook n8n
         async function runOCR(file, target) {
             if (OCR_ENGINE === 'local') {
@@ -850,8 +904,10 @@
                     await worker.terminate();
                     
                     parseAndFill(text, target);
+                    return true;
                 } catch (err) {
                     console.error("OCR Lokal Failed:", err);
+                    return true;
                 }
             } else {
                 try {
@@ -880,6 +936,11 @@
                     if (!response.ok) {
                         throw new Error(data.error || "Gagal menghubungi server OCR (HTTP " + response.status + ")");
                     }
+
+                    const canContinue = await confirmOcrDocumentCheck(data.document_check, target);
+                    if (!canContinue) {
+                        return false;
+                    }
                     
                     if (data.fields && Object.keys(data.fields).length > 0) {
                         applyOcrFields(data.fields, target);
@@ -900,9 +961,11 @@
                             if(data.nik) { document.getElementById('f_nik_anak').value = data.nik; triggerHighlight(document.getElementById('f_nik_anak')); }
                         }
                     }
+                    return true;
                 } catch (err) {
                     console.error("OCR Failed:", err);
                     alert("Terjadi kesalahan saat mengekstrak teks: " + err.message);
+                    return true;
                 }
             }
         }
@@ -1294,7 +1357,17 @@
                 // 2. Jalankan OCR hanya untuk gambar. PDF tetap diterima, tetapi tidak dibaca Direct AI.
                 if (target !== 'foto' && !isPdf) {
                     status.innerText = "AI sedang membaca...";
-                    await runOCR(file, target);
+                    const canUseFile = await runOCR(file, target);
+                    if (!canUseFile) {
+                        this.value = '';
+                        preview.classList.add('hidden');
+                        hint.classList.remove('hidden');
+                        loading.classList.remove('flex');
+                        loading.classList.add('hidden');
+                        dropzone.classList.remove('border-emerald-500', 'bg-white');
+                        dropzone.classList.add('border-red-500', 'bg-red-50');
+                        return;
+                    }
                 }
                 
                 loading.classList.remove('flex');
