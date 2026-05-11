@@ -277,13 +277,17 @@ class PendaftaranController extends Controller
 
     private function withGroupJoinLinks(CalonSantri $santri, array $recipients, string $channel, string $groupType, string $targetUrl): array
     {
-        if (!$targetUrl || !Schema::hasTable('group_join_links')) {
+        if (!$targetUrl) {
             return $recipients;
         }
 
         return collect($recipients)->map(function (array $recipient) use ($santri, $channel, $groupType, $targetUrl) {
             if (!$this->roleMayReceiveGroupLink($recipient['role'] ?? '', $groupType)) {
                 return $recipient + ['group_join_url' => null];
+            }
+
+            if (!Schema::hasTable('group_join_links')) {
+                return $recipient + ['group_join_url' => $targetUrl];
             }
 
             $recipient['group_join_url'] = $this->groupJoinTrackingUrl(
