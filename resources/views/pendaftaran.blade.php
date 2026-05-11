@@ -670,6 +670,70 @@
         }
         // Threshold ketajaman gambar (semakin tinggi semakin ketat)
         const BLUR_THRESHOLD = 80; 
+        const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+        const IMAGE_MAX_DIMENSION = 1800;
+        const IMAGE_JPEG_QUALITY = 0.78;
+
+        function formatFileSize(bytes) {
+            if (!bytes && bytes !== 0) return '';
+            return bytes >= 1024 * 1024
+                ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+                : `${Math.ceil(bytes / 1024)} KB`;
+        }
+
+        function replaceInputFile(input, file) {
+            if (typeof DataTransfer === 'undefined') return false;
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
+            return true;
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Format gambar tidak dapat dibaca browser.'));
+                };
+                img.src = url;
+            });
+        }
+
+        async function compressImageFile(file) {
+            if (!file.type.startsWith('image/')) return file;
+
+            const image = await loadImageFromFile(file);
+            const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(image.width, image.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob(resolve, 'image/jpeg', IMAGE_JPEG_QUALITY);
+            });
+
+            if (!blob) return file;
+
+            const compressedName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+            const compressedFile = new File([blob], compressedName, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+            });
+
+            return compressedFile.size < file.size ? compressedFile : file;
+        }
 
         // ==========================================
         // FITUR: FORM PERSISTENCE (AUTO-SAVE)
@@ -808,6 +872,7 @@
                     const response = await fetch('/upload-ocr', {
                         method: 'POST',
                         headers: {
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
                         },
                         body: formData
@@ -1123,7 +1188,7 @@
 
         document.querySelectorAll('.file-input').forEach(input => {
             input.addEventListener('change', async function() {
-                const file = this.files[0];
+                let file = this.files[0];
                 const target = this.dataset.target;
                 const dropzone = document.getElementById('dropzone-' + target);
                 const preview = document.getElementById('preview-' + target);
@@ -1144,9 +1209,57 @@
                 loading.classList.add('flex');
                 dropzone.classList.remove('border-red-500', 'bg-red-50', 'border-emerald-500', 'bg-emerald-50', 'border-slate-300');
                 dropzone.classList.add('border-blue-400', 'bg-blue-50');
+
+                if (isPdf && file.size > MAX_UPLOAD_BYTES) {
+                    loading.classList.remove('flex');
+                    loading.classList.add('hidden');
+                    hint.classList.remove('hidden');
+                    dropzone.classList.replace('border-blue-400', 'border-red-500');
+                    dropzone.classList.replace('bg-blue-50', 'bg-red-50');
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Terlalu Besar',
+                        text: `Ukuran PDF ${formatFileSize(file.size)}. Maksimal 10 MB per berkas. Mohon kompres PDF atau foto ulang dokumen dalam format gambar.`,
+                        confirmButtonText: 'Mengerti',
+                        confirmButtonColor: '#10b981'
+                    });
+
+                    this.value = '';
+                    return;
+                }
                 
                 // 1. Cek Blur (Hanya untuk Gambar)
                 if (!isPdf) {
+                    status.innerText = "Mengoptimalkan foto...";
+                    try {
+                        const compressedFile = await compressImageFile(file);
+                        if (compressedFile !== file && replaceInputFile(this, compressedFile)) {
+                            file = compressedFile;
+                        }
+                    } catch (err) {
+                        console.warn('Kompresi gambar dilewati:', err);
+                    }
+
+                    if (file.size > MAX_UPLOAD_BYTES) {
+                        loading.classList.remove('flex');
+                        loading.classList.add('hidden');
+                        hint.classList.remove('hidden');
+                        dropzone.classList.replace('border-blue-400', 'border-red-500');
+                        dropzone.classList.replace('bg-blue-50', 'bg-red-50');
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Foto Terlalu Besar',
+                            text: `Ukuran foto ${formatFileSize(file.size)}. Maksimal 10 MB per berkas. Mohon foto ulang dengan mode kamera biasa, bukan mode 50MP/HD.`,
+                            confirmButtonText: 'Coba Lagi',
+                            confirmButtonColor: '#10b981'
+                        });
+
+                        this.value = '';
+                        return;
+                    }
+
                     status.innerText = "Mengecek resolusi...";
                     const variance = await checkImageBlur(file);
                     
