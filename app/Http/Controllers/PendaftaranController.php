@@ -543,7 +543,7 @@ class PendaftaranController extends Controller
                     $fields = $this->extractOcrJsonFields($text);
                     $documentCheck = $this->buildOcrDocumentCheck($fields, $request->target);
                     $fields = collect($fields)
-                        ->except(['document_type', 'confidence', 'is_expected_document', 'reason'])
+                        ->except(['document_type', 'confidence', 'is_expected_document', 'reason', 'expected_gender', 'detected_gender', 'gender_matches'])
                         ->all();
 
                     return response()->json([
@@ -603,9 +603,9 @@ class PendaftaranController extends Controller
         $base = 'Anda adalah mesin ekstraksi data dokumen Indonesia untuk formulir SPSB. Baca gambar dengan teliti, lalu kembalikan HANYA JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan. Jika data tidak terlihat, isi string kosong. Jangan menebak. Bersihkan hasil dari label seperti NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Gol. Darah, dan tanda baca yang bukan bagian data. Tanggal wajib format YYYY-MM-DD. Nama wajib nama manusia saja, bukan label berikutnya.';
 
         $expectedType = $this->expectedOcrDocumentType($target);
-        $documentGuard = "Sebelum ekstraksi, kenali jenis dokumen. Isi document_type hanya salah satu dari: akta, kk, ktp, foto, unknown. Target kolom ini adalah {$expectedType}. Isi confidence high hanya bila ciri dokumen sangat jelas; gunakan medium atau low bila ragu. Isi is_expected_document true hanya jika document_type sesuai target.";
+        $documentGuard = "Sebelum ekstraksi, kenali jenis dokumen. Isi document_type hanya salah satu dari: akta, kk, ktp, foto, unknown. Target kolom ini adalah {$expectedType}. Isi confidence high hanya bila ciri dokumen sangat jelas; gunakan medium atau low bila ragu. Isi is_expected_document true hanya jika document_type sesuai target. Untuk target ayah/ibu, baca Jenis Kelamin pada KTP jika terlihat: expected_gender untuk ayah adalah Laki-laki, untuk ibu adalah Perempuan; isi detected_gender Laki-laki/Perempuan/unknown dan gender_matches true hanya jika sesuai. Untuk target foto, is_expected_document true hanya bila gambar tampak seperti pas foto/portrait identitas anak, bukan dokumen, benda, tangkapan layar, atau gambar lain.";
 
-        $schema = 'Gunakan schema ini: {"document_type":"","confidence":"","is_expected_document":false,"reason":"","nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
+        $schema = 'Gunakan schema ini: {"document_type":"","confidence":"","is_expected_document":false,"reason":"","expected_gender":"","detected_gender":"","gender_matches":true,"nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
 
         if ($target === 'akta') {
             return $base . "\n" . $documentGuard . "\nDokumen target: AKTA KELAHIRAN anak. Ciri akta biasanya berisi judul/kata Akta Kelahiran, Kutipan Akta, Pencatatan Sipil, narasi kelahiran, atau nomor akta. Prioritas utama adalah data ANAK, bukan ayah/ibu/pejabat. Ambil nama anak dari kalimat seperti 'anak ... bernama ...' atau nama utama setelah tanggal lahir. Ambil NIK anak dari Nomor Induk Kependudukan jika terlihat. Ambil tempat lahir dan tanggal lahir anak dari narasi kelahiran. Jika nama ayah/ibu tertulis jelas, isi nama_ayah dan nama_ibu, tetapi jangan jadikan nama ayah/ibu sebagai nama anak.\n" . $schema;
@@ -617,6 +617,10 @@ class PendaftaranController extends Controller
 
         if ($target === 'ibu') {
             return $base . "\n" . $documentGuard . "\nDokumen target: KTP IBU. Ciri KTP biasanya berisi Republik Indonesia, Provinsi/Kabupaten, NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Alamat, RT/RW, Kel/Desa, Kecamatan. Ambil hanya data pemilik KTP pada dokumen ini. Nama harus persis nilai setelah label Nama, contoh 'SULISTYONO', bukan 'SULISTYONO NIK'. Jangan isi nama anak atau nama ayah dari dokumen ini.\n" . $schema;
+        }
+
+        if ($target === 'foto') {
+            return $base . "\n" . $documentGuard . "\nDokumen target: PAS FOTO ANAK. Gambar yang sesuai adalah foto wajah/portrait anak yang jelas, seperti pas foto identitas atau foto siswa. Jangan klasifikasikan sebagai sesuai bila gambar adalah KTP, KK, Akta, dokumen teks, pemandangan, benda, tangkapan layar, foto buram tanpa wajah jelas, atau gambar yang tidak berkaitan. Tidak perlu mengekstrak data identitas dari pas foto; isi field data dengan string kosong jika tidak terlihat.\n" . $schema;
         }
 
         if ($target === 'kk') {
@@ -652,6 +656,7 @@ class PendaftaranController extends Controller
             'akta' => 'akta',
             'kk' => 'kk',
             'ayah', 'ibu' => 'ktp',
+            'foto' => 'foto',
             default => 'unknown',
         };
     }
@@ -662,6 +667,8 @@ class PendaftaranController extends Controller
         $documentType = Str::lower(trim((string) ($fields['document_type'] ?? 'unknown')));
         $confidence = Str::lower(trim((string) ($fields['confidence'] ?? 'low')));
         $reason = trim((string) ($fields['reason'] ?? ''));
+        $expectedGender = $target === 'ayah' ? 'Laki-laki' : ($target === 'ibu' ? 'Perempuan' : '');
+        $detectedGender = $this->normalizeOcrGender((string) ($fields['detected_gender'] ?? $fields['jenis_kelamin'] ?? ''));
 
         if (!in_array($documentType, ['akta', 'kk', 'ktp', 'foto', 'unknown'], true)) {
             $documentType = 'unknown';
@@ -675,13 +682,45 @@ class PendaftaranController extends Controller
             ? true
             : $documentType === $expectedType;
 
+        $genderMatches = true;
+        if ($expectedGender !== '' && $detectedGender !== '') {
+            $genderMatches = $expectedGender === $detectedGender;
+            if (!$genderMatches) {
+                $isExpected = false;
+                if ($confidence === 'low') {
+                    $confidence = 'medium';
+                }
+            }
+        }
+
         return [
             'expected_type' => $expectedType,
             'document_type' => $documentType,
             'confidence' => $confidence,
             'is_expected_document' => $isExpected,
             'reason' => $reason,
+            'expected_gender' => $expectedGender,
+            'detected_gender' => $detectedGender,
+            'gender_matches' => $genderMatches,
         ];
+    }
+
+    private function normalizeOcrGender(string $value): string
+    {
+        $normalized = Str::upper(trim($value));
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (str_contains($normalized, 'PEREMPUAN') || str_contains($normalized, 'WANITA')) {
+            return 'Perempuan';
+        }
+
+        if (str_contains($normalized, 'LAKI') || str_contains($normalized, 'PRIA')) {
+            return 'Laki-laki';
+        }
+
+        return '';
     }
 
     public function cetak($id) {

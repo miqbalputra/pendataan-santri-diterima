@@ -846,15 +846,28 @@
             kk: 'Kartu Keluarga',
             ayah: 'KTP Ayah',
             ibu: 'KTP Ibu',
+            foto: 'Pas Foto Anak',
         };
 
         const DETECTED_DOCUMENT_LABELS = {
             akta: 'Akta Anak',
             kk: 'Kartu Keluarga',
             ktp: 'KTP',
-            foto: 'foto biasa',
+            foto: 'pas foto',
             unknown: 'dokumen yang belum dikenali',
         };
+
+        function buildDocumentCheckMessage(documentCheck, expectedLabel, detectedLabel) {
+            if (documentCheck.expected_gender && documentCheck.detected_gender && documentCheck.gender_matches === false) {
+                return `Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Jenis kelamin pada KTP yang terbaca tampaknya <strong>${documentCheck.detected_gender}</strong>.<br><br>Mohon periksa kembali foto yang dipilih, lalu unggah ${expectedLabel} yang jelas dan terbaca.`;
+            }
+
+            if (documentCheck.expected_type === 'foto') {
+                return `Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon pilih foto wajah anak yang jelas seperti pas foto identitas.`;
+            }
+
+            return `Sepertinya dokumen yang dipilih belum sesuai dengan kolom ini.<br><br>Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon periksa kembali foto yang dipilih, lalu unggah foto ${expectedLabel} yang jelas dan terbaca.`;
+        }
 
         async function confirmOcrDocumentCheck(documentCheck, target) {
             if (!documentCheck || documentCheck.is_expected_document !== false) {
@@ -869,7 +882,7 @@
                 await Swal.fire({
                     icon: 'info',
                     title: 'Mohon periksa kembali dokumen',
-                    html: `Sepertinya dokumen yang dipilih belum sesuai dengan kolom ini.<br><br>Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon periksa kembali foto yang dipilih, lalu unggah foto ${expectedLabel} yang jelas dan terbaca.`,
+                    html: buildDocumentCheckMessage(documentCheck, expectedLabel, detectedLabel),
                     confirmButtonText: 'Unggah Ulang',
                     confirmButtonColor: '#10b981'
                 });
@@ -1354,9 +1367,9 @@
                     status.innerText = "PDF siap diunggah";
                 }
 
-                // 2. Jalankan OCR hanya untuk gambar. PDF tetap diterima, tetapi tidak dibaca Direct AI.
-                if (target !== 'foto' && !isPdf) {
-                    status.innerText = "AI sedang membaca...";
+                // 2. Jalankan OCR/validasi AI hanya untuk gambar. Foto anak dicek jenis fotonya tanpa mengisi data.
+                if (!isPdf) {
+                    status.innerText = target === 'foto' ? "AI sedang memeriksa foto..." : "AI sedang membaca...";
                     const canUseFile = await runOCR(file, target);
                     if (!canUseFile) {
                         this.value = '';
