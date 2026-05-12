@@ -671,24 +671,7 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'error' => 'API Key belum diatur di Pengaturan.']);
         }
 
-        $stats = [
-            'total' => CalonSantri::count(),
-            'pending' => CalonSantri::where('status_pendaftaran', 'Pending')->count(),
-            'diterima' => CalonSantri::where('status_pendaftaran', 'Diterima')->count(),
-            'ditolak' => CalonSantri::where('status_pendaftaran', 'Ditolak')->count(),
-            'putra' => CalonSantri::where('jenis_kelamin', 'Laki-laki')->count(),
-            'putri' => CalonSantri::where('jenis_kelamin', 'Perempuan')->count(),
-        ];
-
-        $pendaftar = CalonSantri::select('nomor_pendaftaran', 'nama_lengkap', 'jenis_kelamin', 'nama_ayah', 'nama_ibu', 'no_wa_ayah', 'status_pendaftaran', 'created_at')
-            ->latest()
-            ->take(80)
-            ->get();
-        
-        $context = "Kamu adalah Asisten AI untuk Administrator SPSB. Aplikasi ini dipakai untuk pendataan peserta didik baru yang sudah diterima. Jawab singkat, profesional, dan berdasarkan data yang tersedia.\n";
-        $context .= "Statistik ringkas: " . json_encode($stats, JSON_UNESCAPED_UNICODE) . "\n";
-        $context .= "Data peserta didik terbaru maksimal 80 baris: " . $pendaftar->toJson(JSON_UNESCAPED_UNICODE) . "\n";
-        $context .= "Jika pertanyaan membutuhkan data yang tidak ada di konteks, katakan bahwa data tidak tersedia di konteks chat.";
+        $chatContext = $this->buildAiChatContext($question);
 
         try {
             $response = \Illuminate\Support\Facades\Http::withToken($apiKey)
@@ -697,11 +680,11 @@ class AdminController extends Controller
                 ->post($endpoint, [
                 'model' => $model,
                 'messages' => [
-                    ['role' => 'system', 'content' => $context],
-                    ['role' => 'user', 'content' => $question]
+                    ['role' => 'system', 'content' => $chatContext['system']],
+                    ['role' => 'user', 'content' => $chatContext['user']]
                 ],
                 'temperature' => 0.2,
-                'max_tokens' => 800,
+                'max_tokens' => 1400,
             ]);
 
             if ($response->successful()) {
@@ -731,5 +714,409 @@ class AdminController extends Controller
                 'error' => 'Koneksi AI gagal: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function buildAiChatContext(string $question): array
+    {
+        $stats = [
+            'total' => CalonSantri::count(),
+            'pending' => CalonSantri::where('status_pendaftaran', 'Pending')->count(),
+            'diterima' => CalonSantri::where('status_pendaftaran', 'Diterima')->count(),
+            'ditolak' => CalonSantri::where('status_pendaftaran', 'Ditolak')->count(),
+            'putra' => CalonSantri::where('jenis_kelamin', 'Laki-laki')->count(),
+            'putri' => CalonSantri::where('jenis_kelamin', 'Perempuan')->count(),
+            'perlu_review_dokumen' => CalonSantri::query()
+                ->get()
+                ->filter(fn ($santri) => collect($santri->dokumen_status ?? [])->contains(fn ($status) => in_array($status, ['kosong', 'perlu_perbaikan', 'menunggu_review'], true)))
+                ->count(),
+        ];
+
+        $summaryRows = CalonSantri::with(['periode', 'gelombang'])
+            ->latest()
+            ->take(120)
+            ->get()
+            ->map(fn (CalonSantri $santri) => $this->summarizeSantriForAi($santri))
+            ->values();
+
+        $matchedCandidates = $this->findAiRelevantSantri($question);
+        $candidates = $matchedCandidates;
+        if ($matchedCandidates->isEmpty()) {
+            $candidates = CalonSantri::with(['periode', 'gelombang'])->latest()->take(8)->get();
+        }
+
+        $detailedRows = $candidates
+            ->take(12)
+            ->map(fn (CalonSantri $santri) => $this->detailSantriForAi($santri))
+            ->values();
+
+        $attachments = $this->buildAiDocumentAttachments($matchedCandidates, $question);
+        $questionText = "Pertanyaan admin: {$question}";
+        if (count($attachments) > 0) {
+            $questionText .= "\n\nBerkas gambar yang relevan sudah dilampirkan setelah teks ini. Baca isi dokumen dari gambar tersebut bila pertanyaan menyangkut isi/validitas berkas.";
+        }
+
+        $userContent = [
+            ['type' => 'text', 'text' => $questionText],
+        ];
+
+        foreach ($attachments as $attachment) {
+            $userContent[] = [
+                'type' => 'text',
+                'text' => "Lampiran: {$attachment['label']} milik {$attachment['owner']}.",
+            ];
+            $userContent[] = [
+                'type' => 'image_url',
+                'image_url' => [
+                    'url' => $attachment['url'],
+                ],
+            ];
+        }
+
+        $system = "Kamu adalah Asisten AI untuk Administrator SPSB. Aplikasi ini dipakai untuk pendataan peserta didik baru yang sudah diterima.\n"
+            . "Jawab dalam bahasa Indonesia, ringkas, profesional, dan hanya berdasarkan konteks yang tersedia.\n"
+            . "Jika membaca dokumen gambar, jelaskan tingkat keyakinan dan sebutkan bila teks tidak jelas/terpotong. Jangan mengarang data yang tidak terlihat.\n"
+            . "Untuk pertanyaan hitungan atau rekap, gunakan statistik dan ringkasan data. Untuk pertanyaan tentang satu peserta, gunakan data detail form dan lampiran dokumen.\n"
+            . "Statistik ringkas: " . json_encode($stats, JSON_UNESCAPED_UNICODE) . "\n"
+            . "Ringkasan peserta terbaru maksimal 120 baris: " . $summaryRows->toJson(JSON_UNESCAPED_UNICODE) . "\n"
+            . "Detail form kandidat yang paling relevan: " . $detailedRows->toJson(JSON_UNESCAPED_UNICODE);
+
+        return [
+            'system' => $system,
+            'user' => count($attachments) > 0 ? $userContent : $question,
+        ];
+    }
+
+    private function findAiRelevantSantri(string $question)
+    {
+        $normalized = Str::lower($question);
+        $tokens = collect(preg_split('/[^a-zA-Z0-9]+/u', $normalized))
+            ->filter(fn ($token) => strlen($token) >= 3)
+            ->unique()
+            ->values();
+
+        return CalonSantri::with(['periode', 'gelombang'])
+            ->latest()
+            ->get()
+            ->map(function (CalonSantri $santri) use ($normalized, $tokens) {
+                $haystack = Str::lower(collect([
+                    $santri->nomor_pendaftaran,
+                    $santri->nama_lengkap,
+                    $santri->nik,
+                    $santri->nisn,
+                    $santri->nama_ayah,
+                    $santri->nik_ayah,
+                    $santri->no_wa_ayah,
+                    $santri->nama_ibu,
+                    $santri->nik_ibu,
+                    $santri->no_wa_ibu,
+                    $santri->nama_wali,
+                    $santri->nik_wali,
+                    $santri->no_wa_wali,
+                ])->filter()->implode(' '));
+
+                $score = 0;
+                foreach ($tokens as $token) {
+                    if (str_contains($haystack, $token)) {
+                        $score++;
+                    }
+                }
+
+                foreach ([$santri->nomor_pendaftaran, $santri->nik, $santri->nik_ayah, $santri->nik_ibu, $santri->no_wa_ayah, $santri->no_wa_ibu] as $exact) {
+                    if ($exact && str_contains($normalized, Str::lower((string) $exact))) {
+                        $score += 5;
+                    }
+                }
+
+                return ['score' => $score, 'santri' => $santri];
+            })
+            ->filter(fn ($item) => $item['score'] > 0)
+            ->sortByDesc('score')
+            ->pluck('santri')
+            ->take(12)
+            ->values();
+    }
+
+    private function summarizeSantriForAi(CalonSantri $santri): array
+    {
+        return [
+            'nomor' => $santri->nomor_pendaftaran,
+            'nama' => $santri->nama_lengkap,
+            'jk' => $santri->jenis_kelamin,
+            'nik' => $santri->nik,
+            'ttl' => trim(($santri->tempat_lahir ?? '') . ', ' . ($santri->tanggal_lahir ?? ''), ', '),
+            'ayah' => $santri->nama_ayah,
+            'ibu' => $santri->nama_ibu,
+            'wa_utama' => $santri->no_wa_ayah ?: $santri->no_wa_ibu ?: $santri->no_wa_wali,
+            'status' => $santri->status_pendaftaran,
+            'periode' => $santri->periode?->nama_periode,
+            'gelombang' => $santri->gelombang?->nama_gelombang,
+            'dokumen_status' => $santri->dokumen_status,
+            'dibuat' => optional($santri->created_at)->format('Y-m-d H:i'),
+        ];
+    }
+
+    private function detailSantriForAi(CalonSantri $santri): array
+    {
+        $labels = $this->aiFormFieldLabels();
+        $data = ['id' => $santri->id];
+
+        foreach ($labels as $field => $label) {
+            $value = $santri->{$field};
+            if ($value === null || $value === '' || in_array($field, array_keys($this->aiDocumentLabels()), true)) {
+                continue;
+            }
+
+            if ($value instanceof \DateTimeInterface) {
+                $value = $value->format('Y-m-d H:i');
+            }
+
+            if (is_bool($value)) {
+                $value = $value ? 'Ya' : 'Tidak';
+            }
+
+            $data[$label] = $value;
+        }
+
+        $data['Periode'] = $santri->periode?->nama_periode;
+        $data['Gelombang'] = $santri->gelombang?->nama_gelombang;
+        $data['dokumen_terunggah'] = collect($this->aiDocumentLabels())
+            ->mapWithKeys(fn ($label, $field) => [$label => [
+                'ada' => (bool) $santri->{$field},
+                'status' => $santri->dokumen_status[$field] ?? null,
+            ]])
+            ->all();
+
+        return $data;
+    }
+
+    private function buildAiDocumentAttachments($santriRows, string $question): array
+    {
+        if (!$this->questionNeedsDocumentVision($question)) {
+            return [];
+        }
+
+        $wantedFields = $this->wantedAiDocumentFields($question);
+        $attachments = [];
+
+        foreach ($santriRows->take(3) as $santri) {
+            foreach ($this->aiDocumentLabels() as $field => $label) {
+                if (!empty($wantedFields) && !in_array($field, $wantedFields, true)) {
+                    continue;
+                }
+
+                $path = $santri->{$field};
+                if (!$path || !Storage::disk('public')->exists($path)) {
+                    continue;
+                }
+
+                $dataUrl = $this->compressedImageDataUrl(Storage::disk('public')->path($path));
+                if (!$dataUrl) {
+                    continue;
+                }
+
+                $attachments[] = [
+                    'owner' => $santri->nama_lengkap . ' (' . ($santri->nomor_pendaftaran ?? 'tanpa nomor') . ')',
+                    'label' => $label,
+                    'url' => $dataUrl,
+                ];
+
+                if (count($attachments) >= 8) {
+                    return $attachments;
+                }
+            }
+        }
+
+        return $attachments;
+    }
+
+    private function questionNeedsDocumentVision(string $question): bool
+    {
+        $question = Str::lower($question);
+
+        return Str::contains($question, [
+            'berkas', 'dokumen', 'upload', 'unggah', 'ktp', 'kk', 'kartu keluarga',
+            'akta', 'foto', 'pas foto', 'isi file', 'isi gambar', 'valid', 'terbaca',
+            'cocok', 'sesuai', 'lampiran',
+        ]);
+    }
+
+    private function wantedAiDocumentFields(string $question): array
+    {
+        $question = Str::lower($question);
+        $fields = [];
+
+        if (Str::contains($question, ['ktp ayah', 'ktp bapak', 'ayah', 'bapak'])) {
+            $fields[] = 'foto_ktp_ayah';
+        }
+        if (Str::contains($question, ['ktp ibu', 'ibu'])) {
+            $fields[] = 'foto_ktp_ibu';
+        }
+        if (Str::contains($question, ['akta', 'kelahiran'])) {
+            $fields[] = 'foto_akta_anak';
+        }
+        if (Str::contains($question, ['kk', 'kartu keluarga'])) {
+            $fields[] = 'foto_kk';
+        }
+        if (Str::contains($question, ['pas foto', 'foto anak', 'foto siswa', 'portrait'])) {
+            $fields[] = 'foto_pas_siswa';
+        }
+
+        return array_values(array_unique($fields));
+    }
+
+    private function compressedImageDataUrl(string $sourcePath): ?string
+    {
+        $info = @getimagesize($sourcePath);
+        if (!$info) {
+            return null;
+        }
+
+        $image = match ($info['mime'] ?? '') {
+            'image/jpeg' => @imagecreatefromjpeg($sourcePath),
+            'image/png' => @imagecreatefrompng($sourcePath),
+            'image/webp' => @imagecreatefromwebp($sourcePath),
+            default => null,
+        };
+
+        if (!$image) {
+            return null;
+        }
+
+        $maxSide = 1400;
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        if ($width > $maxSide || $height > $maxSide) {
+            $ratio = min($maxSide / $width, $maxSide / $height);
+            $newWidth = max(1, (int) round($width * $ratio));
+            $newHeight = max(1, (int) round($height * $ratio));
+            $newImage = imagecreatetruecolor($newWidth, $newHeight);
+            $bg = imagecolorallocate($newImage, 255, 255, 255);
+            imagefill($newImage, 0, 0, $bg);
+            imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+            imagedestroy($image);
+            $image = $newImage;
+        }
+
+        ob_start();
+        imagejpeg($image, null, 72);
+        $binary = ob_get_clean();
+        imagedestroy($image);
+
+        if (!$binary) {
+            return null;
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode($binary);
+    }
+
+    private function aiDocumentLabels(): array
+    {
+        return [
+            'foto_ktp_ayah' => 'KTP Ayah',
+            'foto_ktp_ibu' => 'KTP Ibu',
+            'foto_akta_anak' => 'Akta Kelahiran Anak',
+            'foto_kk' => 'Kartu Keluarga',
+            'foto_pas_siswa' => 'Pas Foto Siswa',
+            'tanda_tangan' => 'Tanda Tangan',
+        ];
+    }
+
+    private function aiFormFieldLabels(): array
+    {
+        return [
+            'nomor_pendaftaran' => 'Nomor pendaftaran',
+            'nama_lengkap' => 'Nama lengkap',
+            'jenis_kelamin' => 'Jenis kelamin',
+            'nisn' => 'NISN',
+            'no_seri_ijazah' => 'Nomor seri ijazah',
+            'no_seri_skhun' => 'Nomor seri SKHUN',
+            'no_ujian_nasional' => 'Nomor ujian nasional',
+            'nik' => 'NIK anak',
+            'nama_sekolah_asal' => 'Sekolah asal',
+            'npsn_sekolah_asal' => 'NPSN sekolah asal',
+            'alamat_sekolah_asal' => 'Alamat sekolah asal',
+            'tempat_lahir' => 'Tempat lahir anak',
+            'tanggal_lahir' => 'Tanggal lahir anak',
+            'agama' => 'Agama',
+            'berkebutuhan_khusus' => 'Kebutuhan khusus anak',
+            'alamat_lengkap' => 'Alamat lengkap',
+            'dusun' => 'Dusun',
+            'rt_rw' => 'RT/RW',
+            'kelurahan_desa' => 'Kelurahan/desa',
+            'kecamatan' => 'Kecamatan',
+            'kabupaten_kota' => 'Kabupaten/kota',
+            'propinsi' => 'Propinsi',
+            'kode_pos' => 'Kode pos',
+            'alat_transportasi' => 'Alat transportasi',
+            'jenis_tinggal' => 'Jenis tinggal',
+            'no_telepon_rumah' => 'Telepon rumah',
+            'email' => 'Email anak/keluarga',
+            'hobi' => 'Hobi',
+            'nama_ayah' => 'Nama ayah',
+            'nik_ayah' => 'NIK ayah',
+            'tempat_lahir_ayah' => 'Tempat lahir ayah',
+            'tanggal_lahir_ayah' => 'Tanggal lahir ayah',
+            'berkebutuhan_khusus_ayah' => 'Kebutuhan khusus ayah',
+            'pekerjaan_ayah' => 'Pekerjaan ayah',
+            'pendidikan_ayah' => 'Pendidikan ayah',
+            'no_wa_ayah' => 'WhatsApp ayah',
+            'penghasilan_ayah' => 'Penghasilan ayah',
+            'alamat_ayah' => 'Alamat ayah',
+            'rt_rw_ayah' => 'RT/RW ayah',
+            'kelurahan_desa_ayah' => 'Kelurahan/desa ayah',
+            'kecamatan_ayah' => 'Kecamatan ayah',
+            'status_tahsin_ayah' => 'Status tahsin ayah',
+            'pengajar_tahsin_ayah' => 'Pengajar tahsin ayah',
+            'nama_ibu' => 'Nama ibu',
+            'nik_ibu' => 'NIK ibu',
+            'tempat_lahir_ibu' => 'Tempat lahir ibu',
+            'tanggal_lahir_ibu' => 'Tanggal lahir ibu',
+            'berkebutuhan_khusus_ibu' => 'Kebutuhan khusus ibu',
+            'pekerjaan_ibu' => 'Pekerjaan ibu',
+            'pendidikan_ibu' => 'Pendidikan ibu',
+            'no_wa_ibu' => 'WhatsApp ibu',
+            'penghasilan_ibu' => 'Penghasilan ibu',
+            'alamat_ibu' => 'Alamat ibu',
+            'rt_rw_ibu' => 'RT/RW ibu',
+            'kelurahan_desa_ibu' => 'Kelurahan/desa ibu',
+            'kecamatan_ibu' => 'Kecamatan ibu',
+            'status_tahsin_ibu' => 'Status tahsin ibu',
+            'pengajar_tahsin_ibu' => 'Pengajar tahsin ibu',
+            'nama_wali' => 'Nama wali',
+            'nik_wali' => 'NIK wali',
+            'tempat_lahir_wali' => 'Tempat lahir wali',
+            'tanggal_lahir_wali' => 'Tanggal lahir wali',
+            'tahun_lahir_wali' => 'Tahun lahir wali',
+            'berkebutuhan_khusus_wali' => 'Kebutuhan khusus wali',
+            'pekerjaan_wali' => 'Pekerjaan wali',
+            'pendidikan_wali' => 'Pendidikan wali',
+            'no_wa_wali' => 'WhatsApp wali',
+            'penghasilan_wali' => 'Penghasilan wali',
+            'alamat_wali' => 'Alamat wali',
+            'rt_rw_wali' => 'RT/RW wali',
+            'kelurahan_desa_wali' => 'Kelurahan/desa wali',
+            'kecamatan_wali' => 'Kecamatan wali',
+            'status_tahsin_wali' => 'Status tahsin wali',
+            'pengajar_tahsin_wali' => 'Pengajar tahsin wali',
+            'email_ayah' => 'Email ayah',
+            'email_ibu' => 'Email ibu',
+            'email_wali' => 'Email wali',
+            'tinggi_badan' => 'Tinggi badan',
+            'berat_badan' => 'Berat badan',
+            'jarak_ke_sekolah' => 'Jarak ke sekolah',
+            'waktu_tempuh' => 'Waktu tempuh',
+            'jumlah_saudara_kandung' => 'Jumlah saudara kandung',
+            'punya_saudara_di_sini' => 'Punya saudara di sini',
+            'siblings_data' => 'Data saudara',
+            'status_pendaftaran' => 'Status pendaftaran',
+            'dokumen_status' => 'Status dokumen',
+            'dokumen_catatan' => 'Catatan dokumen',
+            'followup_sudah_masuk_grup' => 'Sudah masuk grup',
+            'followup_sudah_dihubungi' => 'Sudah dihubungi',
+            'followup_catatan' => 'Catatan follow-up',
+            'created_at' => 'Tanggal input',
+            'updated_at' => 'Terakhir diperbarui',
+        ];
     }
 }

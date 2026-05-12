@@ -871,7 +871,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-black tracking-tight">Asisten AI SPSB</p>
-                            <p class="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">Online • Data Ready</p>
+                            <p class="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">Online &bull; Form + Berkas Ready</p>
                         </div>
                     </div>
                     <button id="close-chat" class="text-white/60 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -883,7 +883,7 @@
                 <div class="flex items-start gap-3">
                     <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 text-xs flex-shrink-0">AI</div>
                     <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed border border-slate-100">
-                        Halo Admin! Saya sudah membaca data peserta didik. Ada yang ingin ditanyakan seputar data hari ini?
+                        Halo Admin! Saya bisa membaca detail isian form dan berkas upload yang relevan. Tanyakan nama, nomor pendaftaran, atau dokumen peserta didik.
                     </div>
                 </div>
             </div>
@@ -891,7 +891,7 @@
             <!-- Input Area -->
             <div class="p-6 bg-white/50 border-t border-slate-100">
                 <form id="chat-form" class="flex gap-2">
-                    <input type="text" id="chat-input" class="form-input text-sm py-3 px-4" placeholder="Tanya tentang data peserta didik..." required>
+                    <input type="text" id="chat-input" class="form-input text-sm py-3 px-4" placeholder="Tanya detail form atau berkas..." required>
                     <button type="submit" id="chat-submit" class="bg-slate-900 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-emerald-600 transition shadow-lg flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
                     </button>
@@ -950,7 +950,7 @@
                 const loadingEl = document.getElementById(loadingId);
                 
                 if(data.success) {
-                    loadingEl.innerHTML = data.answer.replace(/\n/g, '<br>');
+                    loadingEl.innerHTML = escapeHtml(data.answer).replace(/\n/g, '<br>');
                 } else {
                     loadingEl.innerHTML = '<span class="text-rose-500 font-bold">' + (data.error || 'Terjadi kesalahan sistem.') + '</span>';
                 }
