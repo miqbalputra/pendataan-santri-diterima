@@ -8,6 +8,7 @@ use App\Models\Periode;
 use App\Models\Gelombang;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
+use App\Models\GroupJoinLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -729,9 +730,16 @@ class AdminController extends Controller
                 ->get()
                 ->filter(fn ($santri) => collect($santri->dokumen_status ?? [])->contains(fn ($status) => in_array($status, ['kosong', 'perlu_perbaikan', 'menunggu_review'], true)))
                 ->count(),
+            'link_grup_dibuat' => Schema::hasTable('group_join_links') ? GroupJoinLink::count() : 0,
+            'link_grup_sudah_dibuka' => Schema::hasTable('group_join_links') ? GroupJoinLink::whereNotNull('clicked_at')->count() : 0,
+            'link_grup_belum_dibuka' => Schema::hasTable('group_join_links') ? GroupJoinLink::whereNull('clicked_at')->count() : 0,
+            'notifikasi_success' => Schema::hasTable('notification_logs') ? NotificationLog::where('status', 'success')->count() : 0,
+            'notifikasi_failed' => Schema::hasTable('notification_logs') ? NotificationLog::where('status', 'failed')->count() : 0,
+            'notifikasi_skipped' => Schema::hasTable('notification_logs') ? NotificationLog::where('status', 'skipped')->count() : 0,
         ];
 
-        $summaryRows = CalonSantri::with(['periode', 'gelombang'])
+        $relations = $this->aiContextRelations();
+        $summaryRows = CalonSantri::with($relations)
             ->latest()
             ->take(120)
             ->get()
@@ -741,13 +749,15 @@ class AdminController extends Controller
         $matchedCandidates = $this->findAiRelevantSantri($question);
         $candidates = $matchedCandidates;
         if ($matchedCandidates->isEmpty()) {
-            $candidates = CalonSantri::with(['periode', 'gelombang'])->latest()->take(8)->get();
+            $candidates = CalonSantri::with($relations)->latest()->take(8)->get();
         }
 
         $detailedRows = $candidates
             ->take(12)
             ->map(fn (CalonSantri $santri) => $this->detailSantriForAi($santri))
             ->values();
+
+        $operationalRows = $this->buildAiOperationalRows($question, $matchedCandidates);
 
         $attachments = $this->buildAiDocumentAttachments($matchedCandidates, $question);
         $questionText = "Pertanyaan admin: {$question}";
@@ -775,9 +785,11 @@ class AdminController extends Controller
         $system = "Kamu adalah Asisten AI untuk Administrator SPSB. Aplikasi ini dipakai untuk pendataan peserta didik baru yang sudah diterima.\n"
             . "Jawab dalam bahasa Indonesia, ringkas, profesional, dan hanya berdasarkan konteks yang tersedia.\n"
             . "Jika membaca dokumen gambar, jelaskan tingkat keyakinan dan sebutkan bila teks tidak jelas/terpotong. Jangan mengarang data yang tidak terlihat.\n"
-            . "Untuk pertanyaan hitungan atau rekap, gunakan statistik dan ringkasan data. Untuk pertanyaan tentang satu peserta, gunakan data detail form dan lampiran dokumen.\n"
+            . "Untuk pertanyaan hitungan atau rekap, gunakan statistik, ringkasan data, dan konteks operasional. Untuk pertanyaan tentang satu peserta, gunakan data detail form, tracking link grup, log notifikasi, dan lampiran dokumen.\n"
+            . "Status operasional penting: clicked_at pada link grup berarti link grup WhatsApp sudah dibuka; clicked_at kosong berarti belum dibuka. Status notifikasi success berarti webhook terkirim ke endpoint, failed berarti endpoint gagal/error, skipped berarti tidak dikirim karena penerima/webhook tidak tersedia.\n"
             . "Statistik ringkas: " . json_encode($stats, JSON_UNESCAPED_UNICODE) . "\n"
             . "Ringkasan peserta terbaru maksimal 120 baris: " . $summaryRows->toJson(JSON_UNESCAPED_UNICODE) . "\n"
+            . "Konteks operasional link grup dan notifikasi: " . $operationalRows->toJson(JSON_UNESCAPED_UNICODE) . "\n"
             . "Detail form kandidat yang paling relevan: " . $detailedRows->toJson(JSON_UNESCAPED_UNICODE);
 
         return [
@@ -794,7 +806,7 @@ class AdminController extends Controller
             ->unique()
             ->values();
 
-        return CalonSantri::with(['periode', 'gelombang'])
+        return CalonSantri::with($this->aiContextRelations())
             ->latest()
             ->get()
             ->map(function (CalonSantri $santri) use ($normalized, $tokens) {
@@ -851,6 +863,13 @@ class AdminController extends Controller
             'periode' => $santri->periode?->nama_periode,
             'gelombang' => $santri->gelombang?->nama_gelombang,
             'dokumen_status' => $santri->dokumen_status,
+            'followup' => [
+                'sudah_masuk_grup' => (bool) $santri->followup_sudah_masuk_grup,
+                'sudah_dihubungi' => (bool) $santri->followup_sudah_dihubungi,
+                'catatan' => $santri->followup_catatan,
+            ],
+            'link_grup' => $this->summarizeGroupJoinLinksForAi($santri),
+            'notifikasi_terakhir' => $this->summarizeNotificationLogsForAi($santri, 3),
             'dibuat' => optional($santri->created_at)->format('Y-m-d H:i'),
         ];
     }
@@ -879,6 +898,13 @@ class AdminController extends Controller
 
         $data['Periode'] = $santri->periode?->nama_periode;
         $data['Gelombang'] = $santri->gelombang?->nama_gelombang;
+        $data['Follow-up operasional'] = [
+            'sudah_masuk_grup' => (bool) $santri->followup_sudah_masuk_grup,
+            'sudah_dihubungi' => (bool) $santri->followup_sudah_dihubungi,
+            'catatan' => $santri->followup_catatan,
+        ];
+        $data['tracking_link_grup'] = $this->summarizeGroupJoinLinksForAi($santri, true);
+        $data['log_notifikasi'] = $this->summarizeNotificationLogsForAi($santri, 8);
         $data['dokumen_terunggah'] = collect($this->aiDocumentLabels())
             ->mapWithKeys(fn ($label, $field) => [$label => [
                 'ada' => (bool) $santri->{$field},
@@ -887,6 +913,114 @@ class AdminController extends Controller
             ->all();
 
         return $data;
+    }
+
+    private function aiContextRelations(): array
+    {
+        $relations = ['periode', 'gelombang'];
+
+        if (Schema::hasTable('group_join_links')) {
+            $relations[] = 'groupJoinLinks';
+        }
+
+        if (Schema::hasTable('notification_logs')) {
+            $relations[] = 'notificationLogs';
+        }
+
+        return $relations;
+    }
+
+    private function buildAiOperationalRows(string $question, $matchedCandidates)
+    {
+        $question = Str::lower($question);
+        $isOperationalQuestion = Str::contains($question, [
+            'link group', 'link grup', 'grup whatsapp', 'group whatsapp', 'buka link',
+            'dibuka', 'belum buka', 'belum dibuka', 'masuk grup', 'terkirim',
+            'terkirim atau tidak', 'gagal', 'failed', 'success', 'skipped',
+            'notifikasi', 'whatsapp', 'wa ', 'email', 'webhook', 'dihubungi',
+        ]);
+
+        if (!$isOperationalQuestion) {
+            return collect();
+        }
+
+        $rows = $matchedCandidates->isNotEmpty()
+            ? $matchedCandidates
+            : CalonSantri::with($this->aiContextRelations())->latest()->take(80)->get();
+
+        return $rows
+            ->map(fn (CalonSantri $santri) => [
+                'nomor' => $santri->nomor_pendaftaran,
+                'nama' => $santri->nama_lengkap,
+                'ayah' => $santri->nama_ayah,
+                'ibu' => $santri->nama_ibu,
+                'wa_ayah' => $santri->no_wa_ayah,
+                'wa_ibu' => $santri->no_wa_ibu,
+                'email_ayah' => $santri->email_ayah,
+                'email_ibu' => $santri->email_ibu,
+                'followup_sudah_masuk_grup' => (bool) $santri->followup_sudah_masuk_grup,
+                'followup_sudah_dihubungi' => (bool) $santri->followup_sudah_dihubungi,
+                'followup_catatan' => $santri->followup_catatan,
+                'link_grup' => $this->summarizeGroupJoinLinksForAi($santri, true),
+                'notifikasi' => $this->summarizeNotificationLogsForAi($santri, 6),
+            ])
+            ->values();
+    }
+
+    private function summarizeGroupJoinLinksForAi(CalonSantri $santri, bool $includeDetails = false): array
+    {
+        $links = $santri->relationLoaded('groupJoinLinks') ? $santri->groupJoinLinks : collect();
+
+        if ($links->isEmpty()) {
+            return [
+                'total' => 0,
+                'sudah_dibuka' => 0,
+                'belum_dibuka' => 0,
+                'detail' => [],
+            ];
+        }
+
+        $details = $links
+            ->sortBy(fn ($link) => $link->role . '-' . $link->channel . '-' . $link->group_type)
+            ->map(fn ($link) => [
+                'role' => $link->role,
+                'channel' => $link->channel,
+                'group_type' => $link->group_type,
+                'status_buka' => $link->clicked_at ? 'sudah_dibuka' : 'belum_dibuka',
+                'clicked_at' => optional($link->clicked_at)->format('Y-m-d H:i'),
+                'click_count' => (int) $link->click_count,
+                'terakhir_dibuka_ip' => $includeDetails ? $link->last_clicked_ip : null,
+                'dibuat' => optional($link->created_at)->format('Y-m-d H:i'),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'total' => $links->count(),
+            'sudah_dibuka' => $links->whereNotNull('clicked_at')->count(),
+            'belum_dibuka' => $links->whereNull('clicked_at')->count(),
+            'detail' => $includeDetails ? $details : collect($details)->take(4)->values()->all(),
+        ];
+    }
+
+    private function summarizeNotificationLogsForAi(CalonSantri $santri, int $limit = 5): array
+    {
+        $logs = $santri->relationLoaded('notificationLogs') ? $santri->notificationLogs : collect();
+
+        return $logs
+            ->sortByDesc('created_at')
+            ->take($limit)
+            ->map(fn ($log) => [
+                'channel' => $log->channel,
+                'recipient' => $log->recipient,
+                'recipient_role' => $log->recipient_role,
+                'status' => $log->status,
+                'http_status' => $log->http_status,
+                'message' => $log->message,
+                'waktu' => optional($log->created_at)->format('Y-m-d H:i'),
+            ])
+            ->values()
+            ->all();
     }
 
     private function buildAiDocumentAttachments($santriRows, string $question): array
