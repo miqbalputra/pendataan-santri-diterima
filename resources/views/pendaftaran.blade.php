@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPSB | Pendataan Peserta Didik Baru</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @vite('resources/css/app.css')
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <script src="/vendor/signature-pad.min.js"></script>
+    <script src="/js/document-scanner.js"></script>
+    <script src="/js/form-helper.js"></script>
+    <script src="/vendor/sweetalert2.min.js"></script>
     <style>
         :root {
             --primary: #047857;
@@ -89,7 +90,7 @@
 
             document.querySelectorAll('.format-wa').forEach(input => {
                 input.addEventListener('input', function() {
-                    let val = this.value.replace(/\D/g, '');
+                    let val = this.value.replace(/[ ()+.\-]/g, '');
                     if (val.length > 0) {
                         if (val.startsWith('8')) val = '0' + val;
                         else if (val.startsWith('628')) val = '08' + val.substring(3);
@@ -134,7 +135,7 @@
                 Formulir Pendataan Peserta Didik Baru
             </h1>
             <p class="text-emerald-50/90 text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed">
-                Unggah dokumen, periksa data hasil baca AI, lengkapi kolom wajib, lalu kirim formulir ke panitia.
+                Foto dokumen sesuai bingkai, periksa hasil OCR, lengkapi data, lalu kirim formulir ke panitia.
                 <span class="block text-white/65 text-xs md:text-sm mt-4 font-bold tracking-[0.22em] uppercase">Griya Qur'an & PKBM Tunas Ilmu</span>
             </p>
         </div>
@@ -149,7 +150,7 @@
                 </div>
                 <div class="md:col-span-3 grid sm:grid-cols-3 gap-3">
                     <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
-                        <p class="text-xs font-black text-emerald-700 uppercase">1. Upload</p>
+                        <p class="text-xs font-black text-emerald-700 uppercase">1. Foto Dokumen</p>
                         <p class="text-sm font-semibold text-slate-700 mt-1">Siapkan Akta, KK, KTP Ayah, KTP Ibu, dan foto anak.</p>
                     </div>
                     <div class="rounded-2xl bg-teal-50 border border-teal-100 p-4">
@@ -178,12 +179,17 @@
                     <div class="flex items-center gap-5">
                         <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center font-black text-2xl shadow-sm border border-emerald-100">1</div>
                         <div>
-                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Upload Dokumen Wajib</h2>
-                            <p class="text-sm text-slate-500 font-medium mt-1">AI membantu membaca data, tetapi orang tua tetap perlu memeriksa hasilnya.</p>
+                            <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Foto & Lampiran Wajib</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-1">Ketuk dokumen untuk membuka kamera. Isi manual tersedia jika foto sulit dibaca; kelima lampiran tetap wajib.</p>
                         </div>
                     </div>
                 </div>
                 
+                <div class="px-6 pt-5 text-sm text-slate-600">
+                    <button type="button" id="fill-manual" class="rounded-xl border border-emerald-700 px-4 py-3 font-bold text-emerald-800">Saya ingin isi data manual</button>
+                    <p class="mt-2">Kelima foto tetap harus dilampirkan. Anda bisa melengkapi data terlebih dahulu.</p>
+                    <p id="draft-status" class="mt-2" role="status" aria-live="polite">Isian disimpan pada perangkat ini. Foto perlu dipilih kembali jika halaman dimuat ulang.</p>
+                </div>
                 <div class="p-6 lg:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                     <!-- Akta Anak -->
                     <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center relative hover:bg-slate-50 transition hover:border-emerald-400 group" id="dropzone-akta">
@@ -192,7 +198,7 @@
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                             </div>
                             <span class="block font-bold text-slate-700 mb-1">Akta Anak</span>
-                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-akta">JPG / PNG</span>
+                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-akta">Ketuk untuk foto langsung</span>
                             <input type="file" name="foto_akta_anak" accept="image/*" class="hidden file-input" data-target="akta" required>
                             <img id="preview-akta" class="hidden mx-auto h-28 object-contain rounded-lg mb-2 shadow-sm border border-slate-200">
                             <div id="loading-akta" class="hidden flex-col items-center justify-center py-2">
@@ -209,7 +215,7 @@
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </div>
                             <span class="block font-bold text-slate-700 mb-1">Kartu Keluarga</span>
-                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-kk">JPG / PNG</span>
+                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-kk">Ketuk untuk foto langsung</span>
                             <input type="file" name="foto_kk" accept="image/*" class="hidden file-input" data-target="kk" required>
                             <img id="preview-kk" class="hidden mx-auto h-28 object-contain rounded-lg mb-2 shadow-sm border border-slate-200">
                             <div id="loading-kk" class="hidden flex-col items-center justify-center py-2">
@@ -226,7 +232,7 @@
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             </div>
                             <span class="block font-bold text-slate-700 mb-1">KTP Ayah</span>
-                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-ayah">JPG / PNG</span>
+                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-ayah">Ketuk untuk foto langsung</span>
                             <input type="file" name="foto_ktp_ayah" accept="image/*" class="hidden file-input" data-target="ayah" required>
                             <img id="preview-ayah" class="hidden mx-auto h-28 object-contain rounded-lg mb-2 shadow-sm border border-slate-200">
                             <div id="loading-ayah" class="hidden flex-col items-center justify-center py-2">
@@ -243,7 +249,7 @@
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             </div>
                             <span class="block font-bold text-slate-700 mb-1">KTP Ibu</span>
-                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-ibu">JPG / PNG</span>
+                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-ibu">Ketuk untuk foto langsung</span>
                             <input type="file" name="foto_ktp_ibu" accept="image/*" class="hidden file-input" data-target="ibu" required>
                             <img id="preview-ibu" class="hidden mx-auto h-28 object-contain rounded-lg mb-2 shadow-sm border border-slate-200">
                             <div id="loading-ibu" class="hidden flex-col items-center justify-center py-2">
@@ -260,8 +266,8 @@
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             </div>
                             <span class="block font-bold text-slate-700 mb-1">Pas Foto Anak 3x4</span>
-                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-foto">JPG / PNG</span>
-                            <input type="file" name="foto_pas_siswa" accept="image/*" class="hidden file-input" data-target="foto">
+                            <span class="text-[10px] text-slate-400 block mb-3 font-medium" id="hint-foto">Ketuk untuk foto langsung</span>
+                            <input type="file" name="foto_pas_siswa" accept="image/*" class="hidden file-input" data-target="foto" required>
                             <img id="preview-foto" class="hidden mx-auto h-28 object-contain rounded-lg mb-2 shadow-sm border border-slate-200">
                             <div id="loading-foto" class="hidden flex-col items-center justify-center py-2">
                                 <div class="spinner border-emerald-500 border-t-emerald-200"></div>
@@ -304,6 +310,7 @@
                             <div>
                                 <label class="form-label required-mark">Jenis Kelamin</label>
                                 <select name="jenis_kelamin" id="f_jk" class="form-input" required>
+                                    <option value="">Pilih jenis kelamin anak</option>
                                     <option value="Laki-laki">Laki-laki</option>
                                     <option value="Perempuan">Perempuan</option>
                                 </select>
@@ -313,7 +320,7 @@
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir" id="f_tanggal_lahir" class="form-input" required></div>
                             <div><label class="form-label required-mark">Agama</label><input type="text" name="agama" class="form-input" value="Islam" required></div>
                             <div><label class="form-label">Berkebutuhan Khusus</label><input type="text" name="berkebutuhan_khusus" class="form-input" placeholder="Tidak ada / Sebutkan"></div>
-                            <div><label class="form-label required-mark">Hobi</label><input type="text" name="hobi" class="form-input" required></div>
+                            <div><label class="form-label">Hobi (opsional)</label><input type="text" name="hobi" class="form-input"></div>
                         </div>
 
                         <!-- Data Sekolah Asal -->
@@ -327,9 +334,9 @@
                                 <div><label class="form-label">No. Seri Ijazah</label><input type="text" name="no_seri_ijazah" class="form-input"></div>
                                 <div><label class="form-label">No. Seri SKHUN</label><input type="text" name="no_seri_skhun" class="form-input"></div>
                                 <div><label class="form-label">No. Ujian Nasional</label><input type="text" name="no_ujian_nasional" class="form-input"></div>
-                                <div><label class="form-label required-mark">Nama Sekolah Asal</label><input type="text" name="nama_sekolah_asal" class="form-input" required></div>
+                                <div><label class="form-label">Nama Sekolah Asal (opsional)</label><input type="text" name="nama_sekolah_asal" class="form-input"></div>
                                 <div><label class="form-label">NPSN Sekolah Asal</label><input type="text" name="npsn_sekolah_asal" class="form-input"></div>
-                                <div class="md:col-span-3"><label class="form-label required-mark">Alamat Sekolah Asal</label><textarea name="alamat_sekolah_asal" rows="1" class="form-input" required></textarea></div>
+                                <div class="md:col-span-3"><label class="form-label">Alamat Sekolah Asal (opsional)</label><textarea name="alamat_sekolah_asal" rows="1" class="form-input"></textarea></div>
                             </div>
                         </div>
 
@@ -341,7 +348,7 @@
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div class="md:col-span-2 lg:col-span-4"><label class="form-label required-mark">Alamat Jalan</label><textarea name="alamat_lengkap" id="f_alamat" rows="2" class="form-input" required></textarea></div>
-                                <div><label class="form-label required-mark">Dusun</label><input type="text" name="dusun" class="form-input" required></div>
+                                <div><label class="form-label">Dusun (opsional)</label><input type="text" name="dusun" class="form-input"></div>
                                 <div><label class="form-label required-mark">RT / RW</label><input type="text" name="rt_rw" id="f_rt_rw" class="form-input" placeholder="Contoh: 08/02" required></div>
                                 <div><label class="form-label required-mark">Kelurahan / Desa</label><input type="text" name="kelurahan_desa" id="f_kelurahan" class="form-input" required></div>
                                 <div><label class="form-label required-mark">Kecamatan</label><input type="text" name="kecamatan" id="f_kecamatan" class="form-input" required></div>
@@ -365,7 +372,7 @@
                             <div><label class="form-label required-mark">NIK Ayah</label><input type="text" name="nik_ayah" id="f_nik_ayah" class="form-input" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" required></div>
                             <div><label class="form-label required-mark">Nama Ayah</label><input type="text" name="nama_ayah" id="f_nama_ayah" class="form-input" required></div>
                             <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ayah" class="form-input format-wa" inputmode="tel" pattern="(08|628)[0-9]{8,13}" required></div>
-                            <div><label class="form-label required-mark">Email Ayah</label><input type="email" name="email_ayah" class="form-input" placeholder="ayah@gmail.com" required></div>
+                            <div><label class="form-label">Email Ayah (opsional)</label><input type="email" name="email_ayah" class="form-input" placeholder="ayah@gmail.com"></div>
                             <div><label class="form-label required-mark">Tempat Lahir</label><input type="text" name="tempat_lahir_ayah" id="f_tempat_lahir_ayah" class="form-input" required></div>
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir_ayah" id="f_tanggal_lahir_ayah" class="form-input" required></div>
                             <div><label class="form-label required-mark">Pekerjaan</label><input type="text" name="pekerjaan_ayah" id="f_pek_ayah" class="form-input" required></div>
@@ -423,7 +430,7 @@
                             <div><label class="form-label required-mark">NIK Ibu</label><input type="text" name="nik_ibu" id="f_nik_ibu" class="form-input" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" required></div>
                             <div><label class="form-label required-mark">Nama Ibu</label><input type="text" name="nama_ibu" id="f_nama_ibu" class="form-input" required></div>
                             <div><label class="form-label required-mark">No. HP / WA</label><input type="text" name="no_wa_ibu" class="form-input format-wa" inputmode="tel" pattern="(08|628)[0-9]{8,13}" required></div>
-                            <div><label class="form-label required-mark">Email Ibu</label><input type="email" name="email_ibu" class="form-input" placeholder="ibu@gmail.com" required></div>
+                            <div><label class="form-label">Email Ibu (opsional)</label><input type="email" name="email_ibu" class="form-input" placeholder="ibu@gmail.com"></div>
                             <div><label class="form-label required-mark">Tempat Lahir</label><input type="text" name="tempat_lahir_ibu" id="f_tempat_lahir_ibu" class="form-input" required></div>
                             <div><label class="form-label required-mark">Tanggal Lahir</label><input type="date" name="tanggal_lahir_ibu" id="f_tanggal_lahir_ibu" class="form-input" required></div>
                             <div><label class="form-label required-mark">Pekerjaan</label><input type="text" name="pekerjaan_ibu" id="f_pek_ibu" class="form-input" required></div>
@@ -660,11 +667,9 @@
                 }
             });
         }
-        // Threshold ketajaman gambar (semakin tinggi semakin ketat)
-        const BLUR_THRESHOLD = 80; 
         const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-        const IMAGE_MAX_DIMENSION = 1800;
-        const IMAGE_JPEG_QUALITY = 0.78;
+        const IMAGE_MAX_DIMENSION = 3200;
+        const IMAGE_JPEG_QUALITY = 0.93;
 
         function formatFileSize(bytes) {
             if (!bytes && bytes !== 0) return '';
@@ -745,19 +750,25 @@
                     }
                 }
             });
-            localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+            delete formData.pernyataan_kebenaran_data;
+            try {
+                localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+                document.getElementById('draft-status').textContent = 'Isian tersimpan di perangkat ini. Foto perlu dipilih kembali jika halaman dimuat ulang.';
+            } catch (_) { document.getElementById('draft-status').textContent = 'Penyimpanan otomatis tidak tersedia. Pertahankan halaman ini sampai data berhasil dikirim.'; }
         }
 
         function loadFormData() {
-            const savedData = localStorage.getItem(FORM_STORAGE_KEY);
+            let savedData;
+            try { savedData = localStorage.getItem(FORM_STORAGE_KEY); } catch (_) { return; }
             if (!savedData) return;
 
             try {
                 const formData = JSON.parse(savedData);
                 Object.keys(formData).forEach(name => {
                     const elements = document.getElementsByName(name);
-                    if (elements.length > 0) {
+                    if (elements.length > 0 && name !== 'pernyataan_kebenaran_data') {
                         const element = elements[0];
+                        element.dataset.userEdited = 'true';
                         if (element.type === 'checkbox') {
                             element.checked = formData[name];
                         } else {
@@ -797,46 +808,6 @@
             };
         }
 
-        // Fungsi Hitung Blur (Algoritma Laplacian Variance)
-        function checkImageBlur(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                        const scale = Math.min(1, 400 / Math.max(img.width, img.height));
-                        canvas.width = img.width * scale;
-                        canvas.height = img.height * scale;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        const data = imageData.data;
-                        const w = canvas.width, h = canvas.height;
-                        const gray = new Uint8Array(w * h);
-                        
-                        for (let i = 0; i < data.length; i += 4) {
-                            gray[i/4] = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
-                        }
-                        
-                        let sum = 0, sumSq = 0, count = 0;
-                        for (let y = 1; y < h - 1; y++) {
-                            for (let x = 1; x < w - 1; x++) {
-                                const i = y * w + x;
-                                const lap = gray[i-w] + gray[i-1] - 4*gray[i] + gray[i+1] + gray[i+w];
-                                sum += lap; sumSq += lap*lap; count++;
-                            }
-                        }
-                        const mean = sum / count;
-                        resolve((sumSq / count) - (mean * mean));
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
         // Setting OCR dari Backend Admin
         const OCR_ENGINE = "{{ $ocr_engine }}";
         const OCR_WEBHOOK_URL = "{{ $ocr_webhook_url }}";
@@ -849,161 +820,64 @@
             foto: 'Pas Foto Anak',
         };
 
-        const DETECTED_DOCUMENT_LABELS = {
-            akta: 'Akta Anak',
-            kk: 'Kartu Keluarga',
-            ktp: 'KTP',
-            foto: 'pas foto',
-            unknown: 'dokumen yang belum dikenali',
-        };
-
-        function buildDocumentCheckMessage(documentCheck, expectedLabel, detectedLabel) {
-            if (documentCheck.expected_gender && documentCheck.detected_gender && documentCheck.gender_matches === false) {
-                return `Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Jenis kelamin pada KTP yang terbaca tampaknya <strong>${documentCheck.detected_gender}</strong>.<br><br>Mohon periksa kembali foto yang dipilih, lalu unggah ${expectedLabel} yang jelas dan terbaca.`;
-            }
-
-            if (documentCheck.expected_type === 'foto') {
-                return `Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon pilih foto wajah anak yang jelas seperti pas foto identitas.`;
-            }
-
-            return `Sepertinya dokumen yang dipilih belum sesuai dengan kolom ini.<br><br>Kolom ini digunakan untuk mengunggah <strong>${expectedLabel}</strong>. Mohon periksa kembali foto yang dipilih, lalu unggah foto ${expectedLabel} yang jelas dan terbaca.`;
-        }
-
-        async function confirmChildPhotoCheck(documentCheck) {
-            if (!documentCheck || documentCheck.is_expected_document !== false) {
-                return true;
-            }
-
-            const result = await Swal.fire({
-                icon: 'info',
-                title: 'Mohon periksa kembali foto',
-                html: 'Sistem belum dapat memastikan foto ini dengan baik.<br><br>Mohon pastikan foto menampilkan wajah anak dengan cukup jelas. Jika foto yang dipilih sudah benar, Bapak/Ibu tetap dapat melanjutkan.',
-                showCancelButton: true,
-                confirmButtonText: 'Tetap Gunakan',
-                cancelButtonText: 'Ganti Foto',
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#64748b'
-            });
-
-            return result.isConfirmed;
-        }
-
-        async function confirmOcrDocumentCheck(documentCheck, target) {
-            if (!documentCheck || documentCheck.is_expected_document !== false) {
-                return true;
-            }
-
-            if (target === 'foto') {
-                return confirmChildPhotoCheck(documentCheck);
-            }
-
-            const expectedLabel = DOCUMENT_LABELS[target] || 'dokumen yang sesuai';
-            const detectedLabel = DETECTED_DOCUMENT_LABELS[documentCheck.document_type] || 'dokumen lain';
-            const confidence = String(documentCheck.confidence || 'low').toLowerCase();
-
-            if (confidence === 'high') {
-                await Swal.fire({
-                    icon: 'info',
-                    title: 'Mohon periksa kembali dokumen',
-                    html: buildDocumentCheckMessage(documentCheck, expectedLabel, detectedLabel),
-                    confirmButtonText: 'Unggah Ulang',
-                    confirmButtonColor: '#10b981'
-                });
-
-                return false;
-            }
-
-            if (confidence === 'medium') {
-                const result = await Swal.fire({
-                    icon: 'warning',
-                    title: 'Kami belum yakin dokumennya sesuai',
-                    html: `Kolom ini digunakan untuk <strong>${expectedLabel}</strong>. Sistem membaca foto ini mungkin sebagai ${detectedLabel}.<br><br>Mohon pastikan foto yang diunggah sudah sesuai dan terlihat jelas.`,
-                    showCancelButton: true,
-                    confirmButtonText: 'Tetap Gunakan',
-                    cancelButtonText: 'Ganti Foto',
-                    confirmButtonColor: '#10b981',
-                    cancelButtonColor: '#64748b'
-                });
-
-                return result.isConfirmed;
-            }
-
-            return true;
-        }
-
-        // Fungsi OCR menggunakan Tesseract atau Webhook n8n
-        async function runOCR(file, target) {
+        // Upload progress is measured; remote recognition stays indeterminate until a response arrives.
+        async function runOCR(file, target, signal) {
+            const scanner = window.SpsbScanner;
+            if (target === 'foto') return true;
             if (OCR_ENGINE === 'local') {
+                let worker;
+                const terminate = () => { if (worker) worker.terminate().catch(() => {}); };
+                let timeout;
+                let expired = false;
                 try {
-                    const worker = await Tesseract.createWorker('ind');
-                    const { data: { text } } = await worker.recognize(file);
-                    await worker.terminate();
-                    
-                    parseAndFill(text, target);
-                    return true;
-                } catch (err) {
-                    console.error("OCR Lokal Failed:", err);
-                    return true;
-                }
-            } else {
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('target', target);
-                    
-                    // Kita post ke backend Laravel kita sendiri (/upload-ocr)
-                    // Nanti Laravel yang akan melempar ke n8n atau Direct AI
-                    const response = await fetch('/upload-ocr', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
-                        },
-                        body: formData
+                    const recognition = (async () => {
+                        await scanner.ensureOcr();
+                        worker = await Tesseract.createWorker('ind+eng', 1, {
+                            workerPath: '/vendor/tesseract/worker.min.js',
+                            corePath: '/vendor/tesseract/core/',
+                            logger: message => {
+                                if (signal.aborted) return;
+                                if (message.status === 'recognizing text') {
+                                    const percent = Math.round(message.progress * 100);
+                                    scanner.progress(target, 'Membaca teks: ' + percent + '%', percent);
+                                } else scanner.progress(target, 'Menyiapkan pembaca OCR…');
+                            }
+                        });
+                        if (signal.aborted || expired) { await worker.terminate(); throw new DOMException('Dibatalkan', 'AbortError'); }
+                        signal.addEventListener('abort', terminate, { once: true });
+                        return worker.recognize(file);
+                    })();
+                    const aborted = new Promise((_, reject) => {
+                        if (signal.aborted) reject(new DOMException('Dibatalkan', 'AbortError'));
+                        else signal.addEventListener('abort', () => reject(new DOMException('Dibatalkan', 'AbortError')), { once: true });
                     });
-                    
-                    let data;
-                    try {
-                        data = await response.json();
-                    } catch (e) {
-                        throw new Error("Server mengembalikan respons tidak valid (mungkin error 500). Kode HTTP: " + response.status);
-                    }
-                    
-                    if (!response.ok) {
-                        throw new Error(data.error || "Gagal menghubungi server OCR (HTTP " + response.status + ")");
-                    }
-
-                    const canContinue = await confirmOcrDocumentCheck(data.document_check, target);
-                    if (!canContinue) {
-                        return false;
-                    }
-                    
-                    if (data.fields && Object.keys(data.fields).length > 0) {
-                        applyOcrFields(data.fields, target);
-                    }
-
-                    if (data.extracted_text) {
-                        parseAndFill(data.extracted_text, target);
-                    } else {
-                        if (target === 'ayah') {
-                            if(data.nik) { document.getElementById('f_nik_ayah').value = data.nik; triggerHighlight(document.getElementById('f_nik_ayah')); }
-                            if(data.nama) { document.getElementById('f_nama_ayah').value = data.nama; triggerHighlight(document.getElementById('f_nama_ayah')); }
-                            if(data.tempat_lahir) { document.getElementById('f_tempat_lahir_ayah').value = data.tempat_lahir; triggerHighlight(document.getElementById('f_tempat_lahir_ayah')); }
-                            if(data.tanggal_lahir) { document.getElementById('f_tanggal_lahir_ayah').value = data.tanggal_lahir; triggerHighlight(document.getElementById('f_tanggal_lahir_ayah')); }
-                        } else if (target === 'ibu') {
-                            if(data.nik) { document.getElementById('f_nik_ibu').value = data.nik; triggerHighlight(document.getElementById('f_nik_ibu')); }
-                            if(data.nama) { document.getElementById('f_nama_ibu').value = data.nama; triggerHighlight(document.getElementById('f_nama_ibu')); }
-                        } else if (target === 'kk') {
-                            if(data.nik) { document.getElementById('f_nik_anak').value = data.nik; triggerHighlight(document.getElementById('f_nik_anak')); }
-                        }
-                    }
+                    const { data } = await Promise.race([recognition, aborted, new Promise((_, reject) => {
+                        timeout = setTimeout(() => { expired = true; terminate(); reject(new Error('Pembacaan terlalu lama.')); }, 90000);
+                    })]);
+                    if (signal.aborted) return true;
+                    if (!Number.isFinite(data.confidence) || data.confidence < 65 || !data.text?.trim()) return scanner.manualChoice('Hasil pembacaan belum cukup meyakinkan.');
+                    SpsbForm.applyOcr(target, () => parseAndFill(data.text, target));
+                    scanner.progress(target, 'Selesai. Periksa dan koreksi hasil OCR.', 100);
                     return true;
-                } catch (err) {
-                    console.error("OCR Failed:", err);
-                    alert("Terjadi kesalahan saat mengekstrak teks: " + err.message);
-                    return true;
+                } finally {
+                    clearTimeout(timeout);
+                    signal.removeEventListener('abort', terminate);
+                    if (worker) await worker.terminate().catch(() => {});
                 }
             }
+            const data = await scanner.request(file, target, signal);
+            if (signal.aborted) return true;
+            if (data.document_check?.is_expected_document === false || data.document_check?.confidence === 'low') {
+                return scanner.manualChoice('Jenis dokumen atau tulisannya belum dapat dipastikan.');
+            }
+            // Structured fields must not be overwritten by a regex parsing the JSON response.
+            const fields = data.fields || {};
+            const useful = Object.entries(fields).some(([key, value]) => ['nama', 'nik', 'alamat', 'tanggal_lahir'].includes(key) && value);
+            if (useful) SpsbForm.applyOcr(target, () => applyOcrFields(fields, target));
+            else if (data.extracted_text?.trim() && !data.extracted_text.trim().startsWith('{')) SpsbForm.applyOcr(target, () => parseAndFill(data.extracted_text, target));
+            else return scanner.manualChoice('Tidak ada data yang berhasil dibaca.');
+            scanner.progress(target, 'Selesai. Periksa dan koreksi hasil OCR.', 100);
+            return true;
         }
 
         function triggerHighlight(el) {
@@ -1025,6 +899,7 @@
             const el = document.getElementById(id);
             const clean = cleanAiValue(value);
             if (!el || !clean) return;
+            if (id.includes('nik') && !/^\d{16}$/.test(clean)) return;
             el.value = clean;
             triggerHighlight(el);
         }
@@ -1060,14 +935,13 @@
                 if (fields.jenis_kelamin) {
                     const gender = cleanAiValue(fields.jenis_kelamin).toUpperCase();
                     const genderEl = document.getElementById('f_jk');
-                    if (genderEl) {
-                        genderEl.value = gender.includes('PEREMPUAN') ? 'Perempuan' : 'Laki-laki';
+                    if (genderEl && ['PEREMPUAN', 'LAKI-LAKI'].includes(gender)) {
+                        genderEl.value = gender === 'PEREMPUAN' ? 'Perempuan' : 'Laki-laki';
                         triggerHighlight(genderEl);
                     }
                 }
 
-                setOcrValue('f_nama_ayah', fields.nama_ayah);
-                setOcrValue('f_nama_ibu', fields.nama_ibu);
+                // Parent identity comes exclusively from their respective KTP.
                 return;
             }
 
@@ -1106,30 +980,14 @@
         }
 
         function parseAndFill(text, target) {
-            const fullText = text.replace(/\n/g, ' ');
+            const fullText = text.replace(/\r/g, '');
             const noSpaceText = text.replace(/\s+/g, '').toUpperCase();
 
-            let nikMatch = noSpaceText.match(/NIK.*?([0-9OIlZSB]{16})/i);
-            if (!nikMatch) nikMatch = noSpaceText.match(/([0-9OIlZSB]{16})/i);
-
+            // Never infer missing digits or substitute letters in identity numbers.
+            const nikMatch = noSpaceText.match(/(?:NIK|NOMORINDUKKEPENDUDUKAN)[:;]?(\d{16})(?!\d)/);
             if (nikMatch) {
-                let nikClean = nikMatch[1]
-                    .replace(/[O]/g, '0')
-                    .replace(/[I|l]/g, '1')
-                    .replace(/[Z]/g, '2')
-                    .replace(/[S]/g, '5')
-                    .replace(/[B]/g, '8');
-
-                if (target === 'akta') {
-                    const el = document.getElementById('f_nik_anak');
-                    if(el) { el.value = nikClean; triggerHighlight(el); }
-                } else if (target === 'ayah') {
-                    const el = document.getElementById('f_nik_ayah');
-                    if(el) { el.value = nikClean; triggerHighlight(el); }
-                } else if (target === 'ibu') {
-                    const el = document.getElementById('f_nik_ibu');
-                    if(el) { el.value = nikClean; triggerHighlight(el); }
-                }
+                const id = { akta: 'f_nik_anak', ayah: 'f_nik_ayah', ibu: 'f_nik_ibu' }[target];
+                if (id) setOcrValue(id, nikMatch[1]);
             }
 
             const ttlMatch = fullText.match(/Lahir\s*[:;]?\s*([A-Za-z\s]+)[\.,\s]+\s*(\d{2}[-\s\./]\d{2}[-\s\./]\d{4})/i);
@@ -1157,7 +1015,9 @@
                 }
             }
 
-            const namaMatch = fullText.match(/NAMA\s*[:;]?\s*([A-Z\s\.,]+)/i);
+            const namaMatch = target === 'akta'
+                ? fullText.match(/\bBERNAMA[ \t]*[:;]?[ \t]*([^\n]+)/i)
+                : fullText.match(/(?:^|\n)[ \t]*NAMA[ \t]*[:;]?[ \t]*([^\n]+)/i);
             if (namaMatch) {
                 const nama = cleanAiValue(namaMatch[1]);
                 let el = null;
@@ -1275,143 +1135,61 @@
             setTimeout(resizeCanvas, 300); // Fix canvas size when wrapper becomes visible
         }
 
-        let validFilesCount = 0;
-
+        window.addEventListener('scan:manual', unlockStep2);
         document.querySelectorAll('.file-input').forEach(input => {
             input.addEventListener('change', async function() {
-                let file = this.files[0];
+                const scanner = window.SpsbScanner;
                 const target = this.dataset.target;
-                const dropzone = document.getElementById('dropzone-' + target);
-                const preview = document.getElementById('preview-' + target);
-                const pdfIcon = document.getElementById('pdf-icon-' + target);
+                let file = this.files[0];
+                if (!file || scanner.tasks.has(target)) return;
+                SpsbForm.clearOcr(target);
+                const controller = new AbortController();
+                scanner.tasks.set(target, controller);
                 const loading = document.getElementById('loading-' + target);
-                const status = document.getElementById('status-' + target);
                 const hint = document.getElementById('hint-' + target);
-                
-                if (!file) return;
-
-                const isPdf = file.type === 'application/pdf';
-
-                // Reset UI for this box
-                preview.classList.add('hidden');
-                if (pdfIcon) pdfIcon.classList.add('hidden');
-                hint.classList.add('hidden');
-                loading.classList.remove('hidden');
-                loading.classList.add('flex');
-                dropzone.classList.remove('border-red-500', 'bg-red-50', 'border-emerald-500', 'bg-emerald-50', 'border-slate-300');
-                dropzone.classList.add('border-blue-400', 'bg-blue-50');
-
-                if (isPdf && file.size > MAX_UPLOAD_BYTES) {
-                    loading.classList.remove('flex');
-                    loading.classList.add('hidden');
-                    hint.classList.remove('hidden');
-                    dropzone.classList.replace('border-blue-400', 'border-red-500');
-                    dropzone.classList.replace('bg-blue-50', 'bg-red-50');
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'File Terlalu Besar',
-                        text: `Ukuran PDF ${formatFileSize(file.size)}. Maksimal 10 MB per berkas. Mohon kompres PDF atau foto ulang dokumen dalam format gambar.`,
-                        confirmButtonText: 'Mengerti',
-                        confirmButtonColor: '#10b981'
-                    });
-
-                    this.value = '';
-                    return;
-                }
-                
-                // 1. Cek Blur (Hanya untuk Gambar)
-                if (!isPdf) {
-                    status.innerText = "Mengoptimalkan foto...";
-                    try {
-                        const compressedFile = await compressImageFile(file);
-                        if (compressedFile !== file && replaceInputFile(this, compressedFile)) {
-                            file = compressedFile;
+                const preview = document.getElementById('preview-' + target);
+                loading.classList.remove('hidden'); loading.classList.add('flex');
+                hint.classList.remove('hidden');
+                let keep = false;
+                try {
+                    scanner.progress(target, 'Memeriksa foto…');
+                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Gunakan foto JPG, PNG, atau WebP.');
+                    if (!scanner.manualTargets.has(target)) {
+                        const issues = await scanner.quality(file, target);
+                        if (issues.length && !scanner.manualTargets.has(target)) {
+                            if (!(await scanner.manualChoice(issues.join(' ')))) return;
+                            scanner.manualTargets.add(target);
                         }
-                    } catch (err) {
-                        console.warn('Kompresi gambar dilewati:', err);
                     }
-
-                    if (file.size > MAX_UPLOAD_BYTES) {
-                        loading.classList.remove('flex');
-                        loading.classList.add('hidden');
-                        hint.classList.remove('hidden');
-                        dropzone.classList.replace('border-blue-400', 'border-red-500');
-                        dropzone.classList.replace('bg-blue-50', 'bg-red-50');
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Foto Terlalu Besar',
-                            text: `Ukuran foto ${formatFileSize(file.size)}. Maksimal 10 MB per berkas. Mohon foto ulang dengan mode kamera biasa, bukan mode 50MP/HD.`,
-                            confirmButtonText: 'Coba Lagi',
-                            confirmButtonColor: '#10b981'
-                        });
-
-                        this.value = '';
-                        return;
-                    }
-
-                    status.innerText = "Mengecek resolusi...";
-                    const variance = await checkImageBlur(file);
-                    
-                    if (variance < BLUR_THRESHOLD) {
-                        loading.classList.remove('flex');
-                        loading.classList.add('hidden');
-                        hint.classList.remove('hidden');
-                        dropzone.classList.replace('border-blue-400', 'border-red-500');
-                        dropzone.classList.replace('bg-blue-50', 'bg-red-50');
-                        
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Foto Terlalu Buram!',
-                            text: `Sistem mendeteksi foto ${target.toUpperCase()} kurang fokus. Mohon foto ulang dengan cahaya yang terang agar AI bisa membacanya dengan akurat.`,
-                            confirmButtonText: 'Coba Lagi',
-                            confirmButtonColor: '#10b981'
-                        });
-                        
-                        this.value = '';
-                        return;
-                    }
-
-                    // Tampilkan Preview Gambar
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        preview.src = e.target.result;
-                        preview.classList.remove('hidden');
-                        dropzone.classList.replace('border-blue-400', 'border-emerald-500');
-                        dropzone.classList.replace('bg-blue-50', 'bg-white');
-                    }
-                    reader.readAsDataURL(file);
-                } else {
-                    // Tampilkan Ikon PDF
-                    if (pdfIcon) pdfIcon.classList.remove('hidden');
-                    dropzone.classList.replace('border-blue-400', 'border-emerald-500');
-                    dropzone.classList.replace('bg-blue-50', 'bg-white');
-                    status.innerText = "PDF siap diunggah";
-                }
-
-                // 2. Jalankan OCR/validasi AI hanya untuk gambar. Foto anak dicek jenis fotonya tanpa mengisi data.
-                if (!isPdf) {
-                    status.innerText = target === 'foto' ? "AI sedang memeriksa foto..." : "AI sedang membaca...";
-                    const canUseFile = await runOCR(file, target);
-                    if (!canUseFile) {
-                        this.value = '';
-                        preview.classList.add('hidden');
-                        hint.classList.remove('hidden');
-                        loading.classList.remove('flex');
-                        loading.classList.add('hidden');
-                        dropzone.classList.remove('border-emerald-500', 'bg-white');
-                        dropzone.classList.add('border-red-500', 'bg-red-50');
-                        return;
-                    }
-                }
-                
-                loading.classList.remove('flex');
-                loading.classList.add('hidden');
-                
-                validFilesCount++;
-                if(validFilesCount >= 1) {
+                    scanner.progress(target, 'Menyiapkan foto…');
+                    const compressed = await compressImageFile(file);
+                    if (compressed !== file && replaceInputFile(this, compressed)) file = compressed;
+                    if (file.size > MAX_UPLOAD_BYTES) throw new Error('Ukuran foto maksimal 10 MB. Pilih foto lain.');
+                    const previewUrl = URL.createObjectURL(file);
+                    preview.onload = () => URL.revokeObjectURL(previewUrl);
+                    preview.src = previewUrl; preview.classList.remove('hidden');
                     unlockStep2();
+                    if (scanner.manualTargets.has(target) || controller.signal.aborted) keep = true;
+                    else {
+                        scanner.progress(target, target === 'foto' ? 'Foto anak siap dilampirkan.' : 'Menyiapkan OCR…');
+                        keep = await runOCR(file, target, controller.signal);
+                    }
+                    if (controller.signal.aborted) keep = true;
+                    hint.textContent = scanner.manualTargets.has(target) ? 'Terlampir • isi data manual' : (target === 'foto' ? 'Foto anak terlampir' : 'Terlampir • periksa hasil OCR');
+                    saveFormData(); updateProgress();
+                } catch (error) {
+                    if (controller.signal.aborted) keep = true;
+                    else if (file.size <= MAX_UPLOAD_BYTES && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                        keep = await scanner.manualChoice(error.message || 'Pembacaan gagal.');
+                        if (keep) { scanner.manualTargets.add(target); hint.textContent = 'Terlampir • isi data manual'; unlockStep2(); }
+                    } else {
+                        await Swal.fire({ icon: 'warning', title: 'Berkas belum sesuai', text: error.message });
+                    }
+                } finally {
+                    if (!keep) { this.value = ''; preview.classList.add('hidden'); hint.textContent = 'Ketuk untuk foto ulang'; }
+                    loading.classList.add('hidden'); loading.classList.remove('flex');
+                    scanner.tasks.delete(target);
+                    updateProgress();
                 }
             });
         });
@@ -1420,9 +1198,13 @@
         const canvas = document.getElementById('signature-pad');
         function resizeCanvas() {
             const ratio =  Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
+            const width = Math.round(canvas.offsetWidth * ratio), height = Math.round(canvas.offsetHeight * ratio);
+            if (!width || !height || (canvas.width === width && canvas.height === height)) return;
+            const strokes = signaturePad.toData();
+            canvas.width = width; canvas.height = height;
             canvas.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear();
+            if (strokes.length) signaturePad.fromData(strokes);
         }
         window.addEventListener("resize", resizeCanvas);
         // Call it immediately but also ensure it resizes after step 2 is unlocked
@@ -1443,119 +1225,18 @@
         // Tangkap event submit untuk konfirmasi ganda
         document.getElementById('form-pendaftaran').addEventListener('submit', function(e) {
             e.preventDefault();
-
-            // Check for empty required fields
-            const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-            const emptyFields = [];
-
-            requiredInputs.forEach(input => {
-                let isEmpty = false;
-                if (input.type === 'checkbox') {
-                    if (!input.checked) isEmpty = true;
-                } else if (input.type === 'file') {
-                    if (!input.files || input.files.length === 0) isEmpty = true;
-                } else {
-                    if (input.value.trim() === '') isEmpty = true;
-                }
-
-                if (isEmpty) {
-                    let sectionName = "Formulir";
-                    const card = input.closest('.glass-card, .bg-white, .bg-slate-800');
-                    if (card) {
-                        const heading = card.querySelector('h2, h3');
-                        if (heading) {
-                            sectionName = heading.textContent.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
-                        }
-                    }
-                    
-                    let labelText = "";
-                    if (input.type === 'file') {
-                        if (input.name === 'foto_akta_anak') labelText = 'Dokumen Akta Anak';
-                        else if (input.name === 'foto_kk') labelText = 'Dokumen Kartu Keluarga';
-                        else if (input.name === 'foto_ktp_ayah') labelText = 'Dokumen KTP Ayah';
-                        else if (input.name === 'foto_ktp_ibu') labelText = 'Dokumen KTP Ibu';
-                        else if (input.name === 'foto_pas_siswa') labelText = 'Pas Foto Anak 3x4';
-                        else labelText = 'Dokumen Pendukung';
-                    } else {
-                        const labelEl = input.closest('div')?.querySelector('label, .form-label');
-                        if (labelEl) {
-                            labelText = labelEl.textContent.replace('*', '').trim();
-                        } else {
-                            labelText = input.placeholder || input.name || "Kolom Wajib";
-                        }
-                    }
-
-                    emptyFields.push({
-                        element: input,
-                        section: sectionName,
-                        label: labelText
-                    });
-                }
-            });
-
-            const isSignatureEmpty = typeof signaturePad === 'undefined' || signaturePad.isEmpty();
-
-            if (emptyFields.length > 0 || isSignatureEmpty) {
-                // Group empty fields by section
-                const grouped = {};
-                emptyFields.forEach(field => {
-                    if (!grouped[field.section]) {
-                        grouped[field.section] = [];
-                    }
-                    grouped[field.section].push(field);
-                });
-
-                if (isSignatureEmpty) {
-                    const secName = "Pernyataan Kebenaran Data";
-                    if (!grouped[secName]) grouped[secName] = [];
-                    grouped[secName].push({
-                        label: "Tanda Tangan Digital"
-                    });
-                }
-
-                // Show SweetAlert with categories
-                let htmlContent = `
-                    <div class="text-left text-sm text-slate-600 max-h-60 overflow-y-auto pr-2">
-                        <p class="mb-4 text-slate-500 font-medium">Mohon lengkapi bagian-bagian wajib berikut sebelum mengirimkan formulir:</p>
-                `;
-
-                for (const section in grouped) {
-                    htmlContent += `
-                        <div class="mb-4">
-                            <h5 class="font-extrabold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                <span class="w-1.5 h-3 bg-rose-500 rounded-full"></span> ${section}
-                            </h5>
-                            <ul class="list-disc pl-5 space-y-1 text-xs text-rose-600 font-semibold">
-                    `;
-                    grouped[section].forEach(field => {
-                        htmlContent += `<li>${field.label}</li>`;
-                    });
-                    htmlContent += `
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                htmlContent += `</div>`;
-
-                Swal.fire({
-                    icon: 'warning',
-                    title: '<span class="text-lg font-black text-slate-800 uppercase tracking-tight">Formulir Belum Lengkap</span>',
-                    html: htmlContent,
-                    confirmButtonText: 'Lengkapi Sekarang',
-                    confirmButtonColor: '#ef4444',
-                    customClass: {
-                        popup: 'rounded-[2rem] border-0 shadow-2xl',
-                        confirmButton: 'rounded-xl px-6 py-3 font-bold text-sm uppercase tracking-wider'
-                    }
-                });
+            if (window.SpsbScanner.tasks.size) {
+                Swal.fire({ icon: 'info', title: 'Foto masih diproses', text: 'Tunggu proses selesai atau pilih Isi Manual pada dokumen yang sedang diproses.' });
                 return;
             }
+
+            if (!SpsbForm.validate(signaturePad)) return;
 
             // If completely valid, proceed with double confirmation
             Swal.fire({
                 title: 'Konfirmasi Data',
                 html: `
+                    ${SpsbForm.review()}
                     <div class="text-left text-sm mb-4 text-slate-600">
                         Pastikan Anda telah mengecek ulang seluruh isian. AI hanya membantu menyalin data, namun <b>Anda wajib memastikan tidak ada data yang salah ketik/kurang pas</b>.
                     </div>
@@ -1580,18 +1261,7 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Mengirim Data...',
-                        html: 'Sistem sedang memproses formulir dan meracik dokumen Anda.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
-                    document.getElementById('ttd-base64').value = signaturePad.toDataURL('image/png');
-                    localStorage.removeItem(FORM_STORAGE_KEY);
-                    document.getElementById('form-pendaftaran').submit();
+                    SpsbForm.submit(signaturePad);
                 }
             });
         });
@@ -1645,26 +1315,6 @@
             });
         });
 
-        // Script Format Nomor WA
-        document.querySelectorAll('.format-wa').forEach(input => {
-            input.addEventListener('input', function() {
-                let val = this.value.replace(/\D/g, ''); // hanya angka
-                if (val.length > 0) {
-                    if (val.startsWith('8')) {
-                        val = '0' + val;
-                    } else if (val.startsWith('628')) {
-                        val = '08' + val.substring(3);
-                    } else if (val.startsWith('0') && !val.startsWith('08') && val.length > 1) {
-                        // jika mulai 0 tapi bukan 08, ubah paksa ke 08 (asumsi typo)
-                        val = '08' + val.substring(2);
-                    } else if (!val.startsWith('0') && !val.startsWith('8') && !val.startsWith('6')) {
-                        val = '08' + val;
-                    }
-                }
-                this.value = val;
-            });
-        });
-    
         // LOGIKA PROGRESS BAR & TOMBOL SUBMIT
         function updateProgress() {
             const requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
@@ -1683,7 +1333,7 @@
                 } else if (input.type === 'file') {
                     if (input.files && input.files.length > 0) filledCount++;
                 } else {
-                    if (input.value.trim() !== '') filledCount++;
+                    if (input.value.trim() !== '' && input.checkValidity()) filledCount++;
                 }
             });
 

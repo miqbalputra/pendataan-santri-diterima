@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bukti Pendataan - {{ $santri->nama_lengkap }}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite('resources/css/app.css')
     <style>
         @media print {
             .no-print { display: none !important; }

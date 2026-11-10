@@ -33,32 +33,30 @@ class AdminController extends Controller
             });
         }
 
-        $pendaftar = $query->paginate(20);
+        $pendaftar = $query->paginate(20)->withQueryString();
         
-        $stats = [
-            'total' => CalonSantri::count(),
-            'pending' => CalonSantri::where('status_pendaftaran', 'Pending')->count(),
-            'diterima' => CalonSantri::where('status_pendaftaran', 'Diterima')->count(),
-            'sampah' => CalonSantri::onlyTrashed()->count(),
-        ];
+        $counts = CalonSantri::selectRaw("COUNT(*) as total, SUM(CASE WHEN status_pendaftaran = 'Pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status_pendaftaran = 'Diterima' THEN 1 ELSE 0 END) as diterima")->first();
+        $stats = ['total' => (int) $counts->total, 'pending' => (int) $counts->pending,
+            'diterima' => (int) $counts->diterima, 'sampah' => CalonSantri::onlyTrashed()->count()];
+        $settings = Setting::pluck('value', 'key');
 
-        $ocr_engine = Setting::where('key', 'ocr_engine')->value('value') ?? 'local';
-        $ocr_webhook_url = Setting::where('key', 'ocr_webhook_url')->value('value') ?? 'https://n8n.griyaquran.web.id/webhook/ocr-ktp';
-        $n8n_email_webhook_url = Setting::where('key', 'n8n_email_webhook_url')->value('value') ?? '';
-        $n8n_whatsapp_webhook_url = Setting::where('key', 'n8n_whatsapp_webhook_url')->value('value') ?? '';
-        $group_ikhwan_url = Setting::where('key', 'group_ikhwan_url')->value('value') ?? '';
-        $group_akhwat_url = Setting::where('key', 'group_akhwat_url')->value('value') ?? '';
+        $ocr_engine = ($settings['ocr_engine'] ?? null) ?? 'local';
+        $ocr_webhook_url = ($settings['ocr_webhook_url'] ?? null) ?? 'https://n8n.griyaquran.web.id/webhook/ocr-ktp';
+        $n8n_email_webhook_url = ($settings['n8n_email_webhook_url'] ?? null) ?? '';
+        $n8n_whatsapp_webhook_url = ($settings['n8n_whatsapp_webhook_url'] ?? null) ?? '';
+        $group_ikhwan_url = ($settings['group_ikhwan_url'] ?? null) ?? '';
+        $group_akhwat_url = ($settings['group_akhwat_url'] ?? null) ?? '';
         
         // Pengaturan Direct AI
-        $ai_endpoint = Setting::where('key', 'ai_endpoint')->value('value') ?? 'https://api.openai.com/v1/chat/completions';
-        $ai_api_key = Setting::where('key', 'ai_api_key')->value('value') ?? '';
-        $ai_model = Setting::where('key', 'ai_model')->value('value') ?? 'gpt-4o';
+        $ai_endpoint = ($settings['ai_endpoint'] ?? null) ?? 'https://api.openai.com/v1/chat/completions';
+        $ai_api_key = ($settings['ai_api_key'] ?? null) ?? '';
+        $ai_model = ($settings['ai_model'] ?? null) ?? 'gpt-4o';
         
-        $app_locked = Setting::where('key', 'app_locked')->value('value') == '1';
+        $app_locked = ($settings['app_locked'] ?? null) == '1';
         
-        $kop_baris_1 = Setting::where('key', 'kop_baris_1')->value('value') ?? 'GRIYA QUR\'AN BAITUL MANSHURIN';
-        $kop_baris_2 = Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)';
-        $kop_baris_3 = Setting::where('key', 'kop_baris_3')->value('value') ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890';
+        $kop_baris_1 = ($settings['kop_baris_1'] ?? null) ?? 'GRIYA QUR\'AN BAITUL MANSHURIN';
+        $kop_baris_2 = ($settings['kop_baris_2'] ?? null) ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)';
+        $kop_baris_3 = ($settings['kop_baris_3'] ?? null) ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890';
 
         $periodes = Periode::all();
         $gelombangs = Gelombang::withCount('calonSantris')->get();
@@ -69,13 +67,15 @@ class AdminController extends Controller
             $followUpRelations[] = 'groupJoinLinks';
         }
 
-        $followUpPendaftar = CalonSantri::with($followUpRelations)->latest()->get()->filter(function ($santri) {
-            $statuses = collect($santri->dokumen_status ?? []);
-            return !$santri->followup_sudah_masuk_grup
-                || !$santri->followup_sudah_dihubungi
-                || $santri->status_pendaftaran === 'Pending'
-                || $statuses->contains(fn ($status) => in_array($status, ['kosong', 'perlu_perbaikan', 'menunggu_review'], true));
-        })->take(100);
+        // Filter and limit in the database instead of hydrating every registration.
+        $followUpPendaftar = CalonSantri::with($followUpRelations)->where(function ($query) {
+            $query->where('followup_sudah_masuk_grup', false)->orWhereNull('followup_sudah_masuk_grup')
+                ->orWhere('followup_sudah_dihubungi', false)->orWhereNull('followup_sudah_dihubungi')
+                ->orWhere('status_pendaftaran', 'Pending')->orWhereNull('dokumen_status');
+            foreach (['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'] as $field) {
+                $query->orWhereIn('dokumen_status->' . $field, ['kosong', 'perlu_perbaikan', 'menunggu_review']);
+            }
+        })->latest()->limit(100)->get();
 
         return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }

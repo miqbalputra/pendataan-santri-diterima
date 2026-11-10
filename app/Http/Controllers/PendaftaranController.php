@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\CalonSantri;
+use App\Support\RegistrationInput;
+use function Illuminate\Support\defer;
 use App\Models\Setting;
 use App\Models\ActivityLog;
 use App\Models\NotificationLog;
@@ -21,111 +23,142 @@ use Illuminate\Support\Str;
 class PendaftaranController extends Controller
 {
     public function index() {
-        $app_locked = Setting::where('key', 'app_locked')->value('value') == '1';
+        $settings = Setting::whereIn('key', ['app_locked', 'ocr_engine', 'ocr_webhook_url'])->pluck('value', 'key');
+        $app_locked = ($settings['app_locked'] ?? '0') == '1';
         if ($app_locked) {
             return view('locked');
         }
 
-        $ocr_engine = Setting::where('key', 'ocr_engine')->value('value') ?? 'local';
-        $ocr_webhook_url = Setting::where('key', 'ocr_webhook_url')->value('value') ?? 'https://n8n.griyaquran.web.id/webhook/ocr-ktp';
+        $ocr_engine = $settings['ocr_engine'] ?? 'local';
+        $ocr_webhook_url = $settings['ocr_webhook_url'] ?? '';
         return view('pendaftaran', compact('ocr_engine', 'ocr_webhook_url'));
     }
 
     public function store(Request $request) {
+        if (Setting::where('key', 'app_locked')->value('value') === '1') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['pendaftaran' => 'Pendataan sedang ditutup. Silakan hubungi panitia.']);
+        }
         $this->validatePendaftaran($request);
 
         $existingColumns = Schema::getColumnListing('calon_santris');
         $hasColumn = fn (string $column): bool => in_array($column, $existingColumns, true);
         $data = array_intersect_key(
-            $request->only((new CalonSantri())->getFillable()),
+            $request->only(RegistrationInput::FIELDS),
             array_flip($existingColumns)
         );
 
-        // Upload Dokumen ke Storage VPS
-        $docs = ['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'];
-        foreach ($docs as $doc) {
-            if ($request->hasFile($doc)) {
-                $path = $request->file($doc)->store('pendaftaran', 'public');
-                $data[$doc] = $path;
-            }
-        }
-
-        // Tanda tangan base64
-        if ($request->filled('tanda_tangan_base64')) {
-            $image_parts = explode(";base64,", $request->tanda_tangan_base64);
-            if(count($image_parts) == 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $fileName = 'pendaftaran/ttd_' . uniqid() . '.png';
-                Storage::disk('public')->put($fileName, $image_base64);
-                $data['tanda_tangan'] = $fileName;
-            }
-        }
-
-        // Hapus field non-database sebelum mass assignment
-        unset($data['tanda_tangan_base64']);
-        
-        // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
-        $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
-        $data['status_pendaftaran'] = $data['status_pendaftaran'] ?? 'Pending';
         $activeGelombang = (Schema::hasTable('gelombangs') && $hasColumn('gelombang_id'))
             ? Gelombang::where('is_active', true)->first()
             : null;
         if ($activeGelombang && $activeGelombang->kuota && CalonSantri::where('gelombang_id', $activeGelombang->id)->count() >= $activeGelombang->kuota) {
-            return back()->withInput()->withErrors([
+            throw \Illuminate\Validation\ValidationException::withMessages([
                 'gelombang' => "Kuota {$activeGelombang->nama_gelombang} sudah penuh. Silakan hubungi panitia.",
             ]);
         }
 
-        if (Schema::hasTable('periodes') && $hasColumn('periode_id')) {
-            $data['periode_id'] = Periode::where('is_active', true)->value('id');
-        }
 
-        if ($hasColumn('gelombang_id')) {
-            $data['gelombang_id'] = $activeGelombang?->id;
-        }
-
-        if ($hasColumn('dokumen_status')) {
-            $data['dokumen_status'] = $this->initialDocumentStatuses($data);
-        }
-
-        if ($hasColumn('revisi_token')) {
-            $data['revisi_token'] = Str::random(48);
-        }
-
-        $santri = DB::transaction(function () use ($data, $request, $hasColumn) {
-            $santri = CalonSantri::create($data);
-
-            if ($hasColumn('nomor_pendaftaran')) {
-                $santri->forceFill([
-                    'nomor_pendaftaran' => $this->generateNomorPendaftaran($santri),
-                ])->save();
+        $uploadedPaths = [];
+        try {
+            // Upload Dokumen ke Storage VPS
+            $docs = ['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'];
+            foreach ($docs as $doc) {
+                if ($request->hasFile($doc)) {
+                    $path = $request->file($doc)->store('pendaftaran', 'public');
+                    if (!$path) throw new \RuntimeException('Lampiran gagal disimpan.');
+                    $data[$doc] = $path;
+                    $uploadedPaths[] = $path;
+                }
             }
 
-            if (Schema::hasTable('activity_logs')) {
-                ActivityLog::create([
-                    'aktivitas' => "Pendataan Baru: {$santri->nama_lengkap}",
-                    'aktor' => "Orang Tua / Wali",
-                    'ip_address' => $request->ip()
+            // Tanda tangan base64
+            if ($request->filled('tanda_tangan_base64')) {
+                $image_parts = explode(";base64,", $request->tanda_tangan_base64);
+                if(count($image_parts) == 2) {
+                    $image_base64 = base64_decode($image_parts[1]);
+                    $fileName = 'pendaftaran/ttd_' . uniqid() . '.png';
+                    if (!Storage::disk('public')->put($fileName, $image_base64)) throw new \RuntimeException('Tanda tangan gagal disimpan.');
+                    $uploadedPaths[] = $fileName;
+                    $data['tanda_tangan'] = $fileName;
+                }
+            }
+
+            // Hapus field non-database sebelum mass assignment
+            unset($data['tanda_tangan_base64']);
+
+            // Pastikan checkbox pernyataan diubah ke boolean (1/0) bukannya string 'on'
+            $data['pernyataan_kebenaran_data'] = $request->has('pernyataan_kebenaran_data');
+            $data['status_pendaftaran'] = 'Pending';
+            if (Schema::hasTable('periodes') && $hasColumn('periode_id')) {
+                $data['periode_id'] = Periode::where('is_active', true)->value('id');
+            }
+
+            if ($hasColumn('gelombang_id')) {
+                $data['gelombang_id'] = $activeGelombang?->id;
+            }
+
+            if ($hasColumn('dokumen_status')) {
+                $data['dokumen_status'] = $this->initialDocumentStatuses($data);
+            }
+
+            if ($hasColumn('revisi_token')) {
+                $data['revisi_token'] = Str::random(48);
+            }
+
+            $santri = DB::transaction(function () use ($data, $request, $hasColumn, $activeGelombang) {
+                if ($activeGelombang) {
+                    $locked = Gelombang::whereKey($activeGelombang->id)->lockForUpdate()->first();
+                    if ($locked && $locked->kuota && CalonSantri::where('gelombang_id', $locked->id)->count() >= $locked->kuota) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['gelombang' => 'Kuota gelombang sudah penuh. Silakan hubungi panitia.']);
+                    }
+                }
+                $santri = CalonSantri::create($data);
+
+                if ($hasColumn('nomor_pendaftaran')) {
+                    $santri->forceFill([
+                        'nomor_pendaftaran' => $this->generateNomorPendaftaran($santri),
+                    ])->save();
+                }
+
+                if (Schema::hasTable('activity_logs')) {
+                    ActivityLog::create([
+                        'aktivitas' => "Pendataan Baru: {$santri->nama_lengkap}",
+                        'aktor' => "Orang Tua / Wali",
+                        'ip_address' => $request->ip()
+                    ]);
+                }
+
+                return $santri;
+            });
+
+        } catch (\Throwable $error) {
+            // Only files created by this request are removed when saving fails.
+            Storage::disk('public')->delete($uploadedPaths);
+            if ($error instanceof \Illuminate\Database\UniqueConstraintViolationException && str_contains($error->getMessage(), 'nik')) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['nik' => 'NIK anak sudah terdaftar. Silakan gunakan halaman Cek Status Data.']);
+            }
+            throw $error;
+        }
+
+        // Store the registration first; webhook latency must not delay the success page.
+        defer(function () use ($santri, $request) {
+            try {
+                $this->sendPendaftaranNotifications($santri, $request);
+            } catch (\Throwable $e) {
+                Log::warning('Notifikasi pendataan gagal setelah data tersimpan.', [
+                    'calon_santri_id' => $santri->id, 'error' => $e->getMessage(),
                 ]);
             }
-
-            return $santri;
         });
 
-        try {
-            $this->sendPendaftaranNotifications($santri, $request);
-        } catch (\Throwable $e) {
-            Log::warning('Notifikasi pendataan gagal setelah data tersimpan.', [
-                'calon_santri_id' => $santri->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return redirect('/pendaftaran/sukses')
+        $success = redirect('/pendaftaran/sukses')
             ->with('nama_santri', $santri->nama_lengkap)
             ->with('santri_id', $santri->id)
             ->with('bukti_url', URL::signedRoute('pendaftaran.bukti', ['id' => $santri->id]))
             ->with('nomor_pendaftaran', $santri->nomor_pendaftaran ?? $this->generateNomorPendaftaran($santri));
+
+        return $request->expectsJson()
+            ? response()->json(['saved' => true, 'redirect_url' => route('pendaftaran.sukses')])
+            : $success;
     }
 
     private function sendPendaftaranNotifications(CalonSantri $santri, Request $request): void
@@ -473,27 +506,28 @@ class PendaftaranController extends Controller
 
     private function validatePendaftaran(Request $request): void
     {
-        $request->validate([
+        RegistrationInput::normalize($request);
+        $request->validate(array_merge(RegistrationInput::optionalRules(), [
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:Laki-laki,Perempuan',
             'nik' => 'required|digits:16|unique:calon_santris,nik',
             'tempat_lahir' => 'required|string|max:255',
-            'tanggal_lahir' => 'required|date',
+            'tanggal_lahir' => 'required|date_format:Y-m-d|before:today',
             'agama' => 'required|string|max:100',
             'alamat_lengkap' => 'required|string',
-            'rt_rw' => 'required|string|max:20',
+            'rt_rw' => ['required', 'regex:/^\d{1,3}\/\d{1,3}$/'],
             'kelurahan_desa' => 'required|string|max:255',
             'kecamatan' => 'required|string|max:255',
             'kabupaten_kota' => 'required|string|max:255',
             'propinsi' => 'required|string|max:255',
-            'kode_pos' => 'required|string|max:20',
+            'kode_pos' => 'required|digits:5',
             'jenis_tinggal' => 'required|string|max:255',
             'alat_transportasi' => 'required|string|max:255',
             'nama_ayah' => 'required|string|max:255',
-            'nik_ayah' => 'required|digits:16',
+            'nik_ayah' => 'required|digits:16|different:nik',
             'no_wa_ayah' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'nama_ibu' => 'required|string|max:255',
-            'nik_ibu' => 'required|digits:16',
+            'nik_ibu' => 'required|digits:16|different:nik,nik_ayah',
             'no_wa_ibu' => ['required', 'string', 'max:25', 'regex:/^(08|628)[0-9]{8,13}$/'],
             'penandatangan_nama' => 'required|string|max:255',
             'pernyataan_kebenaran_data' => 'accepted',
@@ -501,15 +535,35 @@ class PendaftaranController extends Controller
             'foto_kk' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
             'foto_ktp_ayah' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
             'foto_ktp_ibu' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'foto_pas_siswa' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'tanda_tangan_base64' => 'nullable|string',
+            'foto_pas_siswa' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'tanda_tangan_base64' => ['required', 'string', 'max:3000000', function ($attribute, $value, $fail) {
+                if (!str_starts_with($value, 'data:image/png;base64,')) { $fail('Tanda tangan belum valid. Silakan tanda tangan ulang.'); return; }
+                $decoded = base64_decode(substr($value, 22), true);
+                $info = $decoded ? @getimagesizefromstring($decoded) : false;
+                if (!$info || $info[2] !== IMAGETYPE_PNG) $fail('Tanda tangan belum valid. Silakan tanda tangan ulang.');
+            }],
+        ]), [
+            'required' => ':attribute wajib diisi.', 'digits' => ':attribute harus terdiri dari :digits angka.',
+            'nik.unique' => 'NIK anak sudah terdaftar. Silakan gunakan halaman Cek Status Data atau hubungi panitia.',
+            'different' => ':attribute tidak boleh sama dengan NIK anggota keluarga lainnya.',
+            'before' => ':attribute harus sebelum hari ini.', 'date_format' => 'Tanggal pada :attribute belum valid.',
+            'email' => 'Alamat :attribute belum valid.', 'regex' => 'Format :attribute belum sesuai.',
+            'image' => ':attribute harus berupa foto.', 'max' => ':attribute melebihi batas yang diizinkan.',
+        ], [
+            'nik' => 'NIK anak', 'nik_ayah' => 'NIK Bapak', 'nik_ibu' => 'NIK Ibu',
+            'tanggal_lahir' => 'Tanggal lahir anak', 'nama_lengkap' => 'Nama anak',
+            'no_wa_ayah' => 'Nomor WhatsApp Bapak', 'no_wa_ibu' => 'Nomor WhatsApp Ibu',
+            'rt_rw' => 'RT/RW (contoh 008/002)', 'kode_pos' => 'Kode pos',
+            'foto_akta_anak' => 'Akta Anak', 'foto_kk' => 'Kartu Keluarga',
+            'foto_ktp_ayah' => 'KTP Bapak', 'foto_ktp_ibu' => 'KTP Ibu', 'foto_pas_siswa' => 'Foto anak',
+            'tanda_tangan_base64' => 'Tanda tangan',
         ]);
     }
 
     public function uploadOcr(Request $request) {
         $request->validate([
             'file' => 'required|mimes:jpg,jpeg,png,webp,pdf|max:10240',
-            'target' => 'required'
+            'target' => 'required|in:akta,kk,ayah,ibu,foto'
         ]);
 
         $file = $request->file('file');
@@ -528,7 +582,7 @@ class PendaftaranController extends Controller
                     'fields' => [],
                 ]);
             }
-            
+
             if (!str_ends_with($endpoint, '/chat/completions')) {
                 $endpoint = rtrim($endpoint, '/') . '/chat/completions';
             }
@@ -541,22 +595,22 @@ class PendaftaranController extends Controller
                 // Kompresi dan Resize Gambar menggunakan GD sebelum dikirim ke API
                 $sourcePath = $file->getRealPath();
                 $info = @getimagesize($sourcePath);
-                
+
                 $base64Image = '';
                 $mimeType = 'image/jpeg'; // Paksa ke JPEG
-                
+
                 if ($info) {
                     $mime = $info['mime'];
                     $image = null;
                     if ($mime == 'image/jpeg') $image = @imagecreatefromjpeg($sourcePath);
                     elseif ($mime == 'image/png') $image = @imagecreatefrompng($sourcePath);
                     elseif ($mime == 'image/webp') $image = @imagecreatefromwebp($sourcePath);
-                    
+
                     if ($image) {
-                        $maxWidth = 1200;
+                        $maxWidth = $request->target === 'kk' ? 3200 : 2400;
                         $width = imagesx($image);
                         $height = imagesy($image);
-                        
+
                         if ($width > $maxWidth || $height > $maxWidth) {
                             $ratio = $width / $height;
                             if ($ratio > 1) {
@@ -567,20 +621,20 @@ class PendaftaranController extends Controller
                                 $newHeight = $maxWidth;
                             }
                             $newImage = imagecreatetruecolor(intval($newWidth), intval($newHeight));
-                            
+
                             // Handle transparency
                             $bg = imagecolorallocate($newImage, 255, 255, 255);
                             imagefill($newImage, 0, 0, $bg);
-                            
+
                             imagecopyresampled($newImage, $image, 0, 0, 0, 0, intval($newWidth), intval($newHeight), $width, $height);
                             $image = $newImage;
                         }
-                        
+
                         ob_start();
-                        imagejpeg($image, null, 70); // 70% quality untuk menekan size
+                        imagejpeg($image, null, 93); // Preserve small printed text for OCR.
                         $image_data = ob_get_clean();
                         imagedestroy($image);
-                        
+
                         $base64Image = base64_encode($image_data);
                     } else {
                         // Fallback jika format tidak didukung GD
@@ -601,19 +655,21 @@ class PendaftaranController extends Controller
                             'role' => 'user',
                             'content' => [
                                 [
-                                    'type' => 'text', 
+                                    'type' => 'text',
                                     'text' => $prompt
                                 ],
                                 [
-                                    'type' => 'image_url', 
+                                    'type' => 'image_url',
                                     'image_url' => [
-                                        'url' => "data:{$mimeType};base64,{$base64Image}"
+                                        'url' => "data:{$mimeType};base64,{$base64Image}",
+                                        'detail' => 'high'
                                     ]
                                 ]
                             ]
                         ]
                     ],
-                    'max_tokens' => 1500
+                    'temperature' => 0,
+                    'max_tokens' => 2000
                 ]);
 
                 if ($response->successful()) {
@@ -621,20 +677,20 @@ class PendaftaranController extends Controller
                     $fields = $this->extractOcrJsonFields($text);
                     $documentCheck = $this->buildOcrDocumentCheck($fields, $request->target);
                     $fields = collect($fields)
-                        ->except(['document_type', 'confidence', 'is_expected_document', 'reason', 'expected_gender', 'detected_gender', 'gender_matches'])
+                        ->except(['document_type', 'confidence', 'is_expected_document', 'reason', 'expected_gender', 'detected_gender', 'gender_matches', 'image_quality'])
                         ->all();
 
                     return response()->json([
                         'message' => 'OCR Direct AI Berhasil',
                         'extracted_text' => $text,
-                        'fields' => $fields,
+                        'fields' => $documentCheck['is_expected_document'] && $documentCheck['confidence'] !== 'low' ? $fields : [],
                         'document_check' => $documentCheck,
                     ]);
                 } else {
-                    return response()->json(['error' => 'Gagal memproses via Direct AI: ' . $response->body()], 500);
+                    return response()->json(['error' => 'Dokumen belum berhasil dibaca. Silakan foto ulang atau isi manual.'], 500);
                 }
             } catch (\Exception $e) {
-                return response()->json(['error' => 'Terjadi kesalahan Direct AI: ' . $e->getMessage()], 500);
+                return response()->json(['error' => 'Pembacaan dokumen gagal. Silakan foto ulang atau isi manual.'], 500);
             }
         }
 
@@ -646,12 +702,13 @@ class PendaftaranController extends Controller
             }
 
             try {
-                $response = Http::attach(
+                $response = Http::timeout(65)->attach(
                     'file', file_get_contents($file->getRealPath()), $file->getClientOriginalName()
-                )->post($webhook_url);
+                )->post($webhook_url, ['target' => $request->target]);
 
                 if ($response->successful()) {
                     $responseData = $response->json();
+                    $responseData = isset($responseData[0]) ? $responseData[0] : $responseData;
                     $text = '';
                     if(isset($responseData['text'])) {
                         $text = $responseData['text'];
@@ -660,10 +717,20 @@ class PendaftaranController extends Controller
                     } else {
                         $text = json_encode($responseData);
                     }
-                    
+
+                    $fields = $responseData['fields'] ?? $this->extractOcrJsonFields($text);
+                    $documentCheck = $responseData['document_check'] ?? (isset($fields['document_type'])
+                        ? $this->buildOcrDocumentCheck($fields, $request->target)
+                        : null);
+                    if ($documentCheck && (!$documentCheck['is_expected_document'] || $documentCheck['confidence'] === 'low')) {
+                        $fields = [];
+                    }
+
                     return response()->json([
                         'message' => 'OCR n8n Berhasil',
-                        'extracted_text' => $text
+                        'extracted_text' => $text,
+                        'fields' => $fields,
+                        'document_check' => $documentCheck,
                     ]);
                 } else {
                     return response()->json(['error' => 'Gagal terhubung ke n8n OCR. HTTP Code: ' . $response->status()], 500);
@@ -678,12 +745,12 @@ class PendaftaranController extends Controller
 
     private function buildDirectAiOcrPrompt(string $target): string
     {
-        $base = 'Anda adalah mesin ekstraksi data dokumen Indonesia untuk formulir SPSB. Baca gambar dengan teliti, lalu kembalikan HANYA JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan. Jika data tidak terlihat, isi string kosong. Jangan menebak. Bersihkan hasil dari label seperti NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Gol. Darah, dan tanda baca yang bukan bagian data. Tanggal wajib format YYYY-MM-DD. Nama wajib nama manusia saja, bukan label berikutnya.';
+        $base = 'Anda adalah mesin ekstraksi data dokumen Indonesia untuk formulir SPSB. Baca gambar dengan teliti, lalu kembalikan HANYA JSON valid tanpa markdown, tanpa komentar, tanpa teks tambahan. Jika data tidak terlihat, isi string kosong. Jangan menebak. Angka NIK hanya diisi jika semua 16 digit terbaca jelas; jangan mengoreksi atau melengkapi digit berdasarkan dugaan. Nilai yang kabur, terpotong, tertutup pantulan, atau meragukan harus kosong. Isi image_quality good atau poor; gunakan poor jika tulisan utama tidak terbaca dan confidence low. Bersihkan hasil dari label seperti NIK, Nama, Tempat/Tgl Lahir, Jenis Kelamin, Gol. Darah, dan tanda baca yang bukan bagian data. Tanggal wajib format YYYY-MM-DD. Nama wajib nama manusia saja, bukan label berikutnya.';
 
         $expectedType = $this->expectedOcrDocumentType($target);
         $documentGuard = "Sebelum ekstraksi, kenali jenis dokumen. Isi document_type hanya salah satu dari: akta, kk, ktp, foto, unknown. Target kolom ini adalah {$expectedType}. Isi confidence high hanya bila ciri dokumen sangat jelas; gunakan medium atau low bila ragu. Isi is_expected_document true hanya jika document_type sesuai target. Untuk target ayah/ibu, baca Jenis Kelamin pada KTP jika terlihat: expected_gender untuk ayah adalah Laki-laki, untuk ibu adalah Perempuan; isi detected_gender Laki-laki/Perempuan/unknown dan gender_matches true hanya jika sesuai. Untuk target foto, is_expected_document true hanya bila gambar tampak seperti pas foto/portrait identitas anak, bukan dokumen, benda, tangkapan layar, atau gambar lain.";
 
-        $schema = 'Gunakan schema ini: {"document_type":"","confidence":"","is_expected_document":false,"reason":"","expected_gender":"","detected_gender":"","gender_matches":true,"nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
+        $schema = 'Gunakan schema ini: {"document_type":"","confidence":"","image_quality":"","is_expected_document":false,"reason":"","expected_gender":"","detected_gender":"","gender_matches":true,"nama":"","nik":"","tempat_lahir":"","tanggal_lahir":"","jenis_kelamin":"","agama":"","alamat":"","rt_rw":"","kelurahan_desa":"","kecamatan":"","pekerjaan":"","pendidikan":"","penghasilan":"","nama_ayah":"","nama_ibu":""}.';
 
         if ($target === 'akta') {
             return $base . "\n" . $documentGuard . "\nDokumen target: AKTA KELAHIRAN anak. Ciri akta biasanya berisi judul/kata Akta Kelahiran, Kutipan Akta, Pencatatan Sipil, narasi kelahiran, atau nomor akta. Prioritas utama adalah data ANAK, bukan ayah/ibu/pejabat. Ambil nama anak dari kalimat seperti 'anak ... bernama ...' atau nama utama setelah tanggal lahir. Ambil NIK anak dari Nomor Induk Kependudukan jika terlihat. Ambil tempat lahir dan tanggal lahir anak dari narasi kelahiran. Jika nama ayah/ibu tertulis jelas, isi nama_ayah dan nama_ibu, tetapi jangan jadikan nama ayah/ibu sebagai nama anak.\n" . $schema;
@@ -702,7 +769,7 @@ class PendaftaranController extends Controller
         }
 
         if ($target === 'kk') {
-            return $base . "\n" . $documentGuard . "\nDokumen target: KARTU KELUARGA. Ciri KK biasanya berisi judul Kartu Keluarga, Nomor KK, nama kepala keluarga, alamat keluarga, dan tabel anggota keluarga. Prioritas ambil alamat keluarga dan data anggota keluarga jika sangat jelas. Jangan mengisi nama anak/ayah/ibu bila tidak yakin dari baris hubungan keluarga. Untuk nama ayah gunakan baris Kepala Keluarga atau kolom Ayah yang sesuai anak. Untuk nama ibu gunakan kolom Ibu yang sesuai anak.\n" . $schema;
+            return $base . "\n" . $documentGuard . "\nDokumen target: KARTU KELUARGA. Ciri KK biasanya berisi judul Kartu Keluarga, Nomor KK, nama kepala keluarga, alamat keluarga, dan tabel anggota keluarga. Hanya ambil alamat keluarga dari bagian atas KK. Jangan mengambil NIK atau identitas anggota keluarga dari tabel, jangan menggunakan Nomor KK sebagai NIK anak. Kosongkan nama, nik, nama_ayah, nama_ibu, tempat_lahir dan tanggal_lahir; identitas anak berasal dari Akta, identitas orang tua dari KTP masing-masing.\n" . $schema;
         }
 
         return $base . "\n" . $documentGuard . "\nDokumen target tidak dikenal. Ekstrak data yang terlihat dengan hati-hati.\n" . $schema;
@@ -756,9 +823,12 @@ class PendaftaranController extends Controller
             $confidence = 'low';
         }
 
-        $isExpected = $expectedType === 'unknown' || $documentType === 'unknown'
-            ? true
-            : $documentType === $expectedType;
+        $isExpected = $documentType === $expectedType
+            && filter_var($fields['is_expected_document'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if (($fields['image_quality'] ?? '') === 'poor') {
+            $confidence = 'low';
+        }
 
         $genderMatches = true;
         if ($expectedGender !== '' && $detectedGender !== '') {
@@ -803,7 +873,7 @@ class PendaftaranController extends Controller
 
     public function cetak($id) {
         $santri = CalonSantri::findOrFail($id);
-        
+
         $kop = [
             'baris_1' => Setting::where('key', 'kop_baris_1')->value('value') ?? 'GRIYA QUR\'AN BAITUL MANSHURIN',
             'baris_2' => Setting::where('key', 'kop_baris_2')->value('value') ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)',

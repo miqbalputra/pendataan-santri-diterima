@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Pendataan Ditutup</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite('resources/css/app.css')
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
     <div class="bg-white rounded-3xl shadow-xl p-8 max-w-lg w-full text-center border-t-8 border-rose-500">
