@@ -133,6 +133,24 @@ class CalonSantri extends Model
         return $this->hasMany(NotificationLog::class);
     }
 
+    public function latestNotificationLog()
+    {
+        return $this->hasOne(NotificationLog::class)->latestOfMany();
+    }
+
+    public function documentSummary(): array
+    {
+        $summary = ['present' => 0, 'valid' => 0, 'review' => 0, 'revision' => 0, 'missing' => 0];
+        $statuses = $this->dokumen_status ?? [];
+        foreach (\App\Support\AdminRegistrationQuery::DOCUMENTS as $field) {
+            if (blank($this->{$field})) { $summary['missing']++; continue; }
+            $summary['present']++;
+            $status = $statuses[$field] ?? 'menunggu_review';
+            $summary[match ($status) { 'valid' => 'valid', 'perlu_perbaikan' => 'revision', default => 'review' }]++;
+        }
+        return $summary;
+    }
+
     public function groupJoinLinks()
     {
         return $this->hasMany(GroupJoinLink::class);

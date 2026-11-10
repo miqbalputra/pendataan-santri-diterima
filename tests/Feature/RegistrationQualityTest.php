@@ -143,7 +143,7 @@ class RegistrationQualityTest extends TestCase
         }
         DB::table('calon_santris')->insert($rows);
         $this->actingAs(User::factory()->create(['username' => 'test-admin']))->get('/admin/dashboard?search=Anak')
-            ->assertOk()->assertViewHas('followUpPendaftar', fn ($rows) => $rows->count() === 100)
+            ->assertOk()->assertViewHas('followUpPendaftar', fn ($rows) => $rows->count() === 25 && $rows->total() === 105)
             ->assertViewHas('stats', fn ($stats) => $stats['total'] === 105)
             ->assertSee('search=Anak', false);
     }

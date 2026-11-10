@@ -69,15 +69,16 @@
     </style>
 </head>
 <body class="bg-slate-50">
-    <header class="mesh-gradient text-white pt-10 pb-20 px-8 relative overflow-hidden">
-        <div class="max-w-6xl mx-auto relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <a href="#registry-title" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:p-3">Lewati ke daftar peserta</a>
+    <header class="mesh-gradient text-white py-6 px-4 sm:px-6 relative overflow-hidden">
+        <div class="max-w-[1600px] mx-auto relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-center gap-5">
                 <div class="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-[1.5rem] flex items-center justify-center border border-white/30 shadow-2xl">
                     <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 </div>
                 <div>
                     <h1 class="text-3xl font-black tracking-tighter uppercase">Admin<span class="text-emerald-300">SPSB</span></h1>
-                    <p class="text-xs font-bold text-white/60 tracking-[0.3em] uppercase">Management Portal v2.5</p>
+                    <p class="text-xs font-bold text-white/60 tracking-[0.3em] uppercase">Griya Qur’an · Administrasi Pendataan</p>
                 </div>
             </div>
             
@@ -90,7 +91,7 @@
                     @csrf
                     <button type="submit" class="bg-white/10 hover:bg-rose-500 text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-3 transition-all active:scale-95 border border-white/10 hover:border-rose-400 group shadow-xl">
                         <svg class="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        LOGOUT
+                        Keluar
                     </button>
                 </form>
             </div>
@@ -98,24 +99,24 @@
     </header>
 
     <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 px-6">
-        <div class="max-w-6xl mx-auto flex overflow-x-auto no-scrollbar">
-            <button id="tab-dashboard" onclick="switchTab('dashboard')" class="tab-btn active relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group">
+        <div class="max-w-[1600px] mx-auto flex overflow-x-auto no-scrollbar" role="tablist" aria-label="Menu administrasi">
+            <button type="button" role="tab" aria-selected="true" aria-controls="content-dashboard" id="tab-dashboard" onclick="switchTab('dashboard')" class="tab-btn active relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 Dashboard
             </button>
-            <button id="tab-periode" onclick="switchTab('periode')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+            <button type="button" role="tab" aria-selected="false" aria-controls="content-periode" id="tab-periode" onclick="switchTab('periode')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 Periode & Gelombang
             </button>
-            <button id="tab-followup" onclick="switchTab('followup')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+            <button type="button" role="tab" aria-selected="false" aria-controls="content-followup" id="tab-followup" onclick="switchTab('followup')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 13l2 2 4-4"></path></svg>
                 Follow-up
             </button>
-            <button id="tab-laporan" onclick="switchTab('laporan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+            <button type="button" role="tab" aria-selected="false" aria-controls="content-laporan" id="tab-laporan" onclick="switchTab('laporan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Laporan
             </button>
-            <button id="tab-log" onclick="switchTab('log')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+            <button type="button" role="tab" aria-selected="false" aria-controls="content-log" id="tab-log" onclick="switchTab('log')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Log Aktivitas
             </button>
@@ -126,174 +127,18 @@
                     <span class="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">{{ $stats['sampah'] }}</span>
                 @endif
             </a>
-            <button id="tab-pengaturan" onclick="switchTab('pengaturan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
+            <button type="button" role="tab" aria-selected="false" aria-controls="content-pengaturan" id="tab-pengaturan" onclick="switchTab('pengaturan')" class="tab-btn relative px-6 py-5 font-bold text-sm flex items-center gap-3 whitespace-nowrap transition-all group text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Pengaturan
             </button>
         </div>
     </nav>
 
-    <div class="max-w-6xl mx-auto p-6 lg:p-10 animate-fade">
-        <div id="content-dashboard" class="tab-content block">
-            
-            <!-- Stats Cards Premium -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-blue-900/5 group hover:-translate-y-1 transition-all duration-300">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Total Peserta Didik</p>
-                        <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['total'] }}</p>
-                    </div>
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-200 group-hover:rotate-6 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    </div>
-                </div>
-                
-                <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-amber-900/5 group hover:-translate-y-1 transition-all duration-300">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Menunggu Verifikasi</p>
-                        <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['pending'] }}</p>
-                    </div>
-                    <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-200 group-hover:rotate-6 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                </div>
-
-                <div class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-emerald-900/5 group hover:-translate-y-1 transition-all duration-300">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Data Lengkap</p>
-                        <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['diterima'] }}</p>
-                    </div>
-                    <div class="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 group-hover:rotate-6 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                </div>
-
-                <a href="{{ route('admin.trash') }}" class="glass-card rounded-[2rem] p-8 flex items-center justify-between shadow-xl shadow-rose-900/5 group hover:-translate-y-1 transition-all duration-300">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Di Sampah</p>
-                        <p class="text-4xl font-black text-slate-800 tracking-tight">{{ $stats['sampah'] ?? 0 }}</p>
-                    </div>
-                    <div class="w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-200 group-hover:rotate-6 transition-transform">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12"></path></svg>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Tabel Peserta Didik -->
-            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 border border-white overflow-hidden mb-8">
-                <div class="p-8 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-center gap-6 bg-white/50">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-800 tracking-tight">Data Peserta Didik Terbaru</h2>
-                        <p class="text-xs text-slate-500 mt-1 font-bold italic opacity-70">Monitor pendataan peserta didik baru secara real-time.</p>
-                    </div>
-                    <form action="" method="GET" class="flex gap-3 w-full lg:w-auto">
-                        <div class="relative w-full lg:w-72">
-                            <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </span>
-                            <input type="text" name="search" placeholder="Cari nama atau nomor WA..." class="form-input pl-11 py-3 text-sm" value="{{ request('search') }}">
-                        </div>
-                        <button type="submit" class="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-black hover:bg-emerald-600 transition shadow-xl shadow-slate-900/10 active:scale-95">CARI</button>
-                    </form>
-                </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
-                            <tr>
-                                <th class="p-6 w-12 text-center">No.</th>
-                                <th class="p-6">Identitas Anak</th>
-                                <th class="p-6 text-center">L/P</th>
-                                <th class="p-6">Orang Tua</th>
-                                <th class="p-6 text-center">Chat WA</th>
-                                <th class="p-6 text-center">Status</th>
-                                <th class="p-6 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            @forelse($pendaftar as $p)
-                            <tr class="hover:bg-emerald-50/30 transition-colors group">
-                                <td class="p-6 text-center font-black text-slate-300 group-hover:text-emerald-500">{{ ($pendaftar->currentPage() - 1) * $pendaftar->perPage() + $loop->iteration }}.</td>
-                                <td class="p-6">
-                                    <div class="font-black text-slate-800 text-base">{{ $p->nama_lengkap }}</div>
-                                    <div class="text-[10px] text-emerald-600 font-black uppercase tracking-widest mt-0.5">{{ $p->nomor_pendaftaran ?? ('SPSB-' . $p->created_at->format('Y') . '-' . str_pad($p->id, 5, '0', STR_PAD_LEFT)) }}</div>
-                                    <div class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{{ $p->nik ?? $p->nik_anak ?? 'Tanpa NIK' }}</div>
-                                </td>
-                                <td class="p-6 text-center">
-                                    <span class="inline-flex w-8 h-8 items-center justify-center rounded-xl font-black text-xs {{ $p->jenis_kelamin == 'Laki-laki' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-pink-50 text-pink-600 border border-pink-100' }}">
-                                        {{ $p->jenis_kelamin == 'Laki-laki' ? 'L' : 'P' }}
-                                    </span>
-                                </td>
-                                <td class="p-6">
-                                    <div class="space-y-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Ayah</span>
-                                            <span class="text-slate-700 font-bold text-xs">{{ $p->nama_ayah }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Ibu</span>
-                                            <span class="text-slate-700 font-bold text-xs">{{ $p->nama_ibu }}</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="p-6">
-                                    <div class="flex items-center justify-center gap-2">
-                                        @if($p->no_wa_ayah)
-                                        <a href="https://wa.me/{{ preg_replace('/^08/', '628', $p->no_wa_ayah) }}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition shadow-sm border border-emerald-100 group/wa">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                                        </a>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="p-6 text-center">
-                                    @if($p->status_pendaftaran == 'Diterima')
-                                        <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-emerald-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> DATA LENGKAP
-                                        </span>
-                                    @elseif($p->status_pendaftaran == 'Ditolak')
-                                        <span class="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-rose-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> TIDAK VALID
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest border border-amber-100 uppercase">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-bounce"></span> VERIFIKASI
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="p-6 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <a href="{{ route('admin.show', $p->id) }}" class="bg-slate-900 text-white hover:bg-emerald-600 px-5 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-slate-900/5 active:scale-95">Detail</a>
-                                        <a href="{{ route('admin.edit', $p->id) }}" class="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95">Edit</a>
-                                        <form action="{{ route('admin.trash.move', $p->id) }}" method="POST" class="delete-to-trash-form">
-                                            @csrf
-                                            <button type="submit" class="bg-white text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95">Hapus</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="7" class="p-24 text-center">
-                                    <div class="flex flex-col items-center justify-center">
-                                        <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100 shadow-inner">
-                                            <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                                        </div>
-                                        <p class="text-slate-500 font-black text-lg tracking-tight">Belum ada data peserta didik.</p>
-                                        <p class="text-xs text-slate-400 mt-1 font-bold italic opacity-60">Silakan periksa kembali filter pencarian Anda.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Pagination -->
-                @if($pendaftar->hasPages())
-                <div class="p-8 border-t border-slate-50 bg-slate-50/30 flex justify-center">
-                    {{ $pendaftar->links('pagination::tailwind') }}
-                </div>
-                @endif
-            </div>
+    <div class="max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8 animate-fade">
+        @if(session('success'))<div role="status" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 text-sm">{{ session('success') }}</div>@endif
+        @if($errors->any())<div role="alert" class="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900 text-sm"><strong>Periksa kembali isian atau filter.</strong><ul class="list-disc pl-5 mt-2">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        <div id="content-dashboard" class="tab-content block" role="tabpanel" aria-labelledby="tab-dashboard">
+            @include('admin.partials.registry')
         </div>
 
         <!-- TAB CONTENT PENGATURAN -->
@@ -302,13 +147,6 @@
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight">Pengaturan Sistem Dasar</h2>
                 <p class="text-slate-500 font-medium mt-1">Konfigurasi mesin AI, kop surat, dan keamanan dashboard.</p>
             </div>
-
-            @if(session('success'))
-                <div class="bg-emerald-50 text-emerald-700 p-5 mb-8 rounded-2xl font-bold border border-emerald-100 flex items-center gap-3 animate-fade shadow-sm">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                    {{ session('success') }}
-                </div>
-            @endif
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <div class="space-y-8">
@@ -624,10 +462,11 @@
         <!-- TAB CONTENT FOLLOW-UP -->
         <div id="content-followup" class="tab-content hidden animate-fade">
             <div class="mb-8">
-                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Dashboard Follow-up</h2>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Tindak lanjut panitia</h2>
                 <p class="text-slate-500 font-medium">Pantau peserta didik yang orang tuanya belum masuk grup, belum dihubungi, dokumen belum lengkap, atau belum diverifikasi.</p>
             </div>
-            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-5">@include('admin.partials.filters', ['filterTab' => 'followup'])<p class="mt-4 text-sm text-slate-500">{{ $followUpPendaftar->total() }} peserta perlu ditindaklanjuti sesuai filter. Data terlama ditampilkan lebih dulu. Link dibuka tidak otomatis berarti sudah masuk grup.</p></div>
+            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-x-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
                         <tr>
@@ -675,15 +514,16 @@
                                 </form>
                             </td>
                             <td class="p-6 text-right">
-                                <a href="{{ route('admin.show', $item->id) }}" class="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-xs font-black">Detail</a>
+                                <a href="{{ route('admin.show', ['id' => $item->id, 'back' => http_build_query(array_merge(request()->query(), ['tab' => 'followup']))]) }}" class="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 px-5 py-2.5 rounded-xl text-xs font-black">Detail</a>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="p-20 text-center text-slate-400 font-bold">Tidak ada follow-up tertunda.</td></tr>
+                        <tr><td colspan="4" class="p-20 text-center text-slate-400 font-bold">Tidak ada tindak lanjut yang sesuai filter.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+            <div class="mt-5">{{ $followUpPendaftar->links('admin.partials.pagination') }}</div>
         </div>
 
         <!-- TAB CONTENT LAPORAN -->
@@ -736,7 +576,7 @@
                             <option value="excel">Excel Full</option>
                             <option value="uploads">ZIP Berkas Upload</option>
                             <option value="pdf">PDF Cetak</option>
-                            <option value="csv">CSV Ringkas</option>
+                            <option value="csv">CSV Lengkap</option>
                         </select>
                     </label>
                 </div>
@@ -793,7 +633,7 @@
                 <h2 class="text-3xl font-black text-slate-800 tracking-tight">Log Aktivitas Sistem</h2>
                 <p class="text-slate-500 font-medium">Rekaman jejak aktivitas admin secara transparan.</p>
             </div>
-            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+            <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-x-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
                         <tr>
@@ -806,7 +646,7 @@
                     <tbody class="divide-y divide-slate-50">
                         @forelse($logs as $log)
                         <tr class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="p-6 text-xs text-slate-400 font-bold tracking-tight uppercase">{{ $log->created_at->format('d/m/Y') }} <span class="text-slate-300 ml-1 font-medium">{{ $log->created_at->format('H:i:s') }}</span></td>
+                            <td class="p-6 text-xs text-slate-400 font-bold tracking-tight uppercase">{{ $log->created_at->timezone('Asia/Jakarta')->format('d/m/Y') }} <span class="text-slate-300 ml-1 font-medium">{{ $log->created_at->timezone('Asia/Jakarta')->format('H:i:s') }}</span></td>
                             <td class="p-6 font-black text-slate-700 text-sm tracking-tight">{{ $log->aktivitas }}</td>
                             <td class="p-6"><span class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl text-[10px] font-black border border-slate-200 uppercase tracking-widest">{{ $log->aktor }}</span></td>
                             <td class="p-6 text-[10px] text-slate-400 font-mono group-hover:text-emerald-500 transition-colors">{{ $log->ip_address }}</td>
@@ -815,12 +655,12 @@
                         <tr><td colspan="4" class="p-24 text-center text-slate-400 font-bold italic">Belum ada rekaman aktivitas sistem.</td></tr>
                         @endforelse
                     </tbody>
-                </table>
+                </table><div class="p-5">{{ $logs->links('admin.partials.pagination') }}</div>
             </div>
 
             <div class="mt-10">
                 <h3 class="text-2xl font-black text-slate-800 tracking-tight mb-4">Log Notifikasi Email/WhatsApp</h3>
-                <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-hidden">
+                <div class="glass-card rounded-[2.5rem] shadow-2xl shadow-slate-900/5 overflow-x-auto">
                     <table class="w-full text-left text-sm whitespace-nowrap">
                         <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-400 uppercase tracking-[0.2em] font-black text-[10px]">
                             <tr>
@@ -834,17 +674,17 @@
                         <tbody class="divide-y divide-slate-50">
                             @forelse($notificationLogs as $log)
                             <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="p-6 text-xs text-slate-400 font-bold">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="p-6 text-xs text-slate-400 font-bold">{{ $log->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}</td>
                                 <td class="p-6 font-black text-slate-700">{{ optional($log->calonSantri)->nama_lengkap ?? '-' }}</td>
                                 <td class="p-6"><span class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">{{ $log->channel }}</span></td>
                                 <td class="p-6 text-xs text-slate-500 font-bold max-w-xs overflow-hidden text-ellipsis">{{ $log->recipient ?: '-' }}</td>
-                                <td class="p-6"><span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase {{ $log->status === 'success' ? 'bg-emerald-50 text-emerald-700' : ($log->status === 'failed' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ $log->status }}</span></td>
+                                <td class="p-6"><span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase {{ $log->status === 'success' ? 'bg-emerald-50 text-emerald-700' : ($log->status === 'failed' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">{{ match($log->status) { 'success' => 'Diterima layanan', 'failed' => 'Gagal', 'skipped' => 'Dilewati', default => $log->status } }}</span><details class="mt-2 text-xs text-slate-500 whitespace-normal max-w-xs"><summary class="cursor-pointer">Respons layanan</summary><p class="mt-2 break-words">HTTP {{ $log->http_status ?: '—' }} · {{ $log->message ?: 'Tidak ada pesan' }}</p></details></td>
                             </tr>
                             @empty
                             <tr><td colspan="5" class="p-16 text-center text-slate-400 font-bold italic">Belum ada log notifikasi.</td></tr>
                             @endforelse
                         </tbody>
-                    </table>
+                    </table><div class="p-5">{{ $notificationLogs->links('admin.partials.pagination') }}</div>
                 </div>
             </div>
         </div>
@@ -855,13 +695,13 @@
     @if($ai_api_key)
     <div class="fixed bottom-8 right-8 z-[100]">
         <!-- Chat Button -->
-        <button id="chat-toggle" class="w-16 h-16 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group">
+        <button id="chat-toggle" aria-label="Buka asisten data" class="w-16 h-16 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group">
             <svg class="w-8 h-8 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
             <span class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse"></span>
         </button>
 
         <!-- Chat Window -->
-        <div id="chat-window" class="hidden absolute bottom-20 right-0 w-[400px] max-h-[600px] glass-card rounded-[2.5rem] shadow-2xl border border-white/50 flex flex-col overflow-hidden animate-fade">
+        <div id="chat-window" class="hidden absolute bottom-20 right-0 w-[min(400px,calc(100vw-2rem))] max-h-[min(600px,80dvh)] glass-card rounded-[2.5rem] shadow-2xl border border-white/50 flex flex-col overflow-hidden animate-fade">
             <!-- Header -->
             <div class="mesh-gradient p-6 text-white">
                 <div class="flex items-center justify-between">
@@ -874,7 +714,7 @@
                             <p class="text-[10px] font-bold text-emerald-300 uppercase tracking-widest">Online &bull; Form + Berkas Ready</p>
                         </div>
                     </div>
-                    <button id="close-chat" class="text-white/60 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                    <button id="close-chat" aria-label="Tutup asisten data" class="text-white/60 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                 </div>
             </div>
 
@@ -995,6 +835,16 @@
         @endif
 
         function switchTab(tabId) {
+            if (!['dashboard','periode','followup','laporan','log','pengaturan'].includes(tabId)) return;
+            document.querySelectorAll('[role="tab"]').forEach(button => {
+                const selected = button.id === 'tab-' + tabId;
+                button.setAttribute('aria-selected', String(selected));
+                button.tabIndex = selected ? 0 : -1;
+            });
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', tabId); url.hash = tabId;
+            history.replaceState(null, '', url);
+
             // Hide all
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             // Reset buttons
@@ -1142,11 +992,19 @@
             }
         }
 
+        document.querySelector('[role="tablist"]').addEventListener('keydown', event => {
+            if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key) || event.target.getAttribute('role') !== 'tab') return;
+            event.preventDefault();
+            const tabs = [...document.querySelectorAll('[role="tab"]')];
+            const index = tabs.indexOf(event.target);
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[next].click(); tabs[next].focus();
+        });
         // Initialize on load
         window.addEventListener('load', () => {
             handleModelChange();
             
-            const hash = window.location.hash.replace('#', '');
+            const hash = window.location.hash.replace('#', '') || new URLSearchParams(window.location.search).get('tab') || 'dashboard';
             if(['dashboard', 'periode', 'followup', 'laporan', 'log', 'pengaturan'].includes(hash)) {
                 switchTab(hash);
             }

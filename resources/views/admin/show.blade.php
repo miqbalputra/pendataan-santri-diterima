@@ -24,18 +24,18 @@
             <div>
                 <nav class="flex mb-2" aria-label="Breadcrumb">
                     <ol class="inline-flex items-center space-x-1 md:space-x-3 text-xs font-medium text-slate-500">
-                        <li><a href="{{ route('admin.dashboard') }}" class="hover:text-emerald-600 transition">Dashboard</a></li>
+                        <li><a href="{{ $returnUrl }}" class="hover:text-emerald-600 transition">Dashboard</a></li>
                         <li><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg></li>
                         <li class="text-slate-800">Detail Peserta Didik</li>
                     </ol>
                 </nav>
                 <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Detail Peserta Didik: <span class="text-emerald-600">{{ $santri->nama_lengkap }}</span></h1>
-                <p class="text-slate-500 mt-1">Nomor Pendataan: {{ $santri->nomor_pendaftaran ?? ('SPSB-' . $santri->created_at->format('Y') . '-' . str_pad($santri->id, 5, '0', STR_PAD_LEFT)) }} | Data masuk pada: {{ $santri->created_at->format('d M Y, H:i') }}</p>
+                <p class="text-slate-500 mt-1">Nomor Pendataan: {{ $santri->nomor_pendaftaran ?? ('SPSB-' . $santri->created_at->format('Y') . '-' . str_pad($santri->id, 5, '0', STR_PAD_LEFT)) }} | Data masuk pada: {{ $santri->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' }}</p>
             </div>
             <div class="flex gap-3">
-                <a href="{{ route('admin.dashboard') }}" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">
+                <a href="{{ $returnUrl }}" class="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Kembali
+                    Kembali ke daftar
                 </a>
                 <a href="{{ route('admin.edit', $santri->id) }}" class="px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -48,278 +48,7 @@
             <!-- Left Column: Data Details -->
             <div class="lg:col-span-2 space-y-8">
                 
-                <!-- I. IDENTITAS ANAK -->
-                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                    <div class="bg-emerald-600 px-6 py-4 flex items-center gap-3">
-                        <div class="bg-white/20 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
-                        <h3 class="font-bold text-white uppercase tracking-wider text-sm">I. Identitas Peserta Didik</h3>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Nama Lengkap</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nama_lengkap }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NIK</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nik }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Jenis Kelamin</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->jenis_kelamin }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Tempat, Tgl Lahir</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->tempat_lahir . ', ' . \Carbon\Carbon::parse($santri->tanggal_lahir)->format('d F Y') }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NISN</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nisn ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Agama</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->agama ?? 'Islam' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Berkebutuhan Khusus</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->berkebutuhan_khusus ?? 'Tidak Ada' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Hobi</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->hobi ?? '-' }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6 pt-6 border-t border-slate-100">
-                            <h4 class="text-xs font-bold text-slate-400 uppercase mb-4">Sekolah Asal / Jenjang Sebelumnya</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                <div>
-                                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Nama Sekolah Asal</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ $santri->nama_sekolah_asal ?? '-' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NPSN Sekolah</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ $santri->npsn_sekolah_asal ?? '-' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">No. Ijazah</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ $santri->no_seri_ijazah ?? '-' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">No. UN</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ $santri->no_ujian_nasional ?? '-' }}</p>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <div>
-                                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Alamat Sekolah</p>
-                                        <p class="text-sm font-bold text-slate-800">{{ $santri->alamat_sekolah_asal ?? '-' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- II. ALAMAT TEMPAT TINGGAL -->
-                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                    <div class="bg-slate-800 px-6 py-4 flex items-center gap-3">
-                        <div class="bg-white/20 p-2 rounded-lg"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
-                        <h3 class="font-bold text-white uppercase tracking-wider text-sm">II. Alamat Tempat Tinggal</h3>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                            <div class="md:col-span-2">
-                                <div>
-                                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Alamat Lengkap</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ $santri->alamat_lengkap }}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Dusun</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->dusun ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">RT / RW</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->rt_rw ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Kelurahan / Desa</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->kelurahan_desa ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Kecamatan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->kecamatan ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Kabupaten / Kota</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->kabupaten_kota ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Propinsi</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->propinsi ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Kode Pos</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->kode_pos ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Jenis Tinggal</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->jenis_tinggal ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Alat Transportasi</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->alat_transportasi ?? '-' }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- III. DATA ORANG TUA -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- AYAH -->
-                    <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                        <div class="bg-blue-600 px-6 py-4 flex items-center gap-3">
-                            <h3 class="font-bold text-white uppercase tracking-wider text-xs">III. Data Ayah Kandung</h3>
-                        </div>
-                        <div class="p-5 space-y-3">
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Nama Ayah</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nama_ayah }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NIK</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nik_ayah ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">No WA</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->no_wa_ayah ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Email</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->email_ayah ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Pekerjaan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->pekerjaan_ayah ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Pendidikan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->pendidikan_ayah ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Penghasilan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->penghasilan_ayah ?? '-' }}</p>
-                            </div>
-                            <div class="pt-2 border-t mt-2">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase">Status Tahsin</p>
-                                <p class="text-sm font-semibold {{ $santri->status_tahsin_ayah == 'Sudah' ? 'text-green-600' : 'text-amber-600' }}">
-                                    {{ $santri->status_tahsin_ayah }} 
-                                    @if($santri->status_tahsin_ayah == 'Sudah' && $santri->pengajar_tahsin_ayah)
-                                        <span class="text-slate-500 font-normal">({{ $santri->pengajar_tahsin_ayah }})</span>
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- IBU -->
-                    <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                        <div class="bg-pink-600 px-6 py-4 flex items-center gap-3">
-                            <h3 class="font-bold text-white uppercase tracking-wider text-xs">IV. Data Ibu Kandung</h3>
-                        </div>
-                        <div class="p-5 space-y-3">
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Nama Ibu</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nama_ibu }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NIK</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->nik_ibu ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">No WA</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->no_wa_ibu ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Email</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->email_ibu ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Pekerjaan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->pekerjaan_ibu ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Pendidikan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->pendidikan_ibu ?? '-' }}</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Penghasilan</p>
-                                <p class="text-sm font-bold text-slate-800">{{ $santri->penghasilan_ibu ?? '-' }}</p>
-                            </div>
-                            <div class="pt-2 border-t mt-2">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase">Status Tahsin</p>
-                                <p class="text-sm font-semibold {{ $santri->status_tahsin_ibu == 'Sudah' ? 'text-green-600' : 'text-amber-600' }}">
-                                    {{ $santri->status_tahsin_ibu }} 
-                                    @if($santri->status_tahsin_ibu == 'Sudah' && $santri->pengajar_tahsin_ibu)
-                                        <span class="text-slate-500 font-normal">({{ $santri->pengajar_tahsin_ibu }})</span>
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- IV. DATA WALI (IF EXISTS) -->
-                @if($santri->nama_wali)
-                <div class="glass-card rounded-2xl shadow-sm overflow-hidden border-l-4 border-indigo-500">
-                    <div class="bg-indigo-50 px-6 py-4 flex items-center gap-3 border-b">
-                        <h3 class="font-bold text-indigo-900 uppercase tracking-wider text-sm">V. Data Wali</h3>
-                    </div>
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Nama Wali</p>
-                            <p class="text-sm font-bold text-slate-800">{{ $santri->nama_wali }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">NIK Wali</p>
-                            <p class="text-sm font-bold text-slate-800">{{ $santri->nik_wali ?? '-' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Pekerjaan</p>
-                            <p class="text-sm font-bold text-slate-800">{{ $santri->pekerjaan_wali ?? '-' }}</p>
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                <!-- V. DATA PERIODIK -->
-                <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                    <div class="bg-emerald-50 px-6 py-4 border-b flex items-center gap-3">
-                        <h3 class="font-bold text-emerald-900 uppercase tracking-wider text-sm">VI. Data Periodik</h3>
-                    </div>
-                    <div class="p-6 grid grid-cols-2 md:grid-cols-5 gap-6">
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Tinggi</p>
-                            <p class="text-sm font-bold text-slate-800">{{ ($santri->tinggi_badan ?? '-') . ' cm' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Berat</p>
-                            <p class="text-sm font-bold text-slate-800">{{ ($santri->berat_badan ?? '-') . ' kg' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Jarak</p>
-                            <p class="text-sm font-bold text-slate-800">{{ $santri->jarak_ke_sekolah ?? '-' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Waktu</p>
-                            <p class="text-sm font-bold text-slate-800">{{ $santri->waktu_tempuh ?? '-' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-0.5">Saudara</p>
-                            <p class="text-sm font-bold text-slate-800">{{ ($santri->jumlah_saudara_kandung ?? '0') . ' Orang' }}</p>
-                        </div>
-                    </div>
-                </div>
-
+                @include('admin.partials.complete-profile')
             </div>
 
             <!-- Right Column: Documents & Verification -->
@@ -504,13 +233,14 @@
                 </div>
 
                 <div class="glass-card rounded-2xl shadow-sm p-6">
-                    <h3 class="font-bold text-lg mb-4">Log Notifikasi</h3>
+                    <h3 id="notification-history" class="font-bold text-lg mb-2">Riwayat notifikasi</h3>
+                    <p class="text-xs text-slate-500 mb-4">{{ $notificationHistory->total() }} catatan. Status menunjukkan respons layanan, bukan bukti pesan dibaca.</p>
                     <div class="space-y-3">
-                        @forelse($santri->notificationLogs->take(8) as $log)
+                        @forelse($notificationHistory as $log)
                             <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="text-xs font-black uppercase text-slate-700">{{ $log->channel }} - {{ $log->status }}</span>
-                                    <span class="text-[10px] font-bold text-slate-400">{{ $log->created_at->format('d/m H:i') }}</span>
+                                    <span class="text-xs font-bold text-slate-700">{{ $log->channel }} · {{ match($log->status) { 'success' => 'Diterima layanan', 'failed' => 'Gagal', 'skipped' => 'Dilewati', default => $log->status } }}</span>
+                                    <span class="text-[10px] font-bold text-slate-400">{{ $log->created_at->timezone('Asia/Jakarta')->format('d/m H:i') }}</span>
                                 </div>
                                 <p class="mt-1 text-[11px] font-semibold text-slate-500 break-words">{{ $log->recipient ?: 'Tanpa penerima' }}</p>
                                 @if($log->message)
@@ -521,6 +251,7 @@
                             <p class="text-sm font-semibold text-slate-400">Belum ada log notifikasi.</p>
                         @endforelse
                     </div>
+                    <div class="mt-4">{{ $notificationHistory->onEachSide(1)->links('admin.partials.pagination') }}</div>
                 </div>
 
                 <!-- TANDA TANGAN & PERNYATAAN -->

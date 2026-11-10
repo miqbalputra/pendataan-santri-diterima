@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\CalonSantri;
+use App\Support\AdminRegistrationQuery;
+use App\Support\RegistrationInput;
 use App\Models\Setting;
 use App\Models\Periode;
 use App\Models\Gelombang;
@@ -22,22 +24,24 @@ use ZipArchive;
 class AdminController extends Controller
 {
     public function index(Request $request) {
-        $query = CalonSantri::latest();
+        $filters = AdminRegistrationQuery::filters($request);
+        $query = AdminRegistrationQuery::apply(CalonSantri::query(), $filters);
+        $relations = ['periode', 'gelombang', 'latestNotificationLog'];
+        $pendaftar = AdminRegistrationQuery::order(clone $query, $filters['sort'] ?? 'newest')
+            ->with($relations)->paginate((int) ($filters['per_page'] ?? 20))->withQueryString();
 
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_lengkap', 'like', "%{$search}%")
-                    ->orWhere('nama_ayah', 'like', "%{$search}%")
-                    ->orWhere('no_wa_ayah', 'like', "%{$search}%");
-            });
-        }
-
-        $pendaftar = $query->paginate(20)->withQueryString();
-        
-        $counts = CalonSantri::selectRaw("COUNT(*) as total, SUM(CASE WHEN status_pendaftaran = 'Pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status_pendaftaran = 'Diterima' THEN 1 ELSE 0 END) as diterima")->first();
+        $counts = CalonSantri::selectRaw("COUNT(*) as total, SUM(CASE WHEN status_pendaftaran = 'Pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status_pendaftaran = 'Diterima' THEN 1 ELSE 0 END) as diterima, SUM(CASE WHEN status_pendaftaran = 'Ditolak' THEN 1 ELSE 0 END) as ditolak")->first();
         $stats = ['total' => (int) $counts->total, 'pending' => (int) $counts->pending,
-            'diterima' => (int) $counts->diterima, 'sampah' => CalonSantri::onlyTrashed()->count()];
+            'diterima' => (int) $counts->diterima, 'ditolak' => (int) $counts->ditolak,
+            'sampah' => CalonSantri::onlyTrashed()->count(),
+            'missing' => AdminRegistrationQuery::documents(CalonSantri::query(), 'missing')->count(),
+            'revision' => AdminRegistrationQuery::documents(CalonSantri::query(), 'revision')->count(),
+            'verified_docs' => AdminRegistrationQuery::documents(CalonSantri::query(), 'verified')->count(),
+            'need_contact' => AdminRegistrationQuery::notDone(CalonSantri::query(), 'followup_sudah_dihubungi')->count(),
+            'need_group' => AdminRegistrationQuery::notDone(CalonSantri::query(), 'followup_sudah_masuk_grup')->count(),
+            'notification_failed' => CalonSantri::whereHas('latestNotificationLog', fn ($log) => $log->where('status', 'failed'))->count(),
+        ];
+        $filteredCounts = (clone $query)->selectRaw("COUNT(*) as total, SUM(CASE WHEN status_pendaftaran = 'Pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status_pendaftaran = 'Diterima' THEN 1 ELSE 0 END) as diterima")->first();
         $settings = Setting::pluck('value', 'key');
 
         $ocr_engine = ($settings['ocr_engine'] ?? null) ?? 'local';
@@ -58,26 +62,19 @@ class AdminController extends Controller
         $kop_baris_2 = ($settings['kop_baris_2'] ?? null) ?? 'Sistem Pendataan Peserta Didik Baru (SPSB)';
         $kop_baris_3 = ($settings['kop_baris_3'] ?? null) ?? 'Jl. Contoh No. 123, Kota ABC, Propinsi XYZ | Telp: 0812-3456-7890';
 
-        $periodes = Periode::all();
-        $gelombangs = Gelombang::withCount('calonSantris')->get();
-        $logs = ActivityLog::latest()->take(100)->get();
-        $notificationLogs = NotificationLog::with('calonSantri')->latest()->take(100)->get();
+        $periodes = Periode::orderByDesc('is_active')->orderByDesc('id')->get();
+        $gelombangs = Gelombang::withCount('calonSantris')->orderByDesc('is_active')->orderByDesc('id')->get();
+        $logs = ActivityLog::latest('id')->paginate(30, ['*'], 'log_page')->withQueryString()->fragment('log');
+        $notificationLogs = NotificationLog::with('calonSantri:id,nama_lengkap')->latest('id')->paginate(25, ['id', 'calon_santri_id', 'channel', 'recipient', 'recipient_role', 'status', 'http_status', 'message', 'created_at'], 'notification_page')->withQueryString()->fragment('log');
         $followUpRelations = ['gelombang'];
         if (Schema::hasTable('group_join_links')) {
             $followUpRelations[] = 'groupJoinLinks';
         }
 
-        // Filter and limit in the database instead of hydrating every registration.
-        $followUpPendaftar = CalonSantri::with($followUpRelations)->where(function ($query) {
-            $query->where('followup_sudah_masuk_grup', false)->orWhereNull('followup_sudah_masuk_grup')
-                ->orWhere('followup_sudah_dihubungi', false)->orWhereNull('followup_sudah_dihubungi')
-                ->orWhere('status_pendaftaran', 'Pending')->orWhereNull('dokumen_status');
-            foreach (['foto_ktp_ayah', 'foto_ktp_ibu', 'foto_akta_anak', 'foto_kk', 'foto_pas_siswa'] as $field) {
-                $query->orWhereIn('dokumen_status->' . $field, ['kosong', 'perlu_perbaikan', 'menunggu_review']);
-            }
-        })->latest()->limit(100)->get();
+        $followUpPendaftar = AdminRegistrationQuery::attention(clone $query)->with($followUpRelations)
+            ->orderBy('created_at')->orderBy('id')->paginate(25, ['*'], 'follow_page')->withQueryString()->fragment('followup');
 
-        return view('admin.dashboard', compact('pendaftar', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
+        return view('admin.dashboard', compact('pendaftar', 'filters', 'filteredCounts', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }
 
     public function updateSettings(Request $request) {
@@ -173,14 +170,18 @@ class AdminController extends Controller
         }
     }
 
-    public function show($id) {
-        $relations = ['notificationLogs'];
+    public function show(Request $request, $id) {
+        $request->validate(['back' => 'nullable|string|max:4000', 'history_page' => 'nullable|integer|min:1']);
+        $returnUrl = route('admin.dashboard') . ($request->filled('back') ? '?' . $request->query('back') : '');
+        $relations = ['periode', 'gelombang'];
         if (Schema::hasTable('group_join_links')) {
             $relations[] = 'groupJoinLinks';
         }
 
         $santri = CalonSantri::with($relations)->findOrFail($id);
-        return view('admin.show', compact('santri'));
+        $notificationHistory = $santri->notificationLogs()->latest('id')->paginate(10, ['id', 'calon_santri_id', 'channel', 'status', 'recipient', 'http_status', 'message', 'created_at'], 'history_page')->withQueryString()->fragment('notification-history');
+        $fieldLabels = $this->aiFormFieldLabels();
+        return view('admin.show', compact('santri', 'fieldLabels', 'returnUrl', 'notificationHistory'));
     }
 
     public function edit($id) {
@@ -208,7 +209,7 @@ class AdminController extends Controller
 
         ActivityLog::create([
             'aktivitas' => "Edit Data Peserta Didik: {$santri->nama_lengkap}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => $request->ip()
         ]);
 
@@ -241,7 +242,7 @@ class AdminController extends Controller
 
         ActivityLog::create([
             'aktivitas' => "Pindah ke Sampah: {$santri->nama_lengkap}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => request()->ip(),
         ]);
 
@@ -255,7 +256,7 @@ class AdminController extends Controller
 
         ActivityLog::create([
             'aktivitas' => "Pulihkan dari Sampah: {$santri->nama_lengkap}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => request()->ip(),
         ]);
 
@@ -280,7 +281,7 @@ class AdminController extends Controller
 
         ActivityLog::create([
             'aktivitas' => "Hapus Permanen: {$name}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => $request->ip(),
         ]);
 
@@ -297,7 +298,7 @@ class AdminController extends Controller
         
         ActivityLog::create([
             'aktivitas' => "Verifikasi Status: {$santri->nama_lengkap} -> {$request->status_pendaftaran}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => $request->ip()
         ]);
 
@@ -335,18 +336,29 @@ class AdminController extends Controller
             'dokumen_catatan' => 'nullable|string|max:2000',
         ]);
 
-        $needsRevision = collect($request->dokumen_status)
+        $statuses = $request->dokumen_status;
+        foreach ($statuses as $field => $status) {
+            if (!in_array($field, AdminRegistrationQuery::DOCUMENTS, true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['dokumen_status' => 'Jenis dokumen tidak dikenal.']);
+            }
+            if ($status === 'valid' && blank($santri->{$field})) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['dokumen_status.' . $field => 'Lampiran belum diunggah, sehingga belum dapat dinyatakan valid.']);
+            }
+        }
+
+        $statuses = array_replace($santri->dokumen_status ?? [], $statuses);
+        $needsRevision = collect($statuses)
             ->contains(fn ($status) => in_array($status, ['perlu_perbaikan', 'kosong'], true));
 
         $santri->update([
-            'dokumen_status' => $request->dokumen_status,
+            'dokumen_status' => $statuses,
             'dokumen_catatan' => $request->dokumen_catatan,
             'revisi_diminta_pada' => $needsRevision ? now() : $santri->revisi_diminta_pada,
         ]);
 
         ActivityLog::create([
             'aktivitas' => "Verifikasi Dokumen: {$santri->nama_lengkap}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => $request->ip()
         ]);
 
@@ -454,7 +466,7 @@ class AdminController extends Controller
 
         ActivityLog::create([
             'aktivitas' => "Update Follow-up: {$santri->nama_lengkap}",
-            'aktor' => 'Admin',
+            'aktor' => auth()->user()?->username ?? 'Admin',
             'ip_address' => $request->ip()
         ]);
 
@@ -462,58 +474,38 @@ class AdminController extends Controller
     }
     
     public function exportData(Request $request) {
+        $request->validate(['format' => 'required|in:csv,excel,uploads,pdf']);
         $format = $request->format;
-        $query = CalonSantri::query()->orderBy('id');
+        $filters = AdminRegistrationQuery::filters($request);
+        $query = AdminRegistrationQuery::order(AdminRegistrationQuery::apply(CalonSantri::query(), $filters), $filters['sort'] ?? 'newest');
+        $count = (clone $query)->count();
+        ActivityLog::create(['aktivitas' => "Export Data Peserta Didik ({$format}) - {$count} data",
+            'aktor' => auth()->user()->username ?? 'Admin', 'ip_address' => $request->ip()]);
 
-        if ($request->filled('status_pendaftaran')) {
-            $query->where('status_pendaftaran', $request->status_pendaftaran);
-        }
-
-        if ($request->filled('jenis_kelamin')) {
-            $query->where('jenis_kelamin', $request->jenis_kelamin);
-        }
-
-        if ($request->filled('periode_id')) {
-            $query->where('periode_id', $request->periode_id);
-        }
-
-        if ($request->filled('gelombang_id')) {
-            $query->where('gelombang_id', $request->gelombang_id);
-        }
-
-        $data = $query->get();
-        
-        ActivityLog::create([
-            'aktivitas' => 'Export Data Peserta Didik ('.$format.') - '.$data->count().' data',
-            'aktor' => 'Admin',
-            'ip_address' => $request->ip()
-        ]);
-        
-        if ($format == 'csv') {
-            $fileName = 'Data_Peserta_Didik_SPSB.csv';
-            $headers = [
-                "Content-type"        => "text/csv",
-                "Content-Disposition" => "attachment; filename=$fileName",
-                "Pragma"              => "no-cache",
-                "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-                "Expires"             => "0"
-            ];
-            
-            $columns = ['ID', 'Nama Anak', 'NIK Anak', 'Nama Ayah', 'Kontak Ayah', 'Status'];
-            
-            $callback = function() use($data, $columns) {
+        if ($format === 'csv') {
+            $labels = $this->aiFormFieldLabels();
+            $periodNames = Periode::pluck('nama_periode', 'id');
+            $waveNames = Gelombang::pluck('nama_gelombang', 'id');
+            $columns = array_merge(['nomor_pendaftaran', 'periode', 'gelombang', 'created_at', 'status_pendaftaran'], RegistrationInput::FIELDS);
+            $columns = array_values(array_unique($columns));
+            return response()->streamDownload(function () use ($query, $columns, $labels, $periodNames, $waveNames) {
                 $file = fopen('php://output', 'w');
-                fputcsv($file, $columns);
-                foreach ($data as $row) {
-                    fputcsv($file, [
-                        $row->id, $row->nama_lengkap, $row->nik, $row->nama_ayah, $row->no_wa_ayah, $row->status_pendaftaran
-                    ]);
+                fwrite($file, "\xEF\xBB\xBF");
+                fputcsv($file, array_map(fn ($column) => $labels[$column] ?? Str::headline($column), $columns), ',', '"', '');
+                foreach ($query->cursor() as $row) {
+                    $values = array_map(function ($column) use ($row, $periodNames, $waveNames) {
+                        $value = match ($column) { 'periode' => $periodNames[$row->periode_id] ?? '', 'gelombang' => $waveNames[$row->gelombang_id] ?? '', default => $row->{$column} };
+                        if ($value instanceof \Carbon\CarbonInterface) $value = $value->timezone('Asia/Jakarta')->format('Y-m-d H:i:s');
+                        $value = is_bool($value) ? ($value ? 'Ya' : 'Tidak') : (is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string) ($value ?? ''));
+                        // Spreadsheet applications must not execute user input as a formula.
+                        return preg_match('/^[\s]*[=+@-]/u', $value) ? "'" . $value : $value;
+                    }, $columns);
+                    fputcsv($file, $values, ',', '"', '');
                 }
                 fclose($file);
-            };
-            
-            return response()->stream($callback, 200, $headers);
+            }, 'Data_SPSB_' . now()->format('Ymd_His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store']);
         }
+        $data = $query->get();
 
         if ($format == 'excel') {
             return $this->downloadExcel($data);
@@ -531,7 +523,7 @@ class AdminController extends Controller
     {
         $columns = array_merge(
             ['id', 'created_at', 'updated_at'],
-            (new CalonSantri())->getFillable()
+            array_values(array_diff((new CalonSantri())->getFillable(), ['revisi_token']))
         );
 
         $headers = [
@@ -540,7 +532,8 @@ class AdminController extends Controller
             'Cache-Control' => 'max-age=0',
         ];
 
-        $callback = function () use ($data, $columns) {
+        $labels = $this->aiFormFieldLabels();
+        $callback = function () use ($data, $columns, $labels) {
             echo "\xEF\xBB\xBF";
             echo '<?xml version="1.0" encoding="UTF-8"?>';
             echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
@@ -551,7 +544,7 @@ class AdminController extends Controller
 
             echo '<Row>';
             foreach ($columns as $column) {
-                echo '<Cell><Data ss:Type="String">' . e($column) . '</Data></Cell>';
+                echo '<Cell><Data ss:Type="String">' . e($labels[$column] ?? Str::headline($column)) . '</Data></Cell>';
             }
             echo '</Row>';
 

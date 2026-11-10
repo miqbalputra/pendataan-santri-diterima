@@ -17,6 +17,10 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+        if ($request->is('admin', 'admin/*')) {
+            $response->headers->set('Cache-Control', 'private, no-store');
+            $response->headers->set('Pragma', 'no-cache');
+        }
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
