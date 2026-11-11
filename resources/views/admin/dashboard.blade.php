@@ -154,16 +154,7 @@
                     <div class="glass-card rounded-[2rem] p-8 shadow-xl shadow-slate-900/5">
                         <form action="{{ route('admin.settings.update') }}" method="POST" class="space-y-6">
                             @csrf
-                            <div>
-                                <label class="block font-black text-slate-700 text-sm uppercase tracking-widest mb-4">Mode Ekstraksi AI (OCR Engine)</label>
-                                <select name="ocr_engine" id="ocr_engine" class="form-input font-bold text-slate-700 bg-white" onchange="toggleSettings()">
-                                    <option value="local" {{ $ocr_engine == 'local' ? 'selected' : '' }}>Mode 1: Lokal Tesseract (Rendah)</option>
-                                    <option value="n8n" {{ $ocr_engine == 'n8n' ? 'selected' : '' }}>Mode 2: Cloud n8n Webhook (Tinggi)</option>
-                                    <option value="direct_ai" {{ $ocr_engine == 'direct_ai' ? 'selected' : '' }}>Mode 3: Direct API AI / LLM (Sangat Tinggi)</option>
-                                </select>
-                            </div>
-
-                            <!-- Custom Kop Surat -->
+<!-- Custom Kop Surat -->
                             <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 space-y-4">
                                 <h3 class="font-black text-indigo-900 text-base flex items-center gap-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg> 
@@ -224,28 +215,13 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- n8n Config -->
-                    <div id="setting_n8n" class="glass-card rounded-[2rem] p-8 shadow-xl shadow-blue-900/5 {{ $ocr_engine == 'n8n' ? 'block' : 'hidden' }}">
-                        <h3 class="font-black text-blue-900 text-lg mb-6 flex items-center gap-3">
-                            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 shadow-inner">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            </div>
-                            Konfigurasi Webhook n8n
-                        </h3>
-                        <div>
-                            <label class="block font-black text-slate-500 text-[10px] uppercase tracking-widest mb-2">Webhook URL</label>
-                            <input type="text" name="ocr_webhook_url" id="ocr_webhook_url" class="form-input text-blue-600 font-mono text-xs" value="{{ $ocr_webhook_url }}" placeholder="https://n8n.domain.com/...">
-                        </div>
-                    </div>
-
                     <!-- Direct AI Config -->
-                    <div id="setting_ai" class="glass-card rounded-[2rem] p-8 shadow-xl shadow-purple-900/5 {{ $ocr_engine == 'direct_ai' ? 'block' : 'hidden' }}">
+                    <div class="glass-card rounded-[2rem] p-8 shadow-xl shadow-purple-900/5">
                         <h3 class="font-black text-purple-900 text-lg mb-6 flex items-center gap-3">
                             <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 shadow-inner">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                             </div>
-                            Direct AI API (LLM)
+                            Asisten AI Admin
                         </h3>
                         <div class="space-y-5">
                             <div>
@@ -967,11 +943,6 @@
             btn.disabled = false;
         }
 
-        function toggleSettings() {
-            const mode = document.getElementById('ocr_engine').value;
-            document.getElementById('setting_n8n').classList.toggle('hidden', mode !== 'n8n');
-            document.getElementById('setting_ai').classList.toggle('hidden', mode !== 'direct_ai');
-        }
 
         function handleModelChange() {
             const select = document.getElementById('ai_model_select');

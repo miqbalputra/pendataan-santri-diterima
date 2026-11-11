@@ -3,6 +3,7 @@
 use App\Http\Controllers\PendaftaranController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\OcrScanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PendaftaranController::class, 'index']);
@@ -15,7 +16,10 @@ Route::get('/cek-status', [PendaftaranController::class, 'cekStatus'])->name('pe
 Route::post('/cek-status', [PendaftaranController::class, 'cariStatus'])->middleware('throttle:10,1')->name('pendaftaran.cari_status');
 Route::get('/revisi/{token}', [PendaftaranController::class, 'editRevisi'])->name('pendaftaran.revisi');
 Route::post('/revisi/{token}', [PendaftaranController::class, 'updateRevisi'])->name('pendaftaran.revisi.update');
-Route::post('/upload-ocr', [PendaftaranController::class, 'uploadOcr'])->middleware('throttle:20,1')->name('upload_ocr');
+Route::post('/ocr/scans', [OcrScanController::class, 'store'])->middleware('throttle:12,1')->name('ocr.scans.store');
+Route::get('/ocr/scans/{id}', [OcrScanController::class, 'show'])->middleware('throttle:60,1')->name('ocr.scans.show');
+Route::delete('/ocr/scans/{id}', [OcrScanController::class, 'destroy'])->middleware('throttle:30,1')->name('ocr.scans.destroy');
+Route::post('/upload-ocr', [OcrScanController::class, 'rejectLegacyCloud'])->middleware('throttle:20,1')->name('upload_ocr');
 Route::get('/pendaftaran/{id}/cetak', [PendaftaranController::class, 'cetak'])->middleware('signed')->name('pendaftaran.cetak');
 Route::get('/pendaftaran/{id}/bukti', [PendaftaranController::class, 'bukti'])->middleware('signed')->name('pendaftaran.bukti');
 Route::get('/pendaftaran/{id}/berkas/{field}', [PendaftaranController::class, 'viewPublicDocument'])->middleware('signed')->name('pendaftaran.berkas');

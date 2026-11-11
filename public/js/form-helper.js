@@ -38,6 +38,7 @@ window.SpsbForm = (() => {
         for (const input of form().querySelectorAll('input,select,textarea')) {
             clearError(input);
             if (input.type === 'hidden' || input.disabled) continue;
+            if (input.type === 'file' && input.dataset.stagingToken) continue;
             if (!input.checkValidity()) {
                 let message = input.validity.valueMissing ? `${label(input)} wajib diisi.` : `Periksa kembali ${label(input)}.`;
                 if (input.name.startsWith('nik') && input.validity.patternMismatch) message = 'NIK harus terdiri dari tepat 16 angka, sesuai dokumen.';
@@ -69,7 +70,7 @@ window.SpsbForm = (() => {
                 const input = form().elements.namedItem(name);
                 return `<p class="mb-1"><span class="text-slate-500">${escape(label(input))}:</span> <strong>${escape(input.value || 'Belum diisi')}</strong></p>`;
             }).join('') + '</section>'
-        ).join('') + '<p class="font-bold">Kelima lampiran sudah dipilih. Periksa kembali NIK, nama, tanggal lahir, dan nomor WhatsApp sebelum mengirim.</p></div>';
+        ).join('') + `<p class="font-bold">${[...form().querySelectorAll('.file-input')].every(input => input.files?.length || input.dataset.stagingToken) ? 'Kelima lampiran sudah tersimpan.' : 'Kelima lampiran wajib dilengkapi.'} Periksa kembali NIK, nama, tanggal lahir, dan nomor WhatsApp sebelum mengirim.</p></div>`;
     }
     function applyOcr(target, callback) {
         const inputs = [...form().querySelectorAll('input,select,textarea')];
@@ -116,14 +117,24 @@ window.SpsbForm = (() => {
             if (xhr.status === 422 && data.errors) {
                 let first;
                 for (const [name, messages] of Object.entries(data.errors)) {
-                    const input = name === 'tanda_tangan_base64' ? document.getElementById('ttd-nama') : form().elements.namedItem(name);
-                    if (input) { error(input, messages[0]); first ||= input; }
+                    const formName = name.replace(/^staged_files\./, '');
+                    const input = name === 'tanda_tangan_base64' ? document.getElementById('ttd-nama') : form().elements.namedItem(formName);
+                    if (input) {
+                        if (name.startsWith('staged_files.')) window.SpsbScanner.discard(input);
+                        error(input, messages[0]); first ||= input;
+                    }
                 }
                 Swal.fire({ icon: 'info', title: 'Periksa kembali data', text: Object.values(data.errors)[0][0], confirmButtonText: 'Perbaiki Data', returnFocus: false }).then(() => focus(first));
             } else retry(xhr.status === 419 ? 'Sesi berakhir. Simpan data lalu muat ulang halaman; foto perlu dipilih kembali.' : (xhr.status === 429 ? 'Terlalu banyak percobaan. Tunggu satu menit lalu coba lagi.' : 'Server sedang mengalami gangguan. Cek status pendaftaran sebelum mencoba lagi.'));
         };
         xhr.onerror = xhr.ontimeout = () => retry('Koneksi terputus atau waktu tunggu habis. Cek status pendaftaran sebelum mengirim ulang.');
-        xhr.send(new FormData(form()));
+        const payload = new FormData(form());
+        form().querySelectorAll('.file-input').forEach(input => {
+            if (!input.dataset.stagingToken) return;
+            payload.delete(input.name);
+            payload.append(`staged_files[${input.name}]`, input.dataset.stagingToken);
+        });
+        xhr.send(payload);
     }
     document.addEventListener('DOMContentLoaded', () => {
         if (!form()) return;

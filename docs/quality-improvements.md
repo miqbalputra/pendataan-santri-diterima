@@ -16,7 +16,8 @@ Perubahan ini tidak memerlukan migrasi database atau perubahan data lama.
 - Pengaturan halaman publik dibaca dalam satu query, sebelumnya tiga. Dashboard juga mengambil pengaturan sekaligus dan menghitung statistik lewat agregasi.
 - Daftar tindak lanjut difilter di database dan dibatasi 100 baris, sehingga tidak memuat seluruh pendaftar ke memori.
 - Notifikasi diproses dengan deferred callback setelah respons dikirim. Kegagalan webhook dicatat dan tidak membatalkan pendaftaran yang sudah tersimpan. Callback ini bukan antrean persisten dan tidak menyediakan retry otomatis.
-- Tailwind dikompilasi saat build. JavaScript SweetAlert dan Signature Pad disajikan dari aplikasi sendiri. Tesseract serta worker/core dimuat lokal saat OCR diperlukan; data bahasa Tesseract masih diunduh saat penggunaan pertama.
+- Tailwind dikompilasi saat build. JavaScript SweetAlert dan Signature Pad disajikan dari aplikasi sendiri. OCR menggunakan service PaddleOCR PP-OCRv6 privat di VPS; model dimasukkan saat image dibangun dan tidak diunduh ketika pendaftar mengirim foto.
+- Foto masuk private storage untuk maksimum 24 jam. Tabel staging baru menyimpan token hash terikat sesi dan metadata pemrosesan; setelah pendaftaran berhasil, lampiran dipindahkan ke lokasi penyimpanan yang sama seperti sebelumnya. Jika pengiriman gagal, lampiran staging dipertahankan untuk percobaan ulang.
 - Konfigurasi nginx menambahkan gzip serta cache aset build. Header ini baru aktif setelah konfigurasi dipasang di server.
 - Stylesheet font eksternal dimuat tanpa menahan tampilan awal; browser memakai font pengganti saat jaringan font belum siap.
 

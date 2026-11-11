@@ -1,0 +1,30 @@
+# Compose overlay/fragment. Attach the existing Laravel web and single OCR queue-worker
+# services to this same internal network; do not publish the OCR port to the host.
+services:
+  ocr:
+    build:
+      context: ./ocr-service
+    image: spsb-ocr:pp-ocrv6-id
+    restart: unless-stopped
+    environment:
+      OCR_SERVICE_TOKEN: ${OCR_SERVICE_TOKEN:?Set OCR_SERVICE_TOKEN in the deployment environment}
+      OCR_AUTO_FILL_ENABLED: ${OCR_AUTO_FILL_ENABLED:-false}
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+    expose:
+      - "8000"
+    cpus: "2.0"
+    mem_limit: 3g
+    pids_limit: 128
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - spsb_private
+
+networks:
+  spsb_private:
+    name: spsb_private
+    internal: true

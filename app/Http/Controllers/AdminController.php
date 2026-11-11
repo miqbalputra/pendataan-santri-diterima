@@ -44,8 +44,6 @@ class AdminController extends Controller
         $filteredCounts = (clone $query)->selectRaw("COUNT(*) as total, SUM(CASE WHEN status_pendaftaran = 'Pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status_pendaftaran = 'Diterima' THEN 1 ELSE 0 END) as diterima")->first();
         $settings = Setting::pluck('value', 'key');
 
-        $ocr_engine = ($settings['ocr_engine'] ?? null) ?? 'local';
-        $ocr_webhook_url = ($settings['ocr_webhook_url'] ?? null) ?? 'https://n8n.griyaquran.web.id/webhook/ocr-ktp';
         $n8n_email_webhook_url = ($settings['n8n_email_webhook_url'] ?? null) ?? '';
         $n8n_whatsapp_webhook_url = ($settings['n8n_whatsapp_webhook_url'] ?? null) ?? '';
         $group_ikhwan_url = ($settings['group_ikhwan_url'] ?? null) ?? '';
@@ -74,12 +72,10 @@ class AdminController extends Controller
         $followUpPendaftar = AdminRegistrationQuery::attention(clone $query)->with($followUpRelations)
             ->orderBy('created_at')->orderBy('id')->paginate(25, ['*'], 'follow_page')->withQueryString()->fragment('followup');
 
-        return view('admin.dashboard', compact('pendaftar', 'filters', 'filteredCounts', 'ocr_engine', 'ocr_webhook_url', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
+        return view('admin.dashboard', compact('pendaftar', 'filters', 'filteredCounts', 'n8n_email_webhook_url', 'n8n_whatsapp_webhook_url', 'group_ikhwan_url', 'group_akhwat_url', 'stats', 'ai_endpoint', 'ai_api_key', 'ai_model', 'app_locked', 'periodes', 'gelombangs', 'logs', 'notificationLogs', 'followUpPendaftar', 'kop_baris_1', 'kop_baris_2', 'kop_baris_3'));
     }
 
     public function updateSettings(Request $request) {
-        Setting::updateOrCreate(['key' => 'ocr_engine'], ['value' => $request->ocr_engine]);
-        Setting::updateOrCreate(['key' => 'ocr_webhook_url'], ['value' => $request->ocr_webhook_url]);
         Setting::updateOrCreate(['key' => 'n8n_email_webhook_url'], ['value' => $request->n8n_email_webhook_url]);
         Setting::updateOrCreate(['key' => 'n8n_whatsapp_webhook_url'], ['value' => $request->n8n_whatsapp_webhook_url]);
         Setting::updateOrCreate(['key' => 'group_ikhwan_url'], ['value' => $request->group_ikhwan_url]);

@@ -5,59 +5,91 @@ const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const template = fs.readFileSync(path.join(root, 'resources/views/pendaftaran.blade.php'), 'utf8');
-const runSource = template.slice(template.indexOf('        async function runOCR('), template.indexOf('        function triggerHighlight'));
+const runSource = template.slice(template.indexOf('        const OCR_FIELD_LABELS'), template.indexOf('        function triggerHighlight'));
 
-function setup(response, engine = 'direct_ai', localData = {}) {
-    const calls = { applied: [], parsed: [], manual: [] };
+function setup(scan, options = {}) {
+    const calls = { applied: [], manual: [], requested: [] };
+    const checked = options.checked || [];
     const context = vm.createContext({
-        OCR_ENGINE: engine, setTimeout, clearTimeout, DOMException,
+        setTimeout, clearTimeout, DOMException,
         window: { SpsbScanner: {
-            request: async () => response, progress() {},
-            ensureOcr: async () => {},
+            manualTargets: new Set(),
+            request: async (...args) => { calls.requested.push(args); return scan; },
+            progress() {},
             manualChoice: async message => { calls.manual.push(message); return true; },
         } },
-        Tesseract: { createWorker: async () => ({ recognize: async () => ({ data: localData }), terminate: async () => {} }) },
-        SpsbForm: { applyOcr: (_, callback) => callback() },
+        document: { querySelectorAll: () => checked.map(key => ({ dataset: { ocrKey: key } })) },
+        Swal: { fire: async config => config.preConfirm
+            ? { isConfirmed: true, value: config.preConfirm() }
+            : { isConfirmed: true } },
+        SpsbForm: {
+            applyOcr: (_, callback) => callback(),
+            escape: value => String(value).replace(/[&<>"']/g, ''),
+        },
         applyOcrFields: fields => calls.applied.push(fields),
-        parseAndFill: text => calls.parsed.push(text),
     });
     vm.runInContext(runSource, context);
-    return { calls, run: signal => context.runOCR({}, 'ayah', signal || new AbortController().signal) };
+    return {
+        calls,
+        run: (signal, target = 'ayah') => context.runOCR({}, target, signal || new AbortController().signal, { dataset: {} }),
+    };
 }
 
-test('structured identity is not overwritten by a second regex parse of JSON', async () => {
-    const fields = { nama: 'CONTOH', nik: '1234567890123456' };
-    const { calls, run } = setup({ fields, extracted_text: JSON.stringify(fields) });
+test('medium-confidence values are suggestions and fill only after explicit selection', async () => {
+    const fields = {
+        nama: { value: 'BUDI SANTOSO', confidence: 0.88, decision: 'confirm' },
+        nik: { value: '1234567890123456', confidence: 0.91, decision: 'confirm' },
+    };
+    const { calls, run } = setup({ status: 'ready', result: {
+        document_check: { is_expected_document: true, confidence: 'high' }, fields,
+    } }, { checked: ['nik'] });
     await run();
-    assert.deepEqual(calls.applied, [fields]);
-    assert.equal(calls.parsed.length, 0);
+    assert.deepEqual(JSON.parse(JSON.stringify(calls.applied)), [{ nik: '1234567890123456' }]);
+    assert.equal(calls.requested[0][4], true);
 });
 
-test('unreadable or mismatched documents offer manual entry without autofill', async () => {
-    for (const check of [{ confidence: 'low' }, { is_expected_document: false }]) {
-        const { calls, run } = setup({ fields: { nama: 'UNTRUSTED' }, document_check: check });
+test('high-confidence values are applied only when the server has enabled the gate', async () => {
+    const values = { nik: { value: '1234567890123456', confidence: 0.99, decision: 'auto' } };
+    const { calls, run } = setup({ status: 'ready', result: {
+        document_check: { is_expected_document: true, confidence: 'high' }, fields: values,
+    } });
+    await run();
+    assert.deepEqual(JSON.parse(JSON.stringify(calls.applied)), [{ nik: '1234567890123456' }]);
+});
+
+test('mismatched and failed documents offer manual entry without autofill', async () => {
+    for (const scan of [
+        { status: 'ready', result: { fields: { nama: { value: 'SALAH', decision: 'confirm' } }, document_check: { is_expected_document: false } } },
+        { status: 'failed', result: { fields: {}, warnings: ['OCR gagal'], document_check: { is_expected_document: false } } },
+    ]) {
+        const { calls, run } = setup(scan);
         assert.equal(await run(), true);
         assert.equal(calls.manual.length, 1);
         assert.equal(calls.applied.length, 0);
     }
 });
 
-test('low-confidence local OCR also offers manual entry', async () => {
-    const { calls, run } = setup(null, 'local', { text: 'NIK 1234567890123456', confidence: 40 });
-    await run();
-    assert.equal(calls.manual.length, 1);
-    assert.equal(calls.parsed.length, 0);
+test('KK suggestions remain limited to address fields', async () => {
+    const { calls, run } = setup({ status: 'ready', result: {
+        document_check: { is_expected_document: true, confidence: 'high' },
+        fields: { alamat: { value: 'JALAN CONTOH', confidence: 0.9, decision: 'auto' } },
+    } });
+    await run(undefined, 'kk');
+    assert.deepEqual(JSON.parse(JSON.stringify(calls.applied)), [{ alamat: 'JALAN CONTOH' }]);
 });
 
-test('switching to manual ignores a late OCR response', async () => {
+test('an aborted scan ignores late OCR results', async () => {
     const controller = new AbortController();
     controller.abort();
-    const { calls, run } = setup({ fields: { nama: 'LATE RESPONSE' } });
+    const { calls, run } = setup({ status: 'ready', result: {
+        document_check: { is_expected_document: true, confidence: 'high' },
+        fields: { nama: { value: 'LATE RESPONSE', confidence: 0.99, decision: 'auto' } },
+    } });
     await run(controller.signal);
     assert.equal(calls.applied.length, 0);
 });
 
-test('all embedded scripts have valid JavaScript syntax', () => {
+test('embedded JavaScript and scanner source have valid syntax', () => {
     for (const match of template.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
         if (match[1].trim()) new vm.Script(match[1]);
     }

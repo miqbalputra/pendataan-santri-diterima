@@ -28,6 +28,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'ocr' => [
+        'url' => 'http://ocr:8000',
+        'token' => env('OCR_SERVICE_TOKEN', ''),
+        'timeout' => (int) env('OCR_SERVICE_TIMEOUT', 45),
+        'queue_limit' => (int) env('OCR_QUEUE_LIMIT', 30),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

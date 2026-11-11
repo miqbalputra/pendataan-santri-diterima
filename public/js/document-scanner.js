@@ -6,19 +6,6 @@ window.SpsbScanner = (() => {
     const tasks = new Map();
     const manualTargets = new Set();
     let modal;
-    let ocrScript;
-
-    function ensureOcr() {
-        if (window.Tesseract) return Promise.resolve();
-        if (!ocrScript) ocrScript = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = '/vendor/tesseract/tesseract.min.js';
-            script.onload = resolve;
-            script.onerror = () => { ocrScript = null; script.remove(); reject(new Error('Pembaca OCR belum dapat dimuat. Coba lagi atau isi manual.')); };
-            document.head.append(script);
-        });
-        return ocrScript;
-    }
 
     function init() {
         const style = document.createElement('style');
@@ -221,27 +208,86 @@ window.SpsbScanner = (() => {
         const result = await Swal.fire({ icon: 'warning', title: 'Foto belum terbaca jelas', text: `${message} Anda dapat foto ulang atau isi data manual. Lampiran tetap dibutuhkan.`, showCancelButton: true, confirmButtonText: 'Isi Manual', cancelButtonText: 'Foto Ulang', confirmButtonColor: '#047857' });
         return result.isConfirmed;
     }
-    function request(file, target, signal) {
+    function request(file, target, signal, input, runOcr = true) {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             const abort = () => xhr.abort();
             signal.addEventListener('abort', abort, { once: true });
-            xhr.open('POST', '/upload-ocr'); xhr.timeout = 90000;
+            xhr.open('POST', '/ocr/scans'); xhr.timeout = 90000;
             xhr.setRequestHeader('Accept', 'application/json');
             xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('input[name="_token"]').value);
             xhr.upload.onprogress = e => { if (e.lengthComputable) progress(target, `Mengirim foto: ${Math.round(e.loaded/e.total*100)}%`, Math.round(e.loaded/e.total*100)); };
-            xhr.upload.onload = () => progress(target, 'Foto terkirim. Membaca dokumen…');
+            xhr.upload.onload = () => progress(target, 'Foto diterima. Masuk antrean OCR…');
             xhr.onloadend = () => signal.removeEventListener('abort', abort);
-            xhr.onload = () => { try { const data = JSON.parse(xhr.responseText); if (xhr.status < 200 || xhr.status >= 300) throw new Error(data.message || data.error || 'OCR gagal.'); resolve(data); } catch (error) { reject(error); } };
+            xhr.onload = () => {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (xhr.status < 200 || xhr.status >= 300) throw new Error(data.message || 'Foto belum dapat disimpan.');
+                    if (input) { input.dataset.stagingId = data.id; input.dataset.stagingToken = data.scan_token; }
+                    resolve(data);
+                } catch (error) { reject(error); }
+            };
             xhr.onerror = () => reject(new Error('Koneksi terputus.'));
-            xhr.ontimeout = () => reject(new Error('Pembacaan terlalu lama.'));
+            xhr.ontimeout = () => reject(new Error('Unggahan terlalu lama.'));
             xhr.onabort = () => reject(new DOMException('Dibatalkan', 'AbortError'));
-            const form = new FormData(); form.append('file', file); form.append('target', target);
+            const form = new FormData(); form.append('file', file); form.append('target', target); form.append('run_ocr', runOcr ? '1' : '0');
             if (signal.aborted) { reject(new DOMException('Dibatalkan', 'AbortError')); return; }
             xhr.send(form);
+        }).then(async scan => {
+            if (!runOcr || target === 'foto') return scan;
+            const labels = {
+                queued: 'Menunggu giliran OCR…',
+                processing: 'Menyiapkan foto…',
+                preparing: 'Meluruskan dan meningkatkan keterbacaan…',
+                recognizing: 'Memperbaiki foto dan membaca teks di VPS…',
+                complete: 'Memeriksa hasil bacaan…',
+                manual: 'OCR tidak selesai. Foto tetap tersimpan untuk isi manual.',
+            };
+            const deadline = Date.now() + 90000;
+            let transientErrors = 0;
+            while (Date.now() < deadline) {
+                if (signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
+                await new Promise((resolve, reject) => {
+                    const onAbort = () => { clearTimeout(timer); reject(new DOMException('Dibatalkan', 'AbortError')); };
+                    const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, 850);
+                    signal.addEventListener('abort', onAbort, { once: true });
+                });
+                try {
+                    const response = await fetch(`/ocr/scans/${encodeURIComponent(scan.id)}`, {
+                        credentials: 'same-origin', signal,
+                        headers: { 'Accept': 'application/json', 'X-OCR-Token': scan.scan_token },
+                    });
+                    const current = await response.json();
+                    if (!response.ok) throw new Error(current.message || 'Sesi foto berakhir.');
+                    transientErrors = 0;
+                    const percent = ['complete', 'manual'].includes(current.stage) ? 100 : null;
+                    progress(target, labels[current.stage] || 'Memproses dokumen di VPS…', percent);
+                    if (['ready', 'failed'].includes(current.status)) return { ...scan, ...current };
+                } catch (error) {
+                    if (signal.aborted || error.name === 'AbortError') throw error;
+                    if (++transientErrors >= 6) return { ...scan, status: 'failed', result: { fields: {}, document_check: { is_expected_document: false }, warnings: ['Status OCR belum dapat dimuat. Foto tetap tersimpan; lanjutkan dengan isi manual.'] } };
+                }
+            }
+            return { ...scan, status: 'failed', result: { fields: {}, document_check: { is_expected_document: false }, warnings: ['Proses OCR melewati batas waktu. Foto tetap tersimpan; lanjutkan dengan isi manual.'] } };
         });
+    }
+    async function discard(input) {
+        const id = input?.dataset.stagingId;
+        const token = input?.dataset.stagingToken;
+        if (!id || !token) return;
+        delete input.dataset.stagingId;
+        delete input.dataset.stagingToken;
+        try {
+            await fetch(`/ocr/scans/${encodeURIComponent(id)}`, {
+                method: 'DELETE', credentials: 'same-origin', keepalive: true,
+                headers: {
+                    'Accept': 'application/json', 'X-OCR-Token': token,
+                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                },
+            });
+        } catch (_) {}
     }
     document.addEventListener('DOMContentLoaded', init);
     window.addEventListener('pagehide', stopCamera);
-    return { labels, tasks, manualTargets, quality, progress, request, manualChoice, open, ensureOcr };
+    return { labels, tasks, manualTargets, quality, progress, request, discard, manualChoice, open };
 })();

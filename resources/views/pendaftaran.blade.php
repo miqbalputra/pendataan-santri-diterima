@@ -808,78 +808,74 @@
             };
         }
 
-        // Setting OCR dari Backend Admin
-        const OCR_ENGINE = "{{ $ocr_engine }}";
-        const OCR_WEBHOOK_URL = "{{ $ocr_webhook_url }}";
-
-        const DOCUMENT_LABELS = {
-            akta: 'Akta Anak',
-            kk: 'Kartu Keluarga',
-            ayah: 'KTP Ayah',
-            ibu: 'KTP Ibu',
-            foto: 'Pas Foto Anak',
+        const OCR_FIELD_LABELS = {
+            nik: 'NIK', nama: 'Nama', tempat_lahir: 'Tempat lahir', tanggal_lahir: 'Tanggal lahir',
+            jenis_kelamin: 'Jenis kelamin', alamat: 'Alamat', rt_rw: 'RT/RW',
+            kelurahan_desa: 'Kelurahan/desa', kecamatan: 'Kecamatan', pekerjaan: 'Pekerjaan'
         };
 
-        // Upload progress is measured; remote recognition stays indeterminate until a response arrives.
-        async function runOCR(file, target, signal) {
+        async function runOCR(file, target, signal, input) {
             const scanner = window.SpsbScanner;
-            if (target === 'foto') return true;
-            if (OCR_ENGINE === 'local') {
-                let worker;
-                const terminate = () => { if (worker) worker.terminate().catch(() => {}); };
-                let timeout;
-                let expired = false;
-                try {
-                    const recognition = (async () => {
-                        await scanner.ensureOcr();
-                        worker = await Tesseract.createWorker('ind+eng', 1, {
-                            workerPath: '/vendor/tesseract/worker.min.js',
-                            corePath: '/vendor/tesseract/core/',
-                            logger: message => {
-                                if (signal.aborted) return;
-                                if (message.status === 'recognizing text') {
-                                    const percent = Math.round(message.progress * 100);
-                                    scanner.progress(target, 'Membaca teks: ' + percent + '%', percent);
-                                } else scanner.progress(target, 'Menyiapkan pembaca OCR…');
-                            }
+            const runOnServer = target !== 'foto' && !scanner.manualTargets.has(target);
+            const scan = await scanner.request(file, target, signal, input, runOnServer);
+            if (signal.aborted || !runOnServer) return true;
+
+            const result = scan.result || {};
+            const check = result.document_check || {};
+            const fields = result.fields || {};
+            if (scan.status === 'failed' || check.is_expected_document === false || check.confidence === 'low') {
+                const warning = result.warnings?.[0] || 'Jenis dokumen atau tulisannya belum dapat dipastikan.';
+                const useManual = await scanner.manualChoice(warning);
+                if (useManual) scanner.manualTargets.add(target);
+                return useManual;
+            }
+
+            const values = {};
+            const suggestions = {};
+            Object.entries(fields).forEach(([key, item]) => {
+                if (!item || typeof item !== 'object' || !item.value) return;
+                if (item.decision === 'auto') values[key] = item.value;
+                else if (item.decision === 'confirm') suggestions[key] = item;
+            });
+
+            if (Object.keys(values).length) SpsbForm.applyOcr(target, () => applyOcrFields(values, target));
+            if (Object.keys(suggestions).length) {
+                const keys = Object.keys(suggestions);
+                const rows = keys.map((key, index) => {
+                    const item = suggestions[key];
+                    return `<label for="ocr-suggestion-${index}" class="flex gap-3 items-start border border-slate-200 rounded-xl p-3 mb-2 text-left cursor-pointer"><input id="ocr-suggestion-${index}" type="checkbox" data-ocr-key="${SpsbForm.escape(key)}" class="mt-1 accent-emerald-600"><span><strong>${SpsbForm.escape(OCR_FIELD_LABELS[key] || key)}</strong><br><span class="text-slate-700">${SpsbForm.escape(item.value)}</span><br><small class="text-slate-500">Keyakinan bacaan ${Math.round((Number(item.confidence) || 0) * 100)}% · cocokkan dengan dokumen</small></span></label>`;
+                }).join('');
+                const confirmation = await Swal.fire({
+                    icon: 'info', title: 'Periksa saran dari dokumen',
+                    html: `<p class="text-left mb-3">Pilih kolom yang nilainya sama persis dengan dokumen. Tidak ada saran yang diterapkan sebelum Anda memilihnya.</p><div class="max-h-72 overflow-y-auto">${rows}</div>`,
+                    showCancelButton: true, confirmButtonText: 'Gunakan yang dipilih', cancelButtonText: 'Isi manual',
+                    confirmButtonColor: '#047857', allowOutsideClick: false,
+                    preConfirm: () => {
+                        const selected = {};
+                        document.querySelectorAll('[data-ocr-key]:checked').forEach(box => {
+                            const key = box.dataset.ocrKey;
+                            if (suggestions[key]?.value) selected[key] = suggestions[key].value;
                         });
-                        if (signal.aborted || expired) { await worker.terminate(); throw new DOMException('Dibatalkan', 'AbortError'); }
-                        signal.addEventListener('abort', terminate, { once: true });
-                        return worker.recognize(file);
-                    })();
-                    const aborted = new Promise((_, reject) => {
-                        if (signal.aborted) reject(new DOMException('Dibatalkan', 'AbortError'));
-                        else signal.addEventListener('abort', () => reject(new DOMException('Dibatalkan', 'AbortError')), { once: true });
-                    });
-                    const { data } = await Promise.race([recognition, aborted, new Promise((_, reject) => {
-                        timeout = setTimeout(() => { expired = true; terminate(); reject(new Error('Pembacaan terlalu lama.')); }, 90000);
-                    })]);
-                    if (signal.aborted) return true;
-                    if (!Number.isFinite(data.confidence) || data.confidence < 65 || !data.text?.trim()) return scanner.manualChoice('Hasil pembacaan belum cukup meyakinkan.');
-                    SpsbForm.applyOcr(target, () => parseAndFill(data.text, target));
-                    scanner.progress(target, 'Selesai. Periksa dan koreksi hasil OCR.', 100);
-                    return true;
-                } finally {
-                    clearTimeout(timeout);
-                    signal.removeEventListener('abort', terminate);
-                    if (worker) await worker.terminate().catch(() => {});
+                        return selected;
+                    }
+                });
+                if (confirmation.isConfirmed && Object.keys(confirmation.value || {}).length) {
+                    SpsbForm.applyOcr(target, () => applyOcrFields(confirmation.value, target));
+                } else if (!confirmation.isConfirmed) {
+                    const useManual = await scanner.manualChoice('Saran tidak dipilih. Isi data secara manual atau foto ulang dokumen.');
+                    if (useManual) scanner.manualTargets.add(target);
+                    return useManual;
                 }
             }
-            const data = await scanner.request(file, target, signal);
-            if (signal.aborted) return true;
-            if (data.document_check?.is_expected_document === false || data.document_check?.confidence === 'low') {
-                return scanner.manualChoice('Jenis dokumen atau tulisannya belum dapat dipastikan.');
+
+            if (!Object.keys(values).length && !Object.keys(suggestions).length) {
+                const useManual = await scanner.manualChoice(result.warnings?.[0] || 'Tidak ada data yang cukup jelas untuk disarankan.');
+                if (useManual) scanner.manualTargets.add(target);
+                return useManual;
             }
-            // Structured fields must not be overwritten by a regex parsing the JSON response.
-            const fields = data.fields || {};
-            const useful = Object.entries(fields).some(([key, value]) => ['nama', 'nik', 'alamat', 'tanggal_lahir'].includes(key) && value);
-            if (useful) SpsbForm.applyOcr(target, () => applyOcrFields(fields, target));
-            else if (data.extracted_text?.trim() && !data.extracted_text.trim().startsWith('{')) SpsbForm.applyOcr(target, () => parseAndFill(data.extracted_text, target));
-            else return scanner.manualChoice('Tidak ada data yang berhasil dibaca.');
-            scanner.progress(target, 'Selesai. Periksa dan koreksi hasil OCR.', 100);
+            scanner.progress(target, 'Selesai. Periksa kembali data sebelum mengirim.', 100);
             return true;
         }
-
         function triggerHighlight(el) {
             el.classList.add('bg-emerald-50', 'border-emerald-500', 'ring-2', 'ring-emerald-200');
             setTimeout(() => {
@@ -979,146 +975,6 @@
             }
         }
 
-        function parseAndFill(text, target) {
-            const fullText = text.replace(/\r/g, '');
-            const noSpaceText = text.replace(/\s+/g, '').toUpperCase();
-
-            // Never infer missing digits or substitute letters in identity numbers.
-            const nikMatch = noSpaceText.match(/(?:NIK|NOMORINDUKKEPENDUDUKAN)[:;]?(\d{16})(?!\d)/);
-            if (nikMatch) {
-                const id = { akta: 'f_nik_anak', ayah: 'f_nik_ayah', ibu: 'f_nik_ibu' }[target];
-                if (id) setOcrValue(id, nikMatch[1]);
-            }
-
-            const ttlMatch = fullText.match(/Lahir\s*[:;]?\s*([A-Za-z\s]+)[\.,\s]+\s*(\d{2}[-\s\./]\d{2}[-\s\./]\d{4})/i);
-            if (ttlMatch) {
-                let elTmpt = null, elTgl = null;
-                if (target === 'ayah') {
-                    elTmpt = document.getElementById('f_tempat_lahir_ayah');
-                    elTgl = document.getElementById('f_tanggal_lahir_ayah');
-                } else if (target === 'ibu') {
-                    elTmpt = document.getElementById('f_tempat_lahir_ibu');
-                    elTgl = document.getElementById('f_tanggal_lahir_ibu');
-                } else if (target === 'akta') {
-                    elTmpt = document.getElementById('f_tempat_lahir');
-                    elTgl = document.getElementById('f_tanggal_lahir');
-                }
-                
-                if (elTmpt) { elTmpt.value = ttlMatch[1].trim(); triggerHighlight(elTmpt); }
-                if (elTgl) {
-                    const dateRaw = ttlMatch[2].replace(/[\s\.]/g, '-').replace(/\//g, '-');
-                    const parts = dateRaw.split('-');
-                    if(parts.length === 3) {
-                        elTgl.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        triggerHighlight(elTgl);
-                    }
-                }
-            }
-
-            const namaMatch = target === 'akta'
-                ? fullText.match(/\bBERNAMA[ \t]*[:;]?[ \t]*([^\n]+)/i)
-                : fullText.match(/(?:^|\n)[ \t]*NAMA[ \t]*[:;]?[ \t]*([^\n]+)/i);
-            if (namaMatch) {
-                const nama = cleanAiValue(namaMatch[1]);
-                let el = null;
-                if (target === 'ayah') el = document.getElementById('f_nama_ayah');
-                if (target === 'ibu') el = document.getElementById('f_nama_ibu');
-                if (target === 'akta') el = document.getElementById('f_nama_anak');
-                if (el) { el.value = nama; triggerHighlight(el); }
-            }
-
-            let rtRwRaw = "";
-            const rtRwMatch = fullText.match(/RT\s*[\/\\]?\s*RW\s*[:;]?\s*([0-9]{2,3}\s*[\/\\]\s*[0-9]{2,3})/i);
-            if (rtRwMatch) {
-                rtRwRaw = rtRwMatch[1].replace(/\s+/g, '');
-            }
-
-            let pekerjaanRaw = "";
-            const pekMatch = fullText.match(/PEKERJAAN\s*[:;]?\s*([A-Z\s\/-]+)/i);
-            if (pekMatch) {
-                pekerjaanRaw = pekMatch[1].replace(/KEWARGA.*/i, '').replace(/GOL.*/i, '').trim();
-            }
-
-            if (target === 'ayah' || target === 'ibu' || target === 'kk') {
-                const alamatMatch = fullText.match(/ALAMAT\s*[:;]?\s*([A-Z0-9\s\.\/\-,]+)/i);
-                
-                let kelurahanRaw = "";
-                const kelMatch = fullText.match(/(?:KEL(?:URAHAN)?[\/\\\|\s]+DESA|KEL\s*[\/\\\|]+\s*DESA|KELURAHAN|\bDESA\b)\s*[:;]?\s*([A-Z0-9\s\.\-]+)/i);
-                if (kelMatch) {
-                    kelurahanRaw = kelMatch[1]
-                        .replace(/KECAMATAN.*/i, '')
-                        .replace(/KEC\s.*/i, '')
-                        .replace(/KEC\..*/i, '')
-                        .replace(/AGAMA.*/i, '')
-                        .trim();
-                }
-
-                let kecamatanRaw = "";
-                const kecMatch = fullText.match(/KEC(?:AMATAN|AMALAN|AMAT)?\s*[:;]?\s*([A-Z0-9\s\.\-]+)/i);
-                if (kecMatch) {
-                    kecamatanRaw = kecMatch[1]
-                        .replace(/AGAMA.*/i, '')
-                        .replace(/KABUPATEN.*/i, '')
-                        .replace(/KOTA.*/i, '')
-                        .replace(/STATUS.*/i, '')
-                        .trim();
-                }
-                
-                let elAlamat = null, elRtRw = null, elKel = null, elKec = null, elPek = null;
-                
-                if (target === 'ayah') {
-                    elAlamat = document.getElementById('f_alamat_ayah');
-                    elRtRw = document.getElementById('f_rt_rw_ayah');
-                    elKel = document.getElementById('f_kelurahan_ayah');
-                    elKec = document.getElementById('f_kecamatan_ayah');
-                    elPek = document.getElementById('f_pek_ayah');
-                } else if (target === 'ibu') {
-                    elAlamat = document.getElementById('f_alamat_ibu');
-                    elRtRw = document.getElementById('f_rt_rw_ibu');
-                    elKel = document.getElementById('f_kelurahan_ibu');
-                    elKec = document.getElementById('f_kecamatan_ibu');
-                    elPek = document.getElementById('f_pek_ibu');
-                } else if (target === 'kk') {
-                    elAlamat = document.getElementById('f_alamat');
-                    elRtRw = document.getElementById('f_rt_rw');
-                    elKel = document.getElementById('f_kelurahan');
-                    elKec = document.getElementById('f_kecamatan');
-                }
-
-                if (alamatMatch && elAlamat) {
-                    let alamatRaw = alamatMatch[1]
-                        .replace(/RT\s*[\/\\]?\s*RW.*/i, '')
-                        .replace(/\bRT\b.*/i, '')
-                        .replace(/KEL(?:URAHAN)?[\/\\]DESA.*/i, '')
-                        .replace(/KELURAHAN.*/i, '')
-                        .replace(/\bDESA\b.*/i, '')
-                        .trim();
-                    elAlamat.value = alamatRaw;
-                    triggerHighlight(elAlamat);
-                }
-
-                if (rtRwRaw && elRtRw) {
-                    elRtRw.value = rtRwRaw;
-                    triggerHighlight(elRtRw);
-                }
-
-                if (kelurahanRaw && elKel) {
-                    elKel.value = kelurahanRaw;
-                    triggerHighlight(elKel);
-                }
-                
-                if (kecamatanRaw && elKec) {
-                    elKec.value = kecamatanRaw;
-                    triggerHighlight(elKec);
-                }
-
-                if (pekerjaanRaw && elPek) {
-                    elPek.value = pekerjaanRaw;
-                    triggerHighlight(elPek);
-                }
-            }
-        }
-
         function unlockStep2() {
             const step2 = document.getElementById('step-2');
             if (step2) {
@@ -1141,7 +997,15 @@
                 const scanner = window.SpsbScanner;
                 const target = this.dataset.target;
                 let file = this.files[0];
-                if (!file || scanner.tasks.has(target)) return;
+                if (!file) return;
+                if (scanner.tasks.has(target)) {
+                    scanner.tasks.get(target).abort();
+                    await scanner.discard(this);
+                    this.value = '';
+                    await Swal.fire({ icon: 'info', title: 'Pemindaian dibatalkan', text: 'Silakan pilih foto kembali setelah proses sebelumnya berhenti.' });
+                    return;
+                }
+                await scanner.discard(this);
                 SpsbForm.clearOcr(target);
                 const controller = new AbortController();
                 scanner.tasks.set(target, controller);
@@ -1169,13 +1033,13 @@
                     preview.onload = () => URL.revokeObjectURL(previewUrl);
                     preview.src = previewUrl; preview.classList.remove('hidden');
                     unlockStep2();
-                    if (scanner.manualTargets.has(target) || controller.signal.aborted) keep = true;
+                    if (controller.signal.aborted) keep = true;
                     else {
-                        scanner.progress(target, target === 'foto' ? 'Foto anak siap dilampirkan.' : 'Menyiapkan OCR…');
-                        keep = await runOCR(file, target, controller.signal);
+                        scanner.progress(target, scanner.manualTargets.has(target) || target === 'foto' ? 'Menyimpan foto sebagai lampiran…' : 'Menyiapkan OCR lokal di VPS…');
+                        keep = await runOCR(file, target, controller.signal, this);
                     }
                     if (controller.signal.aborted) keep = true;
-                    hint.textContent = scanner.manualTargets.has(target) ? 'Terlampir • isi data manual' : (target === 'foto' ? 'Foto anak terlampir' : 'Terlampir • periksa hasil OCR');
+                    hint.textContent = scanner.manualTargets.has(target) ? 'Terlampir • isi data manual' : (target === 'foto' ? 'Foto anak tersimpan' : 'Terlampir • periksa hasil OCR');
                     saveFormData(); updateProgress();
                 } catch (error) {
                     if (controller.signal.aborted) keep = true;
@@ -1186,9 +1050,10 @@
                         await Swal.fire({ icon: 'warning', title: 'Berkas belum sesuai', text: error.message });
                     }
                 } finally {
-                    if (!keep) { this.value = ''; preview.classList.add('hidden'); hint.textContent = 'Ketuk untuk foto ulang'; }
+                    if (!keep) { await scanner.discard(this); this.value = ''; preview.classList.add('hidden'); hint.textContent = 'Ketuk untuk foto ulang'; }
                     loading.classList.add('hidden'); loading.classList.remove('flex');
                     scanner.tasks.delete(target);
+                    scanner.manualTargets.delete(target);
                     updateProgress();
                 }
             });
@@ -1331,7 +1196,7 @@
                 if (input.type === 'checkbox') {
                     if (input.checked) filledCount++;
                 } else if (input.type === 'file') {
-                    if (input.files && input.files.length > 0) filledCount++;
+                    if ((input.files && input.files.length > 0) || input.dataset.stagingToken) filledCount++;
                 } else {
                     if (input.value.trim() !== '' && input.checkValidity()) filledCount++;
                 }

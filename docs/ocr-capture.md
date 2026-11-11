@@ -6,9 +6,11 @@ Pemeriksaan di perangkat menandai resolusi rendah, gambar gelap/terlalu terang, 
 
 KK, KTP Bapak, KTP Ibu, Akta Anak, dan foto anak tetap wajib pada pendaftaran baru, termasuk saat mengisi manual. Pada halaman revisi, berkas lama tetap disimpan jika tidak diganti.
 
-Persentase unggahan berasal dari transfer berkas. Pembacaan OCR lokal menampilkan persentase dari Tesseract. Pembacaan Direct AI/n8n menampilkan indikator menunggu karena endpoint belum menyediakan progres proses di server. Hasil yang meragukan menawarkan pengisian manual; respons yang datang setelah pembatalan diabaikan.
+Persentase unggahan berasal dari transfer berkas. Setelah foto masuk staging privat, layar menunjukkan antrean, persiapan foto, pembacaan, dan pemeriksaan hasil. Pekerjaan OCR berjalan pada PaddleOCR lokal di VPS; jaringan OCR tidak memiliki akses keluar. Jika antrean atau model bermasalah, foto tetap dapat dipakai untuk mengisi data manual.
 
-Resolusi maksimum gambar frontend 3200 piksel dengan kualitas JPEG 93%. Direct AI mempertahankan hingga 3200 piksel untuk KK dan 2400 untuk dokumen lain, serta meminta pembacaan detail tinggi. Data JSON terstruktur tidak diproses ulang sebagai teks bebas. NIK yang tidak lengkap tidak diisi otomatis, dan KK hanya mengisi alamat agar identitas anggota keluarga tidak tertukar.
+Resolusi maksimum gambar frontend 3200 piksel dengan kualitas JPEG 93%. Server memperbaiki orientasi EXIF, mencoba koreksi perspektif, meningkatkan kontras, dan melakukan satu pembacaan ulang jika hasil pertama belum memadai. Respons hanya berisi kolom terstruktur dan tingkat keyakinan; teks OCR mentah tidak disimpan. NIK tidak pernah diperbaiki dengan tebakan, KTP Bapak/Ibu mengisi data orang tua, Akta mengisi data anak, KK mengisi alamat, dan foto anak hanya menjadi lampiran.
+
+Setiap saran OCR perlu diperiksa. Isi dengan keyakinan sedang meminta konfirmasi pilihan pengguna; nilai rendah tetap kosong untuk pengisian manual. Auto-isi kuat dinonaktifkan sampai evaluasi dataset berizin membuktikan target akurasi.
 
 ## Menjalankan dan memeriksa
 
@@ -21,4 +23,4 @@ php vendor/phpunit/phpunit/phpunit --colors=never
 node --test tests/js/document-scanner.test.cjs
 ```
 
-Pengujian dengan kamera HP dan dokumen nyata masih diperlukan untuk menilai ketajaman kamera, ambang kualitas foto, serta akurasi model OCR yang dikonfigurasi.
+Pengujian dengan kamera HP dan dokumen nyata masih diperlukan untuk menilai ketajaman kamera, ambang kualitas foto, serta akurasi dan latensi model pada VPS sasaran. Petunjuk deployment dan evaluasi ada di [ocr-local-vps.md](ocr-local-vps.md).

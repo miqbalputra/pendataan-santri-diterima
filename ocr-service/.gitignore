@@ -1,0 +1,3 @@
+testdata/images/
+testdata/*.jsonl
+testdata/**/*.jsonl
